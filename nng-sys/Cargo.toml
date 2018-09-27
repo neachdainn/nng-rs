@@ -1,0 +1,7 @@
+[package]
+name = "nng-sys"
+version = "1.0.0"
+authors = ["Nathan Kent <nate@nkent.net>"]
+publish = false
+
+[dependencies]
