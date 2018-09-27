@@ -294,4 +294,26 @@ extern "C" {
 	pub fn nng_msg_insert_u32(msg: *mut nng_msg, val32: u32) -> c_int;
 	pub fn nng_msg_chop_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
 	pub fn nng_msg_trim_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
+
+	pub fn nng_msg_dup(dup: *mut *mut nng_msg, orig: *const nng_msg) -> c_int;
+	pub fn nng_msg_clear(msg: *mut nng_msg);
+	pub fn nng_msg_header_clear(msg: *mut nng_msg);
+	pub fn nng_msg_set_pipe(msg: *mut nng_msg, pipe: nng_pipe);
+	pub fn nng_msg_get_pipe(msg: *const nng_msg) -> nng_pipe;
+	pub fn nng_msg_getopt(msg: *mut nng_msg, opt: c_int, ptr: *mut c_void, szp: *mut size_t) -> c_int;
+
+	pub fn nng_pipe_getopt(d: nng_pipe, opt: *const c_char, val: *mut c_void, valszp: *mut size_t) -> c_int;
+	pub fn nng_pipe_getopt_bool(d: nng_pipe, opt: *const c_char, bvalp: *mut bool) -> c_int;
+	pub fn nng_pipe_getopt_int(d: nng_pipe, opt: *const c_char, ivalp: *mut c_int) -> c_int;
+	pub fn nng_pipe_getopt_ms(d: nng_pipe, opt: *const c_char, durp: *mut nng_duration) -> c_int;
+	pub fn nng_pipe_getopt_size(d: nng_pipe, opt: *const c_char, zp: *mut size_t) -> c_int;
+	pub fn nng_pipe_getopt_sockaddr(d: nng_pipe, opt: *const c_char, sap: *mut nng_sockaddr) -> c_int;
+	pub fn nng_pipe_getopt_uint64(d: nng_pipe, opt: *const c_char, u64p: *mut u64) -> c_int;
+	pub fn nng_pipe_getopt_ptr(d: nng_pipe, opt: *const c_char, ptr: *mut *mut c_void) -> c_int;
+	pub fn nng_pipe_getopt_string(d: nng_pipe, opt: *const c_char, strp: *mut *mut c_char) -> c_int;
+	pub fn nng_pipe_close(pipe: nng_pipe) -> c_int;
+	pub fn nng_pipe_id(pipe: nng_pipe) -> c_int;
+	pub fn nng_pipe_socket(pipe: nng_pipe) -> nng_socket;
+	pub fn nng_pipe_dialer(pipe: nng_pipe) -> nng_dialer;
+	pub fn nng_pipe_listener(pipe: nng_pipe) -> nng_listener;
 }
