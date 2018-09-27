@@ -6,10 +6,17 @@
 use std::os::raw::*;
 type size_t = usize;
 
+macro_rules! cstring
+{
+	($i:ident, $e:expr) => (
+		pub const $i: *const c_char = $e as *const _ as *const c_char;
+	)
+}
+
 pub const NNG_MAJOR_VERSION: c_int = 1;
 pub const NNG_MINOR_VERSION: c_int = 0;
 pub const NNG_PATCH_VERSION: c_int = 0;
-pub const NNG_RELEASE_SUFFIX: *const c_char = b"\0" as  *const _ as *const c_char;
+cstring!(NNG_RELEASE_SUFFIX, b"\0");
 
 pub const NNG_MAXADDRLEN: c_int = 128;
 
@@ -317,3 +324,40 @@ extern "C" {
 	pub fn nng_pipe_dialer(pipe: nng_pipe) -> nng_dialer;
 	pub fn nng_pipe_listener(pipe: nng_pipe) -> nng_listener;
 }
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub enum nng_flag_enum
+{
+	NNG_FLAG_ALLOC    = 1,
+	NNG_FLAG_NONBLOCK = 2,
+}
+
+cstring!(NNG_OPT_SOCKNAME, b"socket-name\0");
+cstring!(NNG_OPT_RAW, b"raw\0");
+cstring!(NNG_OPT_PROTO, b"protocol\0");
+cstring!(NNG_OPT_PROTONAME, b"protocol-name\0");
+cstring!(NNG_OPT_PEER, b"peer\0");
+cstring!(NNG_OPT_PEERNAME, b"peer-name\0");
+cstring!(NNG_OPT_RECVBUF, b"recv-buffer\0");
+cstring!(NNG_OPT_SENDBUF, b"send-buffer\0");
+cstring!(NNG_OPT_RECVFD, b"recv-fd\0");
+cstring!(NNG_OPT_SENDFD, b"send-fd\0");
+cstring!(NNG_OPT_RECVTIMEO, b"recv-timeout\0");
+cstring!(NNG_OPT_SENDTIMEO, b"send-timeout\0");
+cstring!(NNG_OPT_LOCADDR, b"local-address\0");
+cstring!(NNG_OPT_REMADDR, b"remote-address\0");
+cstring!(NNG_OPT_URL, b"url\0");
+cstring!(NNG_OPT_MAXTTL, b"ttl-max\0");
+cstring!(NNG_OPT_RECVMAXSZ, b"recv-size-max\0");
+cstring!(NNG_OPT_RECONNMINT, b"reconnect-time-min\0");
+cstring!(NNG_OPT_RECONNMAXT, b"reconnect-time-max\0");
+
+cstring!(NNG_OPT_TLS_CONFIG, b"tls-config\0");
+cstring!(NNG_OPT_TLS_AUTH_MODE, b"tls-authmode\0");
+cstring!(NNG_OPT_TLS_CERT_KEY_FILE, b"tls-cert-key-file\0");
+cstring!(NNG_OPT_TLS_CA_FILE, b"tls-ca-file\0");
+cstring!(NNG_OPT_TLS_SERVER_NAME, b"tls-server-name\0");
+cstring!(NNG_OPT_TLS_VERIFIED, b"tls-verified\0");
+cstring!(NNG_OPT_TCP_NODELAY, b"tcp-nodelay\0");
+cstring!(NNG_OPT_TCP_KEEPALIVE, b"tcp-keepalive\0");
