@@ -270,4 +270,28 @@ extern "C" {
 	pub fn nng_aio_set_iov(aio: *mut nng_aio, niov: c_uint, iov: *mut nng_iov) -> c_int;
 	pub fn nng_aio_finish(aio: *mut nng_aio, err: c_int);
 	pub fn nng_sleep_aio(msec: nng_duration, aio: *mut nng_aio);
+
+	pub fn nng_msg_alloc(msgp: *mut *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_free(msg: *mut nng_msg);
+	pub fn nng_msg_realloc(msg: *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_header(msg: *mut nng_msg) -> *mut c_void;
+	pub fn nng_msg_header_len(msg: *const nng_msg) -> size_t;
+	pub fn nng_msg_body(msg: *mut nng_msg) -> *mut c_void;
+	pub fn nng_msg_len(msg: *const nng_msg) -> size_t;
+	pub fn nng_msg_append(msg: *mut nng_msg, val: *const c_void, size: size_t) -> c_int;
+	pub fn nng_msg_insert(msg: *mut nng_msg, val: *const c_void, size: size_t) -> c_int;
+	pub fn nng_msg_trim(msg: *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_chop(msg: *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_header_append(msg: *mut nng_msg, val: *const c_void, size: size_t) -> c_int;
+	pub fn nng_msg_header_insert(msg: *mut nng_msg, val: *const c_void, size: size_t) -> c_int;
+	pub fn nng_msg_header_trim(msg: *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_header_chop(msg: *mut nng_msg, size: size_t) -> c_int;
+	pub fn nng_msg_header_append_u32(msg: *mut nng_msg, val32: u32) -> c_int;
+	pub fn nng_msg_header_insert_u32(msg: *mut nng_msg; val32: u32) -> c_int;
+	pub fn nng_msg_header_chop_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
+	pub fn nng_msg_header_trim_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
+	pub fn nng_msg_append_u32(msg: *mut nng_msg, val32: u32) -> c_int;
+	pub fn nng_msg_insert_u32(msg: *mut nng_msg, val32: u32) -> c_int;
+	pub fn nng_msg_chop_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
+	pub fn nng_msg_trim_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
 }
