@@ -9,3 +9,14 @@ The patch component may or may not match, depending on whether or not bugs are f
 
 Because `nng` does not (currently) use any compiler or environment specific settings in the public API, this crate is just a direct copy of the public API.
 This means that it is up to the user to make sure that the crate version matches the installed `nng` version.
+
+== Things Not Included ==
+
+This crate is currently not using https://github.com/rust-lang-nursery/rust-bindgen[bindgen] and is currently all hand written.
+As such, there were a few items that are currently not included because they didn't seem particularly applicable in a Rust crate.
+If you disagree with either not using Bindgen or a missing component, please submit a merge request because I likely don't have the time to add them myself.
+
+* Nanomsg compatibility functions
+* Supplemental HTTP functions
+* Supplemental TLS functions
+* Other (e.g., threads, random number generation) supplemental functions
