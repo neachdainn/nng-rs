@@ -13,6 +13,8 @@ macro_rules! cstring
 	)
 }
 
+pub mod protocol;
+
 pub const NNG_MAJOR_VERSION: c_int = 1;
 pub const NNG_MINOR_VERSION: c_int = 0;
 pub const NNG_PATCH_VERSION: c_int = 0;
