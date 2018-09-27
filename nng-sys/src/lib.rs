@@ -139,7 +139,8 @@ pub const NNG_DURATION_DEFAULT: c_int = -2;
 pub const NNG_DURATION_ZERO: c_int = 0;
 
 #[link(name = "nng")]
-extern "C" {
+extern "C"
+{
 	pub fn nng_fini();
 	pub fn nng_close(s: nng_socket) -> c_int;
 	pub fn nng_socket_id(s: nng_socket) -> c_int;
@@ -175,7 +176,8 @@ pub enum nng_pipe_ev
 pub type nng_pipe_cb = extern "C" fn(nng_pipe, c_int, *mut c_void);
 
 #[link(name = "nng")]
-extern "C" {
+extern "C"
+{
 	pub fn nng_pipe_notify(s: nng_socket, ev: c_int, cb: nng_pipe_cb, arg: *mut c_void) -> c_int;
 	pub fn nng_getopt_string(s: nng_socket, opt: *const c_char, strp: *mut *mut c_char) -> c_int;
 	pub fn nng_listen(s: nng_socket, url: *const c_char, lp: *mut nng_listener, flags: c_int) -> c_int;
@@ -294,7 +296,7 @@ extern "C" {
 	pub fn nng_msg_header_trim(msg: *mut nng_msg, size: size_t) -> c_int;
 	pub fn nng_msg_header_chop(msg: *mut nng_msg, size: size_t) -> c_int;
 	pub fn nng_msg_header_append_u32(msg: *mut nng_msg, val32: u32) -> c_int;
-	pub fn nng_msg_header_insert_u32(msg: *mut nng_msg; val32: u32) -> c_int;
+	pub fn nng_msg_header_insert_u32(msg: *mut nng_msg, val32: u32) -> c_int;
 	pub fn nng_msg_header_chop_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
 	pub fn nng_msg_header_trim_u32(msg: *mut nng_msg, val32: *mut u32) -> c_int;
 	pub fn nng_msg_append_u32(msg: *mut nng_msg, val32: u32) -> c_int;
@@ -361,3 +363,93 @@ cstring!(NNG_OPT_TLS_SERVER_NAME, b"tls-server-name\0");
 cstring!(NNG_OPT_TLS_VERIFIED, b"tls-verified\0");
 cstring!(NNG_OPT_TCP_NODELAY, b"tcp-nodelay\0");
 cstring!(NNG_OPT_TCP_KEEPALIVE, b"tcp-keepalive\0");
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub enum nng_stat_type_enum
+{
+	NNG_STAT_LEVEL   = 0,
+	NNG_STAT_COUNTER = 1,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub enum nng_unit_enum
+{
+	NNG_UNIT_NONE     = 0,
+	NNG_UNIT_BYTES    = 1,
+	NNG_UNIT_MESSAGES = 2,
+	NNG_UNIT_BOOLEAN  = 3,
+	NNG_UNIT_MILLIS   = 4,
+	NNG_UNIT_EVENTS   = 5,
+}
+
+#[link(name = "nng")]
+extern "C"
+{
+	pub fn nng_device(s1: nng_socket, s2: nng_socket) -> c_int;
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub enum nng_errno_enum {
+	NNG_EINTR        = 1,
+	NNG_ENOMEM       = 2,
+	NNG_EINVAL       = 3,
+	NNG_EBUSY        = 4,
+	NNG_ETIMEDOUT    = 5,
+	NNG_ECONNREFUSED = 6,
+	NNG_ECLOSED      = 7,
+	NNG_EAGAIN       = 8,
+	NNG_ENOTSUP      = 9,
+	NNG_EADDRINUSE   = 10,
+	NNG_ESTATE       = 11,
+	NNG_ENOENT       = 12,
+	NNG_EPROTO       = 13,
+	NNG_EUNREACHABLE = 14,
+	NNG_EADDRINVAL   = 15,
+	NNG_EPERM        = 16,
+	NNG_EMSGSIZE     = 17,
+	NNG_ECONNABORTED = 18,
+	NNG_ECONNRESET   = 19,
+	NNG_ECANCELED    = 20,
+	NNG_ENOFILES     = 21,
+	NNG_ENOSPC       = 22,
+	NNG_EEXIST       = 23,
+	NNG_EREADONLY    = 24,
+	NNG_EWRITEONLY   = 25,
+	NNG_ECRYPTO      = 26,
+	NNG_EPEERAUTH    = 27,
+	NNG_ENOARG       = 28,
+	NNG_EAMBIGUOUS   = 29,
+	NNG_EBADTYPE     = 30,
+	NNG_EINTERNAL    = 1000,
+	NNG_ESYSERR      = 0x10000000,
+	NNG_ETRANERR     = 0x20000000,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct nng_url
+{
+	u_rawurl: *mut c_char,
+	u_scheme: *mut c_char,
+	u_userinfo: *mut c_char,
+	u_host: *mut c_char,
+	u_hostname: *mut c_char,
+	u_port: *mut c_char,
+	u_path: *mut c_char,
+	u_query: *mut c_char,
+	u_fragment: *mut c_char,
+	u_requir: *mut c_char,
+}
+
+#[link(name = "nng")]
+extern "C"
+{
+	pub fn nng_url_parse(urlp: *mut *mut nng_url, str: *const c_char) -> c_int;
+	pub fn nng_url_free(url: *mut nng_url);
+	pub fn nng_url_clone(dup: *mut *mut nng_url, orig: *mut nng_url) -> c_int;
+
+	pub fn nng_version() -> *const c_char;
+}
