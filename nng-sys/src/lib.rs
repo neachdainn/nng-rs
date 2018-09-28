@@ -19,6 +19,7 @@ macro_rules! cstring
 }
 
 pub mod protocol;
+pub mod supplemental;
 
 pub const NNG_MAJOR_VERSION: c_int = 1;
 pub const NNG_MINOR_VERSION: c_int = 0;
@@ -273,6 +274,7 @@ extern "C"
 	pub fn nng_aio_result(aio: *mut nng_aio) -> c_int;
 	pub fn nng_aio_count(aio: *mut nng_aio) -> size_t;
 	pub fn nng_aio_cancel(aio: *mut nng_aio);
+	pub fn nng_aio_abort(aio: *mut nng_aio, err: c_int);
 	pub fn nng_aio_wait(aio: *mut nng_aio);
 	pub fn nng_aio_set_msg(aio: *mut nng_aio, msg: *mut nng_msg);
 	pub fn nng_aio_get_msg(aio: *mut nng_aio) -> *mut nng_msg;

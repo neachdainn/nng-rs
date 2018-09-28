@@ -1,4 +1,5 @@
-use super::*;
+use std::os::raw::*;
+use nng_socket;
 
 // The non-versioned functions depend on include order. The closest Rust
 // approximation is defining them in the versioned module.
