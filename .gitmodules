@@ -1,0 +1,3 @@
+[submodule "nng-sys/libnng"]
+	path = nng-sys/libnng
+	url = https://github.com/nanomsg/nng

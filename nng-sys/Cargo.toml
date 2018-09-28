@@ -4,4 +4,12 @@ version = "1.0.0"
 authors = ["Nathan Kent <nate@nkent.net>"]
 publish = false
 
+[features]
+default = ["build-nng"]
+#default = []
+build-nng = []
+
 [dependencies]
+
+[build-dependencies]
+cmake = "0.1"

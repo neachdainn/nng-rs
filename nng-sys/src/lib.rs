@@ -6,6 +6,11 @@
 use std::os::raw::*;
 type size_t = usize;
 
+/// Macro for making constant c-strings
+///
+/// This macro cleans up the process of converting a `&[u8] into a `*const
+/// c_char`. The caller is required to make sure the string ends in an null
+/// character as I couldn't figure out a way to do that in the macro itself.
 macro_rules! cstring
 {
 	($i:ident, $e:expr) => (
@@ -58,16 +63,16 @@ pub const NNG_CTX_INITIALIZER: nng_ctx = nng_ctx { id: 0 };
 #[derive(Copy, Clone)]
 pub struct nng_sockaddr_inproc
 {
-	sa_family: u16,
-	sa_name: [c_char; NNG_MAXADDRLEN as usize],
+	pub sa_family: u16,
+	pub sa_name: [c_char; NNG_MAXADDRLEN as usize],
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct nng_sockaddr_path
 {
-	sa_family: u16,
-	sa_name: [c_char; NNG_MAXADDRLEN as usize],
+	pub sa_family: u16,
+	pub sa_name: [c_char; NNG_MAXADDRLEN as usize],
 }
 pub type nng_sockaddr_ipc = nng_sockaddr_path;
 
@@ -75,9 +80,9 @@ pub type nng_sockaddr_ipc = nng_sockaddr_path;
 #[derive(Copy, Clone, Debug)]
 pub struct nng_sockaddr_in6
 {
-	sa_family: u16,
-	sa_port: u16,
-	sa_addr: [u8; 16],
+	pub sa_family: u16,
+	pub sa_port: u16,
+	pub sa_addr: [u8; 16],
 }
 pub type nng_sockaddr_udp6 = nng_sockaddr_in6;
 pub type nng_sockaddr_tcp6 = nng_sockaddr_in6;
@@ -86,19 +91,19 @@ pub type nng_sockaddr_tcp6 = nng_sockaddr_in6;
 #[derive(Copy, Clone, Debug)]
 pub struct nng_sockaddr_in
 {
-	sa_family: u16,
-	sa_port: u16,
-	sa_addr: u32,
+	pub sa_family: u16,
+	pub sa_port: u16,
+	pub sa_addr: u32,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct nng_sockaddr_zt
 {
-	sa_family: u16,
-	sa_nwid: u64,
-	sa_nodeid: u64,
-	sa_port: u32,
+	pub sa_family: u16,
+	pub sa_nwid: u64,
+	pub sa_nodeid: u64,
+	pub sa_port: u32,
 }
 
 pub type nng_sockaddr_udp = nng_sockaddr_in;
@@ -108,12 +113,12 @@ pub type nng_sockaddr_tcp = nng_sockaddr_in;
 #[derive(Copy, Clone)]
 pub union nng_sockaddr
 {
-	s_family: u16,
-	s_ipc: nng_sockaddr_ipc,
-	s_inproc: nng_sockaddr_inproc,
-	s_in6: nng_sockaddr_in6,
-	s_in: nng_sockaddr_in,
-	s_zt: nng_sockaddr_zt,
+	pub s_family: u16,
+	pub s_ipc: nng_sockaddr_ipc,
+	pub s_inproc: nng_sockaddr_inproc,
+	pub s_in6: nng_sockaddr_in6,
+	pub s_in: nng_sockaddr_in,
+	pub s_zt: nng_sockaddr_zt,
 }
 
 #[repr(C)]
@@ -132,15 +137,14 @@ pub enum nng_sockaddr_family
 #[derive(Copy, Clone, Debug)]
 pub struct nng_iov
 {
-	iov_buf: *mut c_void,
-	iov_len: size_t,
+	pub iov_buf: *mut c_void,
+	pub iov_len: size_t,
 }
 
 pub const NNG_DURATION_INFINITE: c_int = -1;
 pub const NNG_DURATION_DEFAULT: c_int = -2;
 pub const NNG_DURATION_ZERO: c_int = 0;
 
-#[link(name = "nng")]
 extern "C"
 {
 	pub fn nng_fini();
@@ -177,7 +181,6 @@ pub enum nng_pipe_ev
 
 pub type nng_pipe_cb = extern "C" fn(nng_pipe, c_int, *mut c_void);
 
-#[link(name = "nng")]
 extern "C"
 {
 	pub fn nng_pipe_notify(s: nng_socket, ev: c_int, cb: nng_pipe_cb, arg: *mut c_void) -> c_int;
@@ -386,7 +389,6 @@ pub enum nng_unit_enum
 	NNG_UNIT_EVENTS   = 5,
 }
 
-#[link(name = "nng")]
 extern "C"
 {
 	pub fn nng_device(s1: nng_socket, s2: nng_socket) -> c_int;
@@ -434,19 +436,18 @@ pub enum nng_errno_enum {
 #[derive(Copy, Clone, Debug)]
 pub struct nng_url
 {
-	u_rawurl: *mut c_char,
-	u_scheme: *mut c_char,
-	u_userinfo: *mut c_char,
-	u_host: *mut c_char,
-	u_hostname: *mut c_char,
-	u_port: *mut c_char,
-	u_path: *mut c_char,
-	u_query: *mut c_char,
-	u_fragment: *mut c_char,
-	u_requir: *mut c_char,
+	pub u_rawurl: *mut c_char,
+	pub u_scheme: *mut c_char,
+	pub u_userinfo: *mut c_char,
+	pub u_host: *mut c_char,
+	pub u_hostname: *mut c_char,
+	pub u_port: *mut c_char,
+	pub u_path: *mut c_char,
+	pub u_query: *mut c_char,
+	pub u_fragment: *mut c_char,
+	pub u_requir: *mut c_char,
 }
 
-#[link(name = "nng")]
 extern "C"
 {
 	pub fn nng_url_parse(urlp: *mut *mut nng_url, str: *const c_char) -> c_int;

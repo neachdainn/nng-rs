@@ -7,7 +7,6 @@ pub mod bus0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_bus0_open(s: *mut nng_socket) -> c_int;
@@ -22,7 +21,6 @@ pub mod pair0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_pair0_open(s: *mut nng_socket) -> c_int;
@@ -37,7 +35,6 @@ pub mod pair1
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_pair1_open(s: *mut nng_socket) -> c_int;
@@ -54,7 +51,6 @@ pub mod pipeline0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_pull0_open(s: *mut nng_socket) -> c_int;
@@ -75,7 +71,6 @@ pub mod pubsub0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_pub0_open(s: *mut nng_socket) -> c_int;
@@ -99,7 +94,6 @@ pub mod reqrep0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_req0_open(s: *mut nng_socket) -> c_int;
@@ -122,7 +116,6 @@ pub mod survey0
 {
 	use super::*;
 
-	#[link(name = "nng")]
 	extern "C"
 	{
 		pub fn nng_respondent0_open(s: *mut nng_socket) -> c_int;
