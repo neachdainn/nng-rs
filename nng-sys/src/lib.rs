@@ -20,6 +20,7 @@ macro_rules! cstring
 
 pub mod protocol;
 pub mod supplemental;
+pub mod transport;
 
 pub const NNG_MAJOR_VERSION: c_int = 1;
 pub const NNG_MINOR_VERSION: c_int = 0;
