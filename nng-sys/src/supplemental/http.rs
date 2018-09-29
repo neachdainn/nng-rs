@@ -146,8 +146,8 @@ extern "C"
 	pub fn nng_http_server_stop(server: *mut nng_http_server);
 	pub fn nng_http_server_add_handler(server: *mut nng_http_server, h: *mut nng_http_handler) -> c_int;
 	pub fn nng_http_server_del_handler(server: *mut nng_http_server, h: *mut nng_http_handler) -> c_int;
-	pub fn nng_http_server_set_tls(server: *mut nng_http_server, tls: *mut nng_tls_config) -> c_int;
-	pub fn nng_http_server_get_tls(server: *mut nng_http_server, tlsp: *mut *mut nng_tls_config) -> c_int;
+	pub fn nng_http_server_set_tls(server: *mut nng_http_server, cfg: *mut nng_tls_config) -> c_int;
+	pub fn nng_http_server_get_tls(server: *mut nng_http_server, cfgp: *mut *mut nng_tls_config) -> c_int;
 	pub fn nng_http_hijack(conn: *mut nng_http_conn) -> c_int;
 }
 
@@ -156,7 +156,7 @@ extern "C"
 {
 	pub fn nng_http_client_alloc(clientp: *mut *mut nng_http_client, url: *const nng_url) -> c_int;
 	pub fn nng_http_client_free(client: *mut nng_http_client);
-	pub fn nng_http_client_set_tls(client: *mut nng_http_client, tls: *mut nng_tls_config) -> c_int;
-	pub fn nng_http_client_get_tls(client: *mut nng_http_client, tlsp: *mut *mut nng_tls_config) -> c_int;
+	pub fn nng_http_client_set_tls(client: *mut nng_http_client, cfg: *mut nng_tls_config) -> c_int;
+	pub fn nng_http_client_get_tls(client: *mut nng_http_client, cfgp: *mut *mut nng_tls_config) -> c_int;
 	pub fn nng_http_client_connect(client: *mut nng_http_client, aio: *mut nng_aio);
 }
