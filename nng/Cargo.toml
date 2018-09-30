@@ -1,0 +1,8 @@
+[package]
+name = "nng"
+version = "0.1.0"
+authors = ["Nathan Kent <nate@nkent.net>"]
+publish = false
+
+[dependencies]
+nng-sys = { path = "../nng-sys" }
