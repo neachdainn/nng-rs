@@ -1,0 +1,8 @@
+= Bindings for nanomsg-next-generation
+
+This crate provides the FFI bindings for https://nanomsg.github.io/nng/[nng].
+The major and minor versions of this crate are guaranteed to match the major and minor components of the targeted `nng` version.
+The patch component may or may not match, depending on whether or not bugs are found in the Rust wrapper.
+
+The `nng` library is built by default.
+This can be disabled by setting `default-features` to `false`.
