@@ -1,5 +1,5 @@
 //! Error management module.
-use std::{fmt, io};
+use std::{error, fmt, io};
 
 /// Specialized `Result` type for use with nng.
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -20,7 +20,7 @@ impl Error
 	}
 }
 
-impl ::std::error::Error for Error {}
+impl error::Error for Error {}
 
 impl From<ErrorKind> for Error
 {
@@ -32,17 +32,27 @@ impl From<ErrorKind> for Error
 
 impl From<Error> for io::Error
 {
-	/// Converts from an `nng` error to a standard IO error.
-	///
-	/// If this is an OS error, it will convert using the code. Otherwise, it
-	/// will attempt to match up the `std::io::ErrorKind` with one of the `nng`
-	/// errors, failing back to `Other` as a last resort.
 	fn from(e: Error) -> io::Error
 	{
 		if let ErrorKind::SystemErr(c) = e.kind {
 			io::Error::from_raw_os_error(c)
 		} else {
-			io::Error::new(io::ErrorKind::Other, e)
+			let new_kind = match e.kind {
+				ErrorKind::Interrupted => io::ErrorKind::Interrupted,
+				ErrorKind::InvalidInput | ErrorKind::NoArgument => io::ErrorKind::InvalidInput,
+				ErrorKind::TimedOut => io::ErrorKind::TimedOut,
+				ErrorKind::TryAgain => io::ErrorKind::WouldBlock,
+				ErrorKind::ConnectionRefused => io::ErrorKind::ConnectionRefused,
+				ErrorKind::PermissionDenied => io::ErrorKind::PermissionDenied,
+				ErrorKind::ConnectionAborted => io::ErrorKind::ConnectionAborted,
+				ErrorKind::ConnectionReset => io::ErrorKind::ConnectionReset,
+				ErrorKind::Canceled => io::ErrorKind::Interrupted, // I am not sure about this one
+				ErrorKind::ResourceExists => io::ErrorKind::AlreadyExists,
+				ErrorKind::BadType => io::ErrorKind::InvalidData,
+				_ => io::ErrorKind::Other,
+			};
+
+			io::Error::new(new_kind, e)
 		}
 	}
 }
@@ -59,38 +69,103 @@ impl fmt::Display for Error
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ErrorKind
 {
+	/// The operation was interrupted
 	Interrupted,
+
+	/// Insufficient memory available to perform the operation
 	OutOfMemory,
-	InvalidArgument,
+
+	/// An invalid argument was specified
+	InvalidInput,
+
+	/// The resource is busy
 	Busy,
+
+	/// The operation timed out
 	TimedOut,
+
+	/// Connection refused by peer
 	ConnectionRefused,
+
+	/// The resource is already closed or was never opened
 	Closed,
+
+	/// Operation would block
 	TryAgain,
+
+	/// Operation is not supported by the library
 	NotSupported,
+
+	/// The address is already in use
 	AddressInUse,
+
+	/// The resource is not in the appropriate state for the operation
 	IncorrectState,
+
+	/// Entry was not found
 	EntryNotFound,
+
+	/// A protocol error occurred
 	ProtocolError,
-	DestinationUnreachable,
+
+	/// Remote address is unreachable
+	DestUnreachable,
+
+	/// An invalid URL was specified
 	AddressInvalid,
+
+	/// Did not have the required permissions to complete the operation
 	PermissionDenied,
+
+	/// The message was too large
 	MessageTooLarge,
+
+	/// Connection attempt aborted
 	ConnectionAborted,
+
+	/// Connection reset or closed by peer
 	ConnectionReset,
+
+	/// The operation was canceled
 	Canceled,
+
+	/// Out of files
 	OutOfFiles,
+
+	/// Insufficient persistent storage
 	OutOfSpace,
+
+	/// Resource already exists
 	ResourceExists,
+
+	/// The specified option is read-only
 	ReadOnly,
+
+	/// The specified option is write-only
 	WriteOnly,
+
+	/// A cryptographic error occurred
 	Crypto,
+
+	/// Authentication or authorization failure
 	PeerAuth,
-	Argument,
+
+	/// The option requires an argument but it was not present
+	NoArgument,
+
+	/// Parsed option matches more than one specification
 	Ambiguous,
+
+	/// Incorrect type used for option
 	BadType,
+
+	/// An internal error occurred.
 	Internal,
+
+	/// An unknown system error occurred.
 	SystemErr(i32),
+
+	/// An unknown transport error occurred.
 	TransportErr(i32),
 
 	/// Unknown error code
@@ -114,7 +189,7 @@ impl ErrorKind
 			0            => panic!("OK result passed as an error"),
 			codes::EINTR        => ErrorKind::Interrupted,
 			codes::ENOMEM       => ErrorKind::OutOfMemory,
-			codes::EINVAL       => ErrorKind::InvalidArgument,
+			codes::EINVAL       => ErrorKind::InvalidInput,
 			codes::EBUSY        => ErrorKind::Busy,
 			codes::ETIMEDOUT    => ErrorKind::TimedOut,
 			codes::ECONNREFUSED => ErrorKind::ConnectionRefused,
@@ -125,7 +200,7 @@ impl ErrorKind
 			codes::ESTATE       => ErrorKind::IncorrectState,
 			codes::ENOENT       => ErrorKind::EntryNotFound,
 			codes::EPROTO       => ErrorKind::ProtocolError,
-			codes::EUNREACHABLE => ErrorKind::DestinationUnreachable,
+			codes::EUNREACHABLE => ErrorKind::DestUnreachable,
 			codes::EADDRINVAL   => ErrorKind::AddressInvalid,
 			codes::EPERM        => ErrorKind::PermissionDenied,
 			codes::EMSGSIZE     => ErrorKind::MessageTooLarge,
@@ -139,7 +214,7 @@ impl ErrorKind
 			codes::EWRITEONLY   => ErrorKind::WriteOnly,
 			codes::ECRYPTO      => ErrorKind::Crypto,
 			codes::EPEERAUTH    => ErrorKind::PeerAuth,
-			codes::ENOARG       => ErrorKind::Argument,
+			codes::ENOARG       => ErrorKind::NoArgument,
 			codes::EAMBIGUOUS   => ErrorKind::Ambiguous,
 			codes::EBADTYPE     => ErrorKind::BadType,
 			codes::EINTERNAL    => ErrorKind::Internal,
@@ -149,6 +224,7 @@ impl ErrorKind
 		}
 	}
 }
+
 impl fmt::Display for ErrorKind
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
@@ -163,40 +239,40 @@ impl fmt::Display for ErrorKind
 		// to produce the output message for us. I am fairly certain that
 		// creating one is not a heavy operation, so this should be fine.
 		match *self {
-			ErrorKind::Interrupted => write!(f, "Interrupted"),
-			ErrorKind::OutOfMemory => write!(f, "Out of memory"),
-			ErrorKind::InvalidArgument => write!(f, "Invalid argument"),
-			ErrorKind::Busy => write!(f, "Resource busy"),
-			ErrorKind::TimedOut => write!(f, "Timed out"),
+			ErrorKind::Interrupted       => write!(f, "Interrupted"),
+			ErrorKind::OutOfMemory       => write!(f, "Out of memory"),
+			ErrorKind::InvalidInput      => write!(f, "Invalid argument"),
+			ErrorKind::Busy              => write!(f, "Resource busy"),
+			ErrorKind::TimedOut          => write!(f, "Timed out"),
 			ErrorKind::ConnectionRefused => write!(f, "Connection refused"),
-			ErrorKind::Closed => write!(f, "Object closed"),
-			ErrorKind::TryAgain => write!(f, "Try again"),
-			ErrorKind::NotSupported => write!(f, "Not supported"),
-			ErrorKind::AddressInUse => write!(f, "Address in use"),
-			ErrorKind::IncorrectState => write!(f, "Incorrect state"),
-			ErrorKind::EntryNotFound => write!(f, "Entry not found"),
-			ErrorKind::ProtocolError => write!(f, "Protocol error"),
-			ErrorKind::DestinationUnreachable => write!(f, "Destination unreachable"),
-			ErrorKind::AddressInvalid => write!(f, "Address invalid"),
-			ErrorKind::PermissionDenied => write!(f, "Permission denied"),
-			ErrorKind::MessageTooLarge => write!(f, "Message too large"),
-			ErrorKind::ConnectionReset => write!(f, "Connection reset"),
+			ErrorKind::Closed            => write!(f, "Object closed"),
+			ErrorKind::TryAgain          => write!(f, "Try again"),
+			ErrorKind::NotSupported      => write!(f, "Not supported"),
+			ErrorKind::AddressInUse      => write!(f, "Address in use"),
+			ErrorKind::IncorrectState    => write!(f, "Incorrect state"),
+			ErrorKind::EntryNotFound     => write!(f, "Entry not found"),
+			ErrorKind::ProtocolError     => write!(f, "Protocol error"),
+			ErrorKind::DestUnreachable   => write!(f, "Destination unreachable"),
+			ErrorKind::AddressInvalid    => write!(f, "Address invalid"),
+			ErrorKind::PermissionDenied  => write!(f, "Permission denied"),
+			ErrorKind::MessageTooLarge   => write!(f, "Message too large"),
+			ErrorKind::ConnectionReset   => write!(f, "Connection reset"),
 			ErrorKind::ConnectionAborted => write!(f, "Connection aborted"),
-			ErrorKind::Canceled => write!(f, "Operation canceled"),
-			ErrorKind::OutOfFiles => write!(f, "Out of files"),
-			ErrorKind::OutOfSpace => write!(f, "Out of space"),
-			ErrorKind::ResourceExists => write!(f, "Resource already exists"),
-			ErrorKind::ReadOnly => write!(f, "Read only resource"),
-			ErrorKind::WriteOnly => write!(f, "Write only resource"),
-			ErrorKind::Crypto => write!(f, "Cryptographic error"),
-			ErrorKind::PeerAuth => write!(f, "Peer could not be authenticated"),
-			ErrorKind::Argument => write!(f, "Option requires argument"),
-			ErrorKind::Ambiguous => write!(f, "Ambiguous option"),
-			ErrorKind::BadType => write!(f, "Incorrect type"),
-			ErrorKind::Internal => write!(f, "Internal error detected"),
-			ErrorKind::SystemErr(c) => write!(f, "{}", io::Error::from_raw_os_error(c)),
-			ErrorKind::TransportErr(c) => write!(f, "Transport error #{}", c),
-			ErrorKind::Unknown(c) => write!(f, "Unknown error code #{}", c),
+			ErrorKind::Canceled          => write!(f, "Operation canceled"),
+			ErrorKind::OutOfFiles        => write!(f, "Out of files"),
+			ErrorKind::OutOfSpace        => write!(f, "Out of space"),
+			ErrorKind::ResourceExists    => write!(f, "Resource already exists"),
+			ErrorKind::ReadOnly          => write!(f, "Read only resource"),
+			ErrorKind::WriteOnly         => write!(f, "Write only resource"),
+			ErrorKind::Crypto            => write!(f, "Cryptographic error"),
+			ErrorKind::PeerAuth          => write!(f, "Peer could not be authenticated"),
+			ErrorKind::NoArgument        => write!(f, "Option requires argument"),
+			ErrorKind::Ambiguous         => write!(f, "Ambiguous option"),
+			ErrorKind::BadType           => write!(f, "Incorrect type"),
+			ErrorKind::Internal          => write!(f, "Internal error detected"),
+			ErrorKind::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c)),
+			ErrorKind::TransportErr(c)   => write!(f, "Transport error #{}", c),
+			ErrorKind::Unknown(c)        => write!(f, "Unknown error code #{}", c),
 		}
 	}
 }
