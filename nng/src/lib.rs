@@ -7,7 +7,7 @@ macro_rules! rv2res
 	($rv:expr, $ok:expr) => (
 		match $rv {
 			0 => Ok($ok),
-			e => Err($crate::Error::from_code(e)),
+			e => Err($crate::error::ErrorKind::from_code(e).into()),
 		}
 	);
 
