@@ -74,7 +74,7 @@ pub struct nng_sockaddr_inproc
 pub struct nng_sockaddr_path
 {
 	pub sa_family: u16,
-	pub sa_name: [c_char; NNG_MAXADDRLEN as usize],
+	pub sa_path: [c_char; NNG_MAXADDRLEN as usize],
 }
 pub type nng_sockaddr_ipc = nng_sockaddr_path;
 
@@ -123,17 +123,13 @@ pub union nng_sockaddr
 	pub s_zt: nng_sockaddr_zt,
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub enum nng_sockaddr_family
-{
-	NNG_AF_UNSPEC = 0,
-	NNG_AF_INPROC = 1,
-	NNG_AF_IPC    = 2,
-	NNG_AF_INET   = 3,
-	NNG_AF_INET6  = 4,
-	NNG_AF_ZT     = 5,
-}
+pub type nng_sockaddr_family = u16;
+pub const NNG_AF_UNSPEC: nng_sockaddr_family = 0;
+pub const NNG_AF_INPROC: nng_sockaddr_family = 1;
+pub const NNG_AF_IPC: nng_sockaddr_family    = 2;
+pub const NNG_AF_INET: nng_sockaddr_family   = 3;
+pub const NNG_AF_INET6: nng_sockaddr_family  = 4;
+pub const NNG_AF_ZT: nng_sockaddr_family     = 5;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -335,13 +331,9 @@ extern "C"
 	pub fn nng_pipe_listener(pipe: nng_pipe) -> nng_listener;
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub enum nng_flag_enum
-{
-	NNG_FLAG_ALLOC    = 1,
-	NNG_FLAG_NONBLOCK = 2,
-}
+pub type nng_flag_enum = c_int;
+pub const NNG_FLAG_ALLOC: nng_flag_enum     = 1;
+pub const NNG_FLAG_NONBLOCK: nng_flag_enum  = 2;
 
 cstring!(NNG_OPT_SOCKNAME, b"socket-name\0");
 cstring!(NNG_OPT_RAW, b"raw\0");
@@ -397,43 +389,40 @@ extern "C"
 	pub fn nng_device(s1: nng_socket, s2: nng_socket) -> c_int;
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub enum nng_errno_enum {
-	NNG_EINTR        = 1,
-	NNG_ENOMEM       = 2,
-	NNG_EINVAL       = 3,
-	NNG_EBUSY        = 4,
-	NNG_ETIMEDOUT    = 5,
-	NNG_ECONNREFUSED = 6,
-	NNG_ECLOSED      = 7,
-	NNG_EAGAIN       = 8,
-	NNG_ENOTSUP      = 9,
-	NNG_EADDRINUSE   = 10,
-	NNG_ESTATE       = 11,
-	NNG_ENOENT       = 12,
-	NNG_EPROTO       = 13,
-	NNG_EUNREACHABLE = 14,
-	NNG_EADDRINVAL   = 15,
-	NNG_EPERM        = 16,
-	NNG_EMSGSIZE     = 17,
-	NNG_ECONNABORTED = 18,
-	NNG_ECONNRESET   = 19,
-	NNG_ECANCELED    = 20,
-	NNG_ENOFILES     = 21,
-	NNG_ENOSPC       = 22,
-	NNG_EEXIST       = 23,
-	NNG_EREADONLY    = 24,
-	NNG_EWRITEONLY   = 25,
-	NNG_ECRYPTO      = 26,
-	NNG_EPEERAUTH    = 27,
-	NNG_ENOARG       = 28,
-	NNG_EAMBIGUOUS   = 29,
-	NNG_EBADTYPE     = 30,
-	NNG_EINTERNAL    = 1000,
-	NNG_ESYSERR      = 0x10000000,
-	NNG_ETRANERR     = 0x20000000,
-}
+pub type nng_errno_enum = c_int;
+pub const NNG_EINTR: nng_errno_enum        = 1;
+pub const NNG_ENOMEM: nng_errno_enum       = 2;
+pub const NNG_EINVAL: nng_errno_enum       = 3;
+pub const NNG_EBUSY: nng_errno_enum        = 4;
+pub const NNG_ETIMEDOUT: nng_errno_enum    = 5;
+pub const NNG_ECONNREFUSED: nng_errno_enum = 6;
+pub const NNG_ECLOSED: nng_errno_enum      = 7;
+pub const NNG_EAGAIN: nng_errno_enum       = 8;
+pub const NNG_ENOTSUP: nng_errno_enum      = 9;
+pub const NNG_EADDRINUSE: nng_errno_enum   = 10;
+pub const NNG_ESTATE: nng_errno_enum       = 11;
+pub const NNG_ENOENT: nng_errno_enum       = 12;
+pub const NNG_EPROTO: nng_errno_enum       = 13;
+pub const NNG_EUNREACHABLE: nng_errno_enum = 14;
+pub const NNG_EADDRINVAL: nng_errno_enum   = 15;
+pub const NNG_EPERM: nng_errno_enum        = 16;
+pub const NNG_EMSGSIZE: nng_errno_enum     = 17;
+pub const NNG_ECONNABORTED: nng_errno_enum = 18;
+pub const NNG_ECONNRESET: nng_errno_enum   = 19;
+pub const NNG_ECANCELED: nng_errno_enum    = 20;
+pub const NNG_ENOFILES: nng_errno_enum     = 21;
+pub const NNG_ENOSPC: nng_errno_enum       = 22;
+pub const NNG_EEXIST: nng_errno_enum       = 23;
+pub const NNG_EREADONLY: nng_errno_enum    = 24;
+pub const NNG_EWRITEONLY: nng_errno_enum   = 25;
+pub const NNG_ECRYPTO: nng_errno_enum      = 26;
+pub const NNG_EPEERAUTH: nng_errno_enum    = 27;
+pub const NNG_ENOARG: nng_errno_enum       = 28;
+pub const NNG_EAMBIGUOUS: nng_errno_enum   = 29;
+pub const NNG_EBADTYPE: nng_errno_enum     = 30;
+pub const NNG_EINTERNAL: nng_errno_enum    = 1000;
+pub const NNG_ESYSERR: nng_errno_enum      = 0x10000000;
+pub const NNG_ETRANERR: nng_errno_enum     = 0x20000000;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

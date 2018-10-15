@@ -1,5 +1,6 @@
-//! Error management module.
 use std::{error, fmt, io};
+
+use nng_sys;
 
 /// Specialized `Result` type for use with nng.
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -187,39 +188,39 @@ impl ErrorKind
 	{
 		match code {
 			0            => panic!("OK result passed as an error"),
-			codes::EINTR        => ErrorKind::Interrupted,
-			codes::ENOMEM       => ErrorKind::OutOfMemory,
-			codes::EINVAL       => ErrorKind::InvalidInput,
-			codes::EBUSY        => ErrorKind::Busy,
-			codes::ETIMEDOUT    => ErrorKind::TimedOut,
-			codes::ECONNREFUSED => ErrorKind::ConnectionRefused,
-			codes::ECLOSED      => ErrorKind::Closed,
-			codes::EAGAIN       => ErrorKind::TryAgain,
-			codes::ENOTSUP      => ErrorKind::NotSupported,
-			codes::EADDRINUSE   => ErrorKind::AddressInUse,
-			codes::ESTATE       => ErrorKind::IncorrectState,
-			codes::ENOENT       => ErrorKind::EntryNotFound,
-			codes::EPROTO       => ErrorKind::ProtocolError,
-			codes::EUNREACHABLE => ErrorKind::DestUnreachable,
-			codes::EADDRINVAL   => ErrorKind::AddressInvalid,
-			codes::EPERM        => ErrorKind::PermissionDenied,
-			codes::EMSGSIZE     => ErrorKind::MessageTooLarge,
-			codes::ECONNABORTED => ErrorKind::ConnectionAborted,
-			codes::ECONNRESET   => ErrorKind::ConnectionReset,
-			codes::ECANCELED    => ErrorKind::Canceled,
-			codes::ENOFILES     => ErrorKind::OutOfFiles,
-			codes::ENOSPC       => ErrorKind::OutOfSpace,
-			codes::EEXIST       => ErrorKind::ResourceExists,
-			codes::EREADONLY    => ErrorKind::ReadOnly,
-			codes::EWRITEONLY   => ErrorKind::WriteOnly,
-			codes::ECRYPTO      => ErrorKind::Crypto,
-			codes::EPEERAUTH    => ErrorKind::PeerAuth,
-			codes::ENOARG       => ErrorKind::NoArgument,
-			codes::EAMBIGUOUS   => ErrorKind::Ambiguous,
-			codes::EBADTYPE     => ErrorKind::BadType,
-			codes::EINTERNAL    => ErrorKind::Internal,
-			c if c & codes::ESYSERR != 0 => ErrorKind::SystemErr(c & !codes::ESYSERR),
-			c if c & codes::ETRANERR != 0 => ErrorKind::TransportErr(c & !codes::ETRANERR),
+			nng_sys::NNG_EINTR        => ErrorKind::Interrupted,
+			nng_sys::NNG_ENOMEM       => ErrorKind::OutOfMemory,
+			nng_sys::NNG_EINVAL       => ErrorKind::InvalidInput,
+			nng_sys::NNG_EBUSY        => ErrorKind::Busy,
+			nng_sys::NNG_ETIMEDOUT    => ErrorKind::TimedOut,
+			nng_sys::NNG_ECONNREFUSED => ErrorKind::ConnectionRefused,
+			nng_sys::NNG_ECLOSED      => ErrorKind::Closed,
+			nng_sys::NNG_EAGAIN       => ErrorKind::TryAgain,
+			nng_sys::NNG_ENOTSUP      => ErrorKind::NotSupported,
+			nng_sys::NNG_EADDRINUSE   => ErrorKind::AddressInUse,
+			nng_sys::NNG_ESTATE       => ErrorKind::IncorrectState,
+			nng_sys::NNG_ENOENT       => ErrorKind::EntryNotFound,
+			nng_sys::NNG_EPROTO       => ErrorKind::ProtocolError,
+			nng_sys::NNG_EUNREACHABLE => ErrorKind::DestUnreachable,
+			nng_sys::NNG_EADDRINVAL   => ErrorKind::AddressInvalid,
+			nng_sys::NNG_EPERM        => ErrorKind::PermissionDenied,
+			nng_sys::NNG_EMSGSIZE     => ErrorKind::MessageTooLarge,
+			nng_sys::NNG_ECONNABORTED => ErrorKind::ConnectionAborted,
+			nng_sys::NNG_ECONNRESET   => ErrorKind::ConnectionReset,
+			nng_sys::NNG_ECANCELED    => ErrorKind::Canceled,
+			nng_sys::NNG_ENOFILES     => ErrorKind::OutOfFiles,
+			nng_sys::NNG_ENOSPC       => ErrorKind::OutOfSpace,
+			nng_sys::NNG_EEXIST       => ErrorKind::ResourceExists,
+			nng_sys::NNG_EREADONLY    => ErrorKind::ReadOnly,
+			nng_sys::NNG_EWRITEONLY   => ErrorKind::WriteOnly,
+			nng_sys::NNG_ECRYPTO      => ErrorKind::Crypto,
+			nng_sys::NNG_EPEERAUTH    => ErrorKind::PeerAuth,
+			nng_sys::NNG_ENOARG       => ErrorKind::NoArgument,
+			nng_sys::NNG_EAMBIGUOUS   => ErrorKind::Ambiguous,
+			nng_sys::NNG_EBADTYPE     => ErrorKind::BadType,
+			nng_sys::NNG_EINTERNAL    => ErrorKind::Internal,
+			c if c & nng_sys::NNG_ESYSERR != 0 => ErrorKind::SystemErr(c & !nng_sys::NNG_ESYSERR),
+			c if c & nng_sys::NNG_ETRANERR != 0 => ErrorKind::TransportErr(c & !nng_sys::NNG_ETRANERR),
 			_ => ErrorKind::Unknown(code),
 		}
 	}
@@ -275,49 +276,4 @@ impl fmt::Display for ErrorKind
 			ErrorKind::Unknown(c)        => write!(f, "Unknown error code #{}", c),
 		}
 	}
-}
-
-/// Mapping from the `nng-sys` enum into constants.
-///
-/// We don't do this in the sys crate because:
-///
-/// 1. I think that is messier.
-/// 2. The error codes really are an enum rather than just a list of constants.
-mod codes
-{
-	use nng_sys;
-
-	pub const EINTR:        i32 = nng_sys::nng_errno_enum::NNG_EINTR        as i32;
-	pub const ENOMEM:       i32 = nng_sys::nng_errno_enum::NNG_ENOMEM       as i32;
-	pub const EINVAL:       i32 = nng_sys::nng_errno_enum::NNG_EINVAL       as i32;
-	pub const EBUSY:        i32 = nng_sys::nng_errno_enum::NNG_EBUSY        as i32;
-	pub const ETIMEDOUT:    i32 = nng_sys::nng_errno_enum::NNG_ETIMEDOUT    as i32;
-	pub const ECONNREFUSED: i32 = nng_sys::nng_errno_enum::NNG_ECONNREFUSED as i32;
-	pub const ECLOSED:      i32 = nng_sys::nng_errno_enum::NNG_ECLOSED      as i32;
-	pub const EAGAIN:       i32 = nng_sys::nng_errno_enum::NNG_EAGAIN       as i32;
-	pub const ENOTSUP:      i32 = nng_sys::nng_errno_enum::NNG_ENOTSUP      as i32;
-	pub const EADDRINUSE:   i32 = nng_sys::nng_errno_enum::NNG_EADDRINUSE   as i32;
-	pub const ESTATE:       i32 = nng_sys::nng_errno_enum::NNG_ESTATE       as i32;
-	pub const ENOENT:       i32 = nng_sys::nng_errno_enum::NNG_ENOENT       as i32;
-	pub const EPROTO:       i32 = nng_sys::nng_errno_enum::NNG_EPROTO       as i32;
-	pub const EUNREACHABLE: i32 = nng_sys::nng_errno_enum::NNG_EUNREACHABLE as i32;
-	pub const EADDRINVAL:   i32 = nng_sys::nng_errno_enum::NNG_EADDRINVAL   as i32;
-	pub const EPERM:        i32 = nng_sys::nng_errno_enum::NNG_EPERM        as i32;
-	pub const EMSGSIZE:     i32 = nng_sys::nng_errno_enum::NNG_EMSGSIZE     as i32;
-	pub const ECONNABORTED: i32 = nng_sys::nng_errno_enum::NNG_ECONNABORTED as i32;
-	pub const ECONNRESET:   i32 = nng_sys::nng_errno_enum::NNG_ECONNRESET   as i32;
-	pub const ECANCELED:    i32 = nng_sys::nng_errno_enum::NNG_ECANCELED    as i32;
-	pub const ENOFILES:     i32 = nng_sys::nng_errno_enum::NNG_ENOFILES     as i32;
-	pub const ENOSPC:       i32 = nng_sys::nng_errno_enum::NNG_ENOSPC       as i32;
-	pub const EEXIST:       i32 = nng_sys::nng_errno_enum::NNG_EEXIST       as i32;
-	pub const EREADONLY:    i32 = nng_sys::nng_errno_enum::NNG_EREADONLY    as i32;
-	pub const EWRITEONLY:   i32 = nng_sys::nng_errno_enum::NNG_EWRITEONLY   as i32;
-	pub const ECRYPTO:      i32 = nng_sys::nng_errno_enum::NNG_ECRYPTO      as i32;
-	pub const EPEERAUTH:    i32 = nng_sys::nng_errno_enum::NNG_EPEERAUTH    as i32;
-	pub const ENOARG:       i32 = nng_sys::nng_errno_enum::NNG_ENOARG       as i32;
-	pub const EAMBIGUOUS:   i32 = nng_sys::nng_errno_enum::NNG_EAMBIGUOUS   as i32;
-	pub const EBADTYPE:     i32 = nng_sys::nng_errno_enum::NNG_EBADTYPE     as i32;
-	pub const EINTERNAL:    i32 = nng_sys::nng_errno_enum::NNG_EINTERNAL    as i32;
-	pub const ESYSERR:      i32 = nng_sys::nng_errno_enum::NNG_ESYSERR      as i32;
-	pub const ETRANERR:     i32 = nng_sys::nng_errno_enum::NNG_ETRANERR     as i32;
 }
