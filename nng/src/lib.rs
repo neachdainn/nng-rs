@@ -20,13 +20,16 @@ mod error;
 pub use error::{Error, ErrorKind, Result};
 
 mod socket;
-pub use socket::Socket;
+pub use socket::{Socket, Protocol};
 
 pub mod dialer;
 pub mod listener;
 
 mod addr;
 pub use addr::SocketAddr;
+
+mod zc;
+pub use zc::ZeroCopyBuffer;
 
 /// Converts a `Duration` into an `nng_duration`.
 ///

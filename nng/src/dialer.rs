@@ -56,6 +56,15 @@ impl Dialer
 
 		rv2res!(rv, Dialer { handle })
 	}
+
+	/// Returns the positive identifier for the dialer.
+	pub fn id(&self) -> i32
+	{
+		let id = unsafe { nng_sys::nng_dialer_id(self.handle) };
+		assert!(id > 0, "Invalid dialer ID returned from valid socket");
+
+		id
+	}
 }
 
 impl Dialer

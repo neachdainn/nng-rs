@@ -6,3 +6,6 @@ publish = false
 
 [dependencies]
 nng-sys = { path = "../nng-sys" }
+
+[dev-dependencies]
+byteorder = "1.2"
