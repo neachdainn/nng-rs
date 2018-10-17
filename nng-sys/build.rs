@@ -6,6 +6,7 @@ fn main()
 	{
 		let dst = cmake::build("libnng");
 		println!("cargo:rustc-link-search=native={}/lib", dst.display());
+		println!("cargo:rustc-link-search=native={}/lib64", dst.display());
 		println!("cargo:rustc-link-lib=static=nng");
 	}
 	#[cfg(not(feature = "build-nng"))]
