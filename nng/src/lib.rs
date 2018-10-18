@@ -31,6 +31,8 @@ pub use addr::SocketAddr;
 mod zc;
 pub use zc::ZeroCopyBuffer;
 
+pub mod message;
+
 /// Converts a `Duration` into an `nng_duration`.
 ///
 /// This function is saturating in that if the supplied duration is longer than
