@@ -50,7 +50,7 @@ impl Listener
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(socket.handle, addr.as_ptr(), &mut handle as *mut _, flags)
+			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags)
 		};
 
 		rv2res!(rv, Listener { handle })
@@ -195,7 +195,7 @@ impl ListenerOptions
 		// work with.
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
 		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
-		let rv = unsafe { nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle, addr.as_ptr()) };
+		let rv = unsafe { nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr()) };
 
 		rv2res!(rv, ListenerOptions { handle })
 	}

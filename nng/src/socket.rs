@@ -25,7 +25,7 @@ use message::Message;
 pub struct Socket
 {
 	/// Handle to the underlying nng socket.
-	pub(crate) handle: nng_sys::nng_socket,
+	handle: nng_sys::nng_socket,
 
 	/// Whether or not this socket should block on sending and receiving
 	nonblocking: bool,
@@ -181,7 +181,7 @@ impl Socket
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_sendmsg(self.handle, data.msgp, flags)
+			nng_sys::nng_sendmsg(self.handle, data.msgp(), flags)
 		};
 
 		if rv != 0 {
@@ -198,6 +198,12 @@ impl Socket
 		assert!(id > 0, "Invalid socket ID returned from valid socket");
 
 		id
+	}
+
+	/// Returns the underlying `nng_socket`.
+	pub(crate) fn handle(&self) -> nng_sys::nng_socket
+	{
+		self.handle
 	}
 }
 
