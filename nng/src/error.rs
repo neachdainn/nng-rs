@@ -2,8 +2,13 @@ use std::{error, fmt, io};
 
 use nng_sys;
 
+use message::Message;
+
 /// Specialized `Result` type for use with nng.
 pub type Result<T> = ::std::result::Result<T, Error>;
+
+/// Specialized `Result` type for use with send operations.
+pub type SendResult<T> = ::std::result::Result<T, (Message, Error)>;
 
 /// The error type of nng operations.
 #[derive(Debug)]
@@ -28,6 +33,14 @@ impl From<ErrorKind> for Error
 	fn from(kind: ErrorKind) -> Error
 	{
 		Error { kind }
+	}
+}
+
+impl From<(Message, Error)> for Error
+{
+	fn from((_, e): (Message, Error)) -> Error
+	{
+		e
 	}
 }
 

@@ -3,7 +3,7 @@ extern crate nng_sys;
 
 use std::time::Duration;
 
-/// Converts a nng return code into a Rust `Result`
+/// Converts a `nng` return code into a Rust `Result`.
 macro_rules! rv2res
 {
 	($rv:expr, $ok:expr) => (
@@ -14,6 +14,17 @@ macro_rules! rv2res
 	);
 
 	($rv:expr) => ( rv2res!($rv, ()) )
+}
+
+/// Checks an `nng` return code and validates the pointer.
+macro_rules! validate_ptr
+{
+	($rv:ident, $ptr:ident) => (
+		if $rv != 0 {
+			return Err($crate::error::ErrorKind::from_code($rv).into());
+		}
+		assert!($ptr != ::std::ptr::null_mut(), "Nng returned a null pointer from a successful function");
+	)
 }
 
 mod error;
@@ -28,8 +39,7 @@ pub mod listener;
 mod addr;
 pub use addr::SocketAddr;
 
-mod zc;
-pub use zc::ZeroCopyBuffer;
+pub mod message;
 
 /// Converts a `Duration` into an `nng_duration`.
 ///
