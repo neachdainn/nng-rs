@@ -42,28 +42,7 @@ impl Message
 	}
 
 	/// Creates a message from the given `nng_msg`
-	///
-	/// This function validates that the pointer isn't null before creating the
-	/// `Message` object.
-	#[inline(always)]
-	pub(crate) fn from_ptr(msgp: *mut nng_sys::nng_msg) -> Self
-	{
-		// This function is always inlined for one reason: the caller should
-		// have checked to make sure that the pointer wasn't `null` before
-		// calling this function. By inlining, it should be easy for the
-		// compiler to remove the unnecessary second check.
-
-		assert!(msgp != ptr::null_mut(), "Passed a null pointer");
-		Message::from_ptr_internal(msgp)
-	}
-
-	/// Create a message from the given `nng_msg`.
-	///
-	/// This function mostly exists to help avoid the case where one forgets to
-	/// set all three of the message pointers correctly. It does no validation
-	/// on the pointer, so this function should not be exposed outside of this
-	/// module.
-	fn from_ptr_internal(msgp: *mut nng_sys::nng_msg) -> Self
+	pub(crate) unsafe fn from_ptr(msgp: *mut nng_sys::nng_msg) -> Self
 	{
 		Message {
 			msgp,
@@ -81,8 +60,7 @@ impl Message
 		};
 
 		validate_ptr!(rv, msgp);
-
-		Ok(Message::from_ptr_internal(msgp))
+		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 
 	/// Create an empty message with a pre-allocated body buffer.
@@ -99,7 +77,7 @@ impl Message
 		// whatever you requested. It makes sense in a C context, less so here.
 		unsafe { nng_sys::nng_msg_clear(msgp); }
 
-		Ok(Message::from_ptr_internal(msgp))
+		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 
 	/// Attempts to convert a buffer into a message.
@@ -122,7 +100,7 @@ impl Message
 		// There is no more validation we can try to do.
 		unsafe { ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp) as _, s.len()) }
 
-		Ok(Message::from_ptr_internal(msgp))
+		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 
 	/// Attempts to duplicate the message.
@@ -138,8 +116,7 @@ impl Message
 		};
 
 		validate_ptr!(rv, msgp);
-
-		Ok(Message::from_ptr_internal(msgp))
+		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 
 	/// Returns a reference to the message body.

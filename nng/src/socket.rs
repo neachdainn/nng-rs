@@ -159,8 +159,7 @@ impl Socket
 		};
 
 		validate_ptr!(rv, msgp);
-
-		Ok(Message::from_ptr(msgp))
+		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 
 	/// Sends a message on the socket.
