@@ -11,7 +11,7 @@ extern "C"
 pub enum nng_thread {}
 extern "C"
 {
-	pub fn nng_thread_create(thrp: *mut *mut nng_thread, func: extern "C" fn(*mut c_void), arg: *mut c_void) -> c_int;
+	pub fn nng_thread_create(thrp: *mut *mut nng_thread, func: Option<extern "C" fn(*mut c_void)>, arg: *mut c_void) -> c_int;
 	pub fn nng_thread_destroy(thr: *mut nng_thread);
 }
 

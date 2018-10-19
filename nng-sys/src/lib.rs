@@ -177,7 +177,7 @@ pub enum nng_pipe_ev
 	NNG_PIPE_EV_NUM,
 }
 
-pub type nng_pipe_cb = extern "C" fn(nng_pipe, c_int, *mut c_void);
+pub type nng_pipe_cb = Option<extern "C" fn(nng_pipe, c_int, *mut c_void)>;
 
 extern "C"
 {
@@ -265,7 +265,7 @@ extern "C"
 	pub fn nng_strdup(src: *const c_char) -> *mut c_char;
 	pub fn nng_strfree(str: *mut c_char);
 
-	pub fn nng_aio_alloc(aiop: *mut *mut nng_aio, callb: extern "C" fn(*mut c_void), arg: *mut c_void) -> c_int;
+	pub fn nng_aio_alloc(aiop: *mut *mut nng_aio, callb: Option<extern "C" fn(*mut c_void)>, arg: *mut c_void) -> c_int;
 	pub fn nng_aio_free(aio: *mut nng_aio);
 	pub fn nng_aio_stop(aio: *mut nng_aio);
 	pub fn nng_aio_result(aio: *mut nng_aio) -> c_int;
