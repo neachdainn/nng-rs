@@ -1,13 +1,13 @@
 use std::time::Duration;
 use std::ffi::{CString, CStr};
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
 use std::ptr;
 
 use nng_sys;
 use nng_sys::protocol::*;
 
-use error::{ErrorKind, Result};
-use zc::ZeroCopyBuffer;
+use error::{Error, ErrorKind, Result};
+use message::Message;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -27,7 +27,8 @@ pub struct Socket
 	/// Handle to the underlying nng socket.
 	pub(crate) handle: nng_sys::nng_socket,
 
-	// Dialer objects that need to be explicitly handed by this struct.
+	/// Whether or not this socket should block on sending and receiving
+	nonblocking: bool,
 }
 impl Socket
 {
@@ -54,7 +55,7 @@ impl Socket
 			}
 		};
 
-		rv2res!(rv, Socket { handle: socket })
+		rv2res!(rv, Socket { handle: socket, nonblocking: false })
 	}
 
 	/// Initiates a remote connection to a listener.
@@ -69,8 +70,8 @@ impl Socket
 	/// refused, will be returned immediately and no further action will be
 	/// taken.
 	///
-	/// However, if `nonblocking` is specified, then the connection attempt is
-	/// made asynchronously.
+	/// However, if the socket is set to `nonblocking`, then the connection
+	/// attempt is made asynchronously.
 	///
 	/// Furthermore, if the connection was closed for a synchronously dialed
 	/// connection, the dialer will still attempt to redial asynchronously.
@@ -83,10 +84,10 @@ impl Socket
 	/// See the [nng documentation][1] for more information.
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_dial.3.html
-	pub fn dial(&mut self, url: &str, nonblocking: bool) -> Result<()>
+	pub fn dial(&mut self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
+		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
 			nng_sys::nng_dial(self.handle, addr.as_ptr(), ptr::null_mut(), flags)
@@ -104,9 +105,9 @@ impl Socket
 	/// Normally, the act of "binding" to the address indicated by _url_ is
 	/// done synchronously, including any necessary name resolution. As a
 	/// result, a failure, such as if the address is already in use, will be
-	/// returned immediately. However, if `nonblocking` is specified then this
-	/// is done asynchronously; furthermore any failure to bind will be
-	/// periodically reattempted in the background.
+	/// returned immediately. However, if the socket is set to `nonblocking`
+	/// then this is done asynchronously; furthermore any failure to bind will
+	/// be periodically reattempted in the background.
 	///
 	/// Because the listener is started immediately, it is generally not
 	/// possible to apply extra configuration. If that is needed, or if one
@@ -116,10 +117,10 @@ impl Socket
 	/// See the [nng documentation][1] for more information.
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_listen.3.html
-	pub fn listen(&mut self, url: &str, nonblocking: bool) -> Result<()>
+	pub fn listen(&mut self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
+		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
 			nng_sys::nng_listen(self.handle, addr.as_ptr(), ptr::null_mut(), flags)
@@ -128,66 +129,41 @@ impl Socket
 		rv2res!(rv)
 	}
 
-	/// Receives a message from the socket using zero-copy functionality.
+	/// Sets whether or not this socket should use nonblocking operations.
 	///
-	/// If `nonblocking` is set to `true`, then this function returns
-	/// immediately even if no message is available. Otherwise the function
-	/// will wait until a message is received by the socket or any configured
-	/// timer expires.
+	/// If the socket is set to nonblocking mode, then the send and receive
+	/// functions return immediately even if there are no messages available or
+	/// the message cannot be sent. Otherwise, the functions will wailt until
+	/// the operation can complete or any configured timer expires.
 	///
-	/// The semantics of what receiving a message means vary from protocol to
-	/// protocol, so examination of the protocol documentation is encouraged.
-	/// For example, with a _req_ socket a message may only be received after a
-	/// request has been sent. Furthermore, some protocols may not support
-	/// receiving data at all, such as _pub_.
-	pub fn recv(&mut self, nonblocking: bool) -> Result<ZeroCopyBuffer>
+	/// The default is blocking operations.
+	pub fn set_nonblocking(&mut self, nonblocking: bool)
 	{
-		let mut ptr: *mut c_void = ptr::null_mut();
-		let mut size: usize = 0;
-
-		let flags = nng_sys::NNG_FLAG_ALLOC | if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
-		let rv = unsafe {
-			nng_sys::nng_recv(self.handle, &mut ptr as *mut _ as _, &mut size as *mut _, flags)
-		};
-
-		if rv != 0 {
-			return Err(ErrorKind::from_code(rv).into());
-		}
-
-		assert!(ptr != ptr::null_mut(), "Nng returned a null pointer after successful function call");
-
-		Ok(unsafe { ZeroCopyBuffer::from_raw_parts(ptr as _, size) })
+		self.nonblocking = nonblocking;
 	}
 
 	/// Receives a message from the socket.
 	///
-	/// If `nonblocking` is set to `true`, then this function returns
-	/// immediately even if no message is available. Otherwise the function
-	/// will wait until a message is received by the socket or any configured
-	/// timer expires.
-	///
 	/// The semantics of what receiving a message means vary from protocol to
 	/// protocol, so examination of the protocol documentation is encouraged.
 	/// For example, with a _req_ socket a message may only be received after a
 	/// request has been sent. Furthermore, some protocols may not support
 	/// receiving data at all, such as _pub_.
-	///
-	/// When the receive is successful, this function returns the number of
-	/// bytes written to the buffer.
-	pub fn recv_buf(&mut self, buf: &mut [u8], nonblocking: bool) -> Result<usize>
+	pub fn recv(&mut self) -> Result<Message>
 	{
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-		let mut size = buf.len();
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_recv(self.handle, buf.as_mut_ptr() as _, &mut size as _, flags)
+			nng_sys::nng_recvmsg(self.handle, &mut msgp as _, flags)
 		};
 
-		rv2res!(rv, size)
+		validate_ptr!(rv, msgp);
+
+		Ok(Message::from_ptr(msgp))
 	}
 
-	/// Sends a message using zero-copy functionality.
+	/// Sends a message on the socket.
 	///
 	/// The semantics of what sending a message means vary from protocol to
 	/// protocol, so examination of the protocol documentation is encouraged.
@@ -198,70 +174,21 @@ impl Socket
 	/// cannot normally send data, which are responses to requests, until they
 	/// have first received a request.
 	///
-	/// If `nonblocking` is set to `true`, then the function returns
-	/// immediately, regardless of whether the socket is able to accept the
-	/// data or not. If the socket is unable to accept data (such as if
-	/// backpressure exists because the peers are consuming messages too
-	/// slowly, or no peer is present), then the function will return with
-	/// `ErrorKind::TryAgain`. If `nonblocking` is `false`, this function will
-	/// block if such a condition exists.
-	///
-	/// Regardless of the value of `nonblocking`, there may be queues between
-	/// the sender and the receiver. Furthermore, there is no guarantee that
-	/// the message has actually been delivered. Finally, with some protocols,
-	/// the semantic is implicetely nonblocking, such as with _pub_ sockets,
-	/// which are best-effort delivery only.
-	pub fn send(&mut self, data: ZeroCopyBuffer, nonblocking: bool) -> Result<()>
+	/// If the message cannot be sent, then it is returned to the caller as a
+	/// part of the `Error`.
+	pub fn send(&mut self, data: Message) -> ::std::result::Result<(), (Message, Error)>
 	{
-		let (data, size) = data.into_raw_parts();
-		let flags = nng_sys::NNG_FLAG_ALLOC | if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
+		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_send(self.handle, data as _, size, flags)
+			nng_sys::nng_sendmsg(self.handle, data.msgp, flags)
 		};
 
-		rv2res!(rv)
-	}
-
-	/// Sends a message.
-	///
-	/// The semantics of what sending a message means vary from protocol to
-	/// protocol, so examination of the protocol documentation is encouraged.
-	/// For example, with a _pub_ socket the data is broadcast so that any
-	/// peers who have a suitable subscription will be able to receive it.
-	/// Furthermore, some protocols may not support sending data (such as
-	/// _sub_) or may require other conditions. For example, _rep_sockets
-	/// cannot normally send data, which are responses to requests, until they
-	/// have first received a request.
-	///
-	/// If `nonblocking` is set to `true`, then the function returns
-	/// immediately, regardless of whether the socket is able to accept the
-	/// data or not. If the socket is unable to accept data (such as if
-	/// backpressure exists because the peers are consuming messages too
-	/// slowly, or no peer is present), then the function will return with
-	/// `ErrorKind::TryAgain`. If `nonblocking` is `false`, this function will
-	/// block if such a condition exists.
-	///
-	/// Regardless of the value of `nonblocking`, there may be queues between
-	/// the sender and the receiver. Furthermore, there is no guarantee that
-	/// the message has actually been delivered. Finally, with some protocols,
-	/// the semantic is implicetely nonblocking, such as with _pub_ sockets,
-	/// which are best-effort delivery only.
-	pub fn send_buf(&mut self, data: &[u8], nonblocking: bool) -> Result<()>
-	{
-		// This is a big, dirty lie that we're about to tell Rust. We're going
-		// to conver the pointer from a constant pointer into a mutable pointer
-		// in order to pass it to `nng`. Fortunately, we happen to know that
-		// (as of nng v1.0.0) the `nng_send` function only mutates the data if
-		// it tries to free the buffer. We aren't trying to free the buffer
-		// here.
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
-		let rv = unsafe {
-			nng_sys::nng_send(self.handle, data.as_ptr() as *const _ as _, data.len(), flags)
-		};
-
-		rv2res!(rv)
+		if rv != 0 {
+			Err((data, ErrorKind::from_code(rv).into()))
+		} else {
+			Ok(())
+		}
 	}
 
 	/// Get the positive identifier for the socket.
