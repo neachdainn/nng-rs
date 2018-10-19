@@ -6,7 +6,7 @@ use std::ptr;
 use nng_sys;
 use nng_sys::protocol::*;
 
-use error::{Error, ErrorKind, Result};
+use error::{ErrorKind, Result, SendResult};
 use message::Message;
 
 /// A nanomsg-next-generation socket.
@@ -175,7 +175,7 @@ impl Socket
 	///
 	/// If the message cannot be sent, then it is returned to the caller as a
 	/// part of the `Error`.
-	pub fn send(&mut self, data: Message) -> ::std::result::Result<(), (Message, Error)>
+	pub fn send(&mut self, data: Message) -> SendResult<()>
 	{
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 

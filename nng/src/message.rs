@@ -64,6 +64,9 @@ impl Message
 	}
 
 	/// Create an empty message with a pre-allocated body buffer.
+	///
+	/// The returned buffer will have a capacity equal to `cap` but a length of
+	/// zero. To get a `Message` with a specified length, use `Message::zeros`.
 	pub fn with_capacity(cap: usize) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -77,6 +80,18 @@ impl Message
 		// whatever you requested. It makes sense in a C context, less so here.
 		unsafe { nng_sys::nng_msg_clear(msgp); }
 
+		Ok(unsafe { Message::from_ptr(msgp) })
+	}
+
+	/// Create a message that is filled to `size` with zeros.
+	pub fn zeros(size: usize) -> Result<Self>
+	{
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+		let rv = unsafe {
+			nng_sys::nng_msg_alloc(&mut msgp as _, size)
+		};
+
+		validate_ptr!(rv, msgp);
 		Ok(unsafe { Message::from_ptr(msgp) })
 	}
 

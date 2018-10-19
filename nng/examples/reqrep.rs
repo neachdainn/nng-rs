@@ -10,6 +10,7 @@ extern crate byteorder;
 use std::{env, mem, process};
 use std::time::SystemTime;
 use nng::{Socket, Protocol};
+use nng::message::Message;
 use byteorder::{ByteOrder, LittleEndian};
 
 /// Message representing a date request
@@ -38,15 +39,15 @@ fn main() -> Result<(), nng::Error>
 fn client(url: &str) -> Result<(), nng::Error>
 {
 	let mut s = Socket::new(Protocol::Req0)?;
-	s.dial(url, false)?;
+	s.dial(url)?;
 
 	println!("CLIENT: SENDING DATE REQUEST");
-	let mut req = [0u8; mem::size_of::<u64>()];
+	let mut req = Message::zeros(mem::size_of::<u64>())?;
 	LittleEndian::write_u64(&mut req, DATE_REQUEST);
-	s.send_buf(&req, false)?;
+	s.send(req)?;
 
 	println!("CLIENT: WAITING FOR RESPONSE");
-	let res = s.recv(false)?;
+	let res = s.recv()?;
 	let epoch = LittleEndian::read_u64(&res);
 
 	println!("CLIENT: UNIX EPOCH WAS {} SECONDS AGO", epoch);
@@ -58,11 +59,11 @@ fn client(url: &str) -> Result<(), nng::Error>
 fn server(url: &str) -> Result<(), nng::Error>
 {
 	let mut s = Socket::new(Protocol::Rep0)?;
-	s.listen(url, false)?;
+	s.listen(url)?;
 
 	loop {
 		println!("SERVER: WAITING FOR COMMAND");
-		let mut msg = s.recv(false)?;
+		let mut msg = s.recv()?;
 
 		let cmd = LittleEndian::read_u64(&msg);
 		if cmd != DATE_REQUEST {
@@ -78,6 +79,6 @@ fn server(url: &str) -> Result<(), nng::Error>
 		LittleEndian::write_u64(&mut msg, rep);
 
 		println!("SERVER: SENDING {}", rep);
-		s.send(msg, false)?;
+		s.send(msg)?;
 	}
 }
