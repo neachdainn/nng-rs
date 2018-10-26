@@ -1,12 +1,20 @@
 [package]
 name = "nng-sys"
-version = "1.0.0"
+version = "0.1.0"
 authors = ["Nathan Kent <nate@nkent.net>"]
-publish = false
+
+description = "Bindings for nanomsg-next-generation (nng)"
+documentation = "https://nanomsg.github.io/nng/man/v1.0.0/libnng.3.html"
+homepage = "https://nanomsg.github.io/nng/"
+repository = "https://gitlab.com/neachdainn/nng-rs"
+readme = "README.md"
+
+keywords = ["nng", "nanomsg"]
+categories = ["external-ffi-bindings", "network-programming"]
+license = "MIT"
 
 [features]
 default = ["build-nng"]
-#default = []
 build-nng = []
 
 [dependencies]
