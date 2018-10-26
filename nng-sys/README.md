@@ -1,4 +1,4 @@
-# Bindings for nanomsg-next-generation
+# Bindings for nanomsg-next-generation (nng)
 
 This crate provides the FFI bindings for [nng][1].
 In the future, the major and minor components of the version will be guaranteed to match the major and minor versions of the corresponding `nng` version.

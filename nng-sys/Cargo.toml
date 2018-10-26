@@ -15,7 +15,6 @@ license = "MIT"
 
 [features]
 default = ["build-nng"]
-#default = []
 build-nng = []
 
 [dependencies]
