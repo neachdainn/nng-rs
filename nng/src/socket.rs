@@ -1,13 +1,9 @@
-use std::time::Duration;
-use std::ffi::{CString, CStr};
-use std::os::raw::c_char;
+use std::ffi::CString;
+use std::os::raw::{c_char, c_int};
 use std::ptr;
-
-use nng_sys;
 use nng_sys::protocol::*;
-
-use error::{ErrorKind, Result, SendResult};
-use message::Message;
+use crate::error::{ErrorKind, Result, SendResult};
+use crate::message::Message;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -204,6 +200,30 @@ impl Socket
 	{
 		self.handle
 	}
+}
+
+expose_options!{
+	Socket :: handle -> nng_sys::nng_socket;
+
+	GETOPT_BOOL = nng_sys::nng_getopt_bool;
+	GETOPT_MS = nng_sys::nng_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_getopt_size;
+	GETOPT_SOCKADDR = fake_getopt_sockaddr;
+
+	SETOPT_MS = nng_sys::nng_setopt_ms;
+
+	Gets -> [Raw, ReconnectMinTime];
+	Sets -> [ReconnectMinTime];
+}
+
+/// Fake function for getting the address of a Socket.
+///
+/// Nng does not support any options that get or set a SockAddr. So we must
+/// fake one in order to be able to implement the options trait. Since we're in
+/// full control and this should never be called, we panic.
+extern "C" fn fake_getopt_sockaddr(_: nng_sys::nng_socket, _: *const c_char, _: *mut nng_sys::nng_sockaddr) -> c_int
+{
+	panic!("Socket has no `sockaddr` options");
 }
 
 impl Drop for Socket
