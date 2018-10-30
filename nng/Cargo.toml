@@ -12,7 +12,7 @@ categories = ["api-bindings", "network-programming"]
 license = "MIT"
 
 [dependencies]
-nng-sys = { path = "../nng-sys" }
+nng-sys = "0.1.0"
 
 [dev-dependencies]
 byteorder = "1.2"

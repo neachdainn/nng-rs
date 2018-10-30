@@ -9,7 +9,7 @@ macro_rules! rv2res
 	($rv:expr, $ok:expr) => (
 		match $rv {
 			0 => Ok($ok),
-			e => Err($crate::error::ErrorKind::from_code(e).into()),
+			e => Err(crate::error::ErrorKind::from_code(e).into()),
 		}
 	);
 
@@ -21,9 +21,9 @@ macro_rules! validate_ptr
 {
 	($rv:ident, $ptr:ident) => (
 		if $rv != 0 {
-			return Err($crate::error::ErrorKind::from_code($rv).into());
+			return Err(crate::error::ErrorKind::from_code($rv).into());
 		}
-		assert!($ptr != ::std::ptr::null_mut(), "Nng returned a null pointer from a successful function");
+		assert!($ptr != std::ptr::null_mut(), "Nng returned a null pointer from a successful function");
 	)
 }
 
@@ -40,6 +40,7 @@ mod addr;
 pub use addr::SocketAddr;
 
 pub mod message;
+pub mod options;
 
 /// Converts a `Duration` into an `nng_duration`.
 ///
