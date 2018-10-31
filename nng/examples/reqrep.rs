@@ -24,15 +24,13 @@ fn main() -> Result<(), nng::Error>
 	let args: Vec<_> = env::args().take(3).collect();
 
 	match &args[..] {
-		[_, t, url] if t == "client" => client(url)?,
-		[_, t, url] if t == "server" => server(url)?,
+		[_, t, url] if t == "client" => client(url),
+		[_, t, url] if t == "server" => server(url),
 		_ => {
 			println!("Usage: reqrep client|server <URL>");
 			process::exit(1);
 		}
 	}
-
-	Ok(())
 }
 
 /// Run the client portion of the program.
