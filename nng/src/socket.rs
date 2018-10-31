@@ -206,14 +206,35 @@ expose_options!{
 	Socket :: handle -> nng_sys::nng_socket;
 
 	GETOPT_BOOL = nng_sys::nng_getopt_bool;
+	GETOPT_INT = nng_sys::nng_getopt_int;
 	GETOPT_MS = nng_sys::nng_getopt_ms;
 	GETOPT_SIZE = nng_sys::nng_getopt_size;
 	GETOPT_SOCKADDR = fake_getopt_sockaddr;
+	GETOPT_STRING = nng_sys::nng_getopt_string;
 
+	SETOPT_BOOL = nng_sys::nng_setopt_bool;
+	SETOPT_INT = nng_sys::nng_setopt_int;
 	SETOPT_MS = nng_sys::nng_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_setopt_size;
+	SETOPT_STRING = nng_sys::nng_setopt_string;
 
-	Gets -> [Raw, ReconnectMinTime];
-	Sets -> [ReconnectMinTime];
+	Gets -> [Raw, MaxTtl, RecvBufferSize,
+	         RecvTimeout, SendBufferSize,
+	         SendTimeout, SocketName,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime];
+	Sets -> [ReconnectMinTime, ReconnectMaxTime,
+	         RecvBufferSize, RecvMaxSize,
+	         RecvTimeout, SendBufferSize,
+	         SendTimeout, SocketName, MaxTtl,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime,
+	         transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive,
+	         transport::tls::CaFile,
+	         transport::tls::CertKeyFile,
+	         transport::websocket::RequestHeaders,
+	         transport::websocket::ResponseHeaders];
 }
 
 /// Fake function for getting the address of a Socket.

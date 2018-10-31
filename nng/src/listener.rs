@@ -65,6 +65,32 @@ impl Listener
 	}
 }
 
+expose_options!{
+	Listener :: handle -> nng_sys::nng_listener;
+
+	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
+	GETOPT_INT = nng_sys::nng_listener_getopt_int;
+	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
+	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
+
+	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
+	SETOPT_INT = nng_sys::nng_listener_setopt_int;
+	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
+	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
+
+	Gets -> [LocalAddr, Raw, RecvBufferSize,
+	         RecvTimeout, SendBufferSize, Url,
+	         SendTimeout, SocketName, MaxTtl,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime,
+	         transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive];
+	Sets -> [];
+}
+
 impl Drop for Listener
 {
 	fn drop(&mut self)
@@ -142,6 +168,36 @@ impl ListenerOptions
 			e => Err((self, ErrorKind::from_code(e).into())),
 		}
 	}
+}
+
+expose_options!{
+	ListenerOptions :: handle -> nng_sys::nng_listener;
+
+	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
+	GETOPT_INT = nng_sys::nng_listener_getopt_int;
+	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
+	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
+
+	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
+	SETOPT_INT = nng_sys::nng_listener_setopt_int;
+	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
+	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
+
+	Gets -> [LocalAddr, Raw, RecvBufferSize,
+	         RecvTimeout, SendBufferSize, Url,
+	         SendTimeout, SocketName, MaxTtl,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime,
+	         transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive];
+	Sets -> [RecvMaxSize, transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive,
+	         transport::tls::CaFile,
+	         transport::tls::CertKeyFile,
+	         transport::websocket::ResponseHeaders];
 }
 
 impl Drop for ListenerOptions

@@ -1,4 +1,12 @@
 //! Options available to configure `nng` constructs.
+//!
+//! Many of the options are transport or protocol specific. Additionally, even
+//! though the Socket does not have a specific transport, it is able to accept
+//! transport options to be used as defaults for any new Dialers or Listeners.
+//!
+//! Additionally, a Dialer or Listener is able to read options from the
+//! underlying Socket but they are unable to write options unless they are
+//! directly supported.
 use crate::error::Result;
 
 mod types;
@@ -17,10 +25,9 @@ pub(crate) mod private;
 /// let raw = socket.get_opt::<Raw>()?;
 /// ```
 ///
-/// But all of these are compile errors:
+/// But all this is a compile error:
 ///
 /// ```ignore
-/// let raw = dialer.get_opt::<Raw>()?;
 /// socket.set_opt::<Raw>(true)?;
 /// ```
 pub trait Options: private::HasOpts

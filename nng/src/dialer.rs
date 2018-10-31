@@ -65,6 +65,34 @@ impl Dialer
 	}
 }
 
+expose_options!{
+	Dialer :: handle -> nng_sys::nng_dialer;
+
+	GETOPT_BOOL = nng_sys::nng_dialer_getopt_bool;
+	GETOPT_INT = nng_sys::nng_dialer_getopt_int;
+	GETOPT_MS = nng_sys::nng_dialer_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_dialer_getopt_size;
+	GETOPT_SOCKADDR = nng_sys::nng_dialer_getopt_sockaddr;
+	GETOPT_STRING = nng_sys::nng_dialer_getopt_string;
+
+	SETOPT_BOOL = nng_sys::nng_dialer_setopt_bool;
+	SETOPT_INT = nng_sys::nng_dialer_setopt_int;
+	SETOPT_MS = nng_sys::nng_dialer_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_dialer_setopt_size;
+	SETOPT_STRING = nng_sys::nng_dialer_setopt_string;
+
+	Gets -> [LocalAddr, Raw, ReconnectMinTime,
+	         ReconnectMaxTime, RecvBufferSize,
+	         RecvMaxSize, RecvTimeout,
+	         SendBufferSize, SendTimeout,
+	         SocketName, MaxTtl, Url,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime,
+	         transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive];
+	Sets -> [];
+}
+
 impl Drop for Dialer
 {
 	fn drop(&mut self)
@@ -144,6 +172,39 @@ impl DialerOptions
 			e => Err((self, ErrorKind::from_code(e).into())),
 		}
 	}
+}
+
+expose_options!{
+	DialerOptions :: handle -> nng_sys::nng_dialer;
+
+	GETOPT_BOOL = nng_sys::nng_dialer_getopt_bool;
+	GETOPT_INT = nng_sys::nng_dialer_getopt_int;
+	GETOPT_MS = nng_sys::nng_dialer_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_dialer_getopt_size;
+	GETOPT_SOCKADDR = nng_sys::nng_dialer_getopt_sockaddr;
+	GETOPT_STRING = nng_sys::nng_dialer_getopt_string;
+
+	SETOPT_BOOL = nng_sys::nng_dialer_setopt_bool;
+	SETOPT_INT = nng_sys::nng_dialer_setopt_int;
+	SETOPT_MS = nng_sys::nng_dialer_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_dialer_setopt_size;
+	SETOPT_STRING = nng_sys::nng_dialer_setopt_string;
+
+	Gets -> [LocalAddr, Raw, ReconnectMinTime,
+	         ReconnectMaxTime, RecvBufferSize,
+	         RecvMaxSize, RecvTimeout,
+	         SendBufferSize, SendTimeout,
+	         SocketName, MaxTtl, Url,
+	         protocol::reqrep::ResendTime,
+	         protocol::survey::SurveyTime,
+	         transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive];
+	Sets -> [ReconnectMinTime, ReconnectMaxTime,
+	         RecvMaxSize, transport::tcp::NoDelay,
+	         transport::tcp::KeepAlive,
+	         transport::tls::CaFile,
+	         transport::tls::CertKeyFile,
+	         transport::websocket::RequestHeaders];
 }
 
 impl Drop for DialerOptions
