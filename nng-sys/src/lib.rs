@@ -139,9 +139,9 @@ pub struct nng_iov
 	pub iov_len: size_t,
 }
 
-pub const NNG_DURATION_INFINITE: c_int = -1;
-pub const NNG_DURATION_DEFAULT: c_int = -2;
-pub const NNG_DURATION_ZERO: c_int = 0;
+pub const NNG_DURATION_INFINITE: nng_duration = -1;
+pub const NNG_DURATION_DEFAULT: nng_duration = -2;
+pub const NNG_DURATION_ZERO: nng_duration = 0;
 
 extern "C"
 {
