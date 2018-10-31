@@ -212,6 +212,7 @@ expose_options!{
 	GETOPT_SOCKADDR = fake_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_getopt_string;
 
+	SETOPT = nng_sys::nng_setopt;
 	SETOPT_BOOL = nng_sys::nng_setopt_bool;
 	SETOPT_INT = nng_sys::nng_setopt_int;
 	SETOPT_MS = nng_sys::nng_setopt_ms;
@@ -228,6 +229,8 @@ expose_options!{
 	         RecvTimeout, SendBufferSize,
 	         SendTimeout, SocketName, MaxTtl,
 	         protocol::reqrep::ResendTime,
+	         protocol::pubsub::Subscribe,
+	         protocol::pubsub::Unsubscribe,
 	         protocol::survey::SurveyTime,
 	         transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive,

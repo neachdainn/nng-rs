@@ -1,7 +1,7 @@
 //! Implementation details about implementing options.
 use std::ptr;
 use std::time::Duration;
-use std::os::raw::{c_char, c_int};
+use std::os::raw::{c_char, c_int, c_void};
 use std::ffi::{CString, CStr};
 use crate::error::{Result, ErrorKind};
 use crate::addr::SocketAddr;
@@ -42,6 +42,8 @@ pub trait HasOpts: Sized
 	/// Raw `nng` function for getting a string value.
 	const GETOPT_STRING: unsafe extern "C" fn(Self::Handle, *const c_char, *mut *mut c_char) -> c_int;
 
+	/// Raw `nng` function for setting opaque data.
+	const SETOPT: unsafe extern "C" fn (Self::Handle, *const c_char, *const c_void, usize) -> c_int;
 	/// Raw `nng` function for setting a boolean.
 	const SETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const c_char, bool) -> c_int;
 	/// Raw `nng` function to set an integer.
@@ -132,6 +134,16 @@ pub trait HasOpts: Sized
 
 			Ok(name)
 		}
+	}
+
+	/// Sets the value of opaque data.
+	fn setopt(&self, opt: *const c_char, val: &[u8]) -> Result<()>
+	{
+		let rv = unsafe {
+			(Self::SETOPT)(self.handle(), opt, val.as_ptr() as _, val.len())
+		};
+
+		rv2res!(rv)
 	}
 
 	/// Sets the value of a boolean option.

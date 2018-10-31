@@ -75,6 +75,7 @@ expose_options!{
 	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
 
+	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
@@ -180,6 +181,7 @@ expose_options!{
 	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
 
+	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;

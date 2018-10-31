@@ -230,6 +230,46 @@ create_option!{
 /// Options relating to the socket protocol.
 pub mod protocol
 {
+	/// Options dealing with the PUBSUB protocol.
+	pub mod pubsub
+	{
+		create_option!{
+			/// Register a topic that the subscriber is interested in.
+			///
+			/// This option takes an array of bytes, of arbitrary size. Each
+			/// incoming message is checked against the list of subscribed
+			/// topics. If the body begins with the entire set of bytes in the
+			/// topic, then the message is accepted. If no topic matches, then
+			/// the message is discarded.
+			///
+			/// To receive all messages, an empty topic (zero length) can be
+			/// used. To receive any messages, at least one subscription must
+			/// exist.
+			///
+			/// ## Support
+			///
+			/// * Sockets can use this option when using the Sub v0 protocol.
+			Subscribe -> Vec<u8>:
+			Get _s = panic!("Subscribe is a write-only option");
+			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_SUBSCRIBE, &val);
+		}
+
+		create_option!{
+			/// Remove a topic from the subscription list.
+			///
+			/// Note that if the topic was not previously subscribed via the
+			/// `Subscribe` option, then using this option will result in
+			/// `ErrorKind::EntryNotFound`.
+			///
+			/// ## Support
+			///
+			/// * Sockets can use this option when using the Sub v0 protocol.
+			Unsubscribe -> Vec<u8>:
+			Get _s = panic!("Subscribe is a write-only option");
+			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_UNSUBSCRIBE, &val);
+		}
+	}
+
 	/// Options dealing with the REQREP protocol.
 	pub mod reqrep
 	{
