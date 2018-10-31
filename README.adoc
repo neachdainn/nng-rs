@@ -1,1 +1,10 @@
-= Rust Bindings for nanomsg-next-generation
+= Rust Bindings for NNG - nanomsg-NG
+
+image:https://docs.rs/nng/badge.svg[link="https://docs.rs/nng"]
+image:https://img.shields.io/crates/v/nng.svg[link="https://crates.io/crates/nng"]
+image:https://img.shields.io/badge/license-MIT-blue.svg[MIT License]
+image:https://img.shields.io/badge/rustc-1.30+-lightgray.svg[Rustc 1.30+]
+
+This repository is a wrapper for https://nanomsg.github.io/nng/[nng (Nanomsg-next-generation)].
+See the subdirectories for the individual crates for more information.
+The goal is to make this compatible with Rust 2018 but making this compatible with Rust 2015 (rustc v1.0) is a possibility if there is a desire.
