@@ -182,6 +182,9 @@ impl Socket
 		if rv != 0 {
 			Err((data, ErrorKind::from_code(rv).into()))
 		} else {
+			// If the message was sent, we no longer have ownership over the
+			// memory. Forget that it was a thing and move on.
+			std::mem::forget(data);
 			Ok(())
 		}
 	}
