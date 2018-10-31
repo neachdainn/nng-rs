@@ -1,1 +1,7 @@
 = Rust Bindings for nanomsg-next-generation
+
+This repository is a wrapper for https://nanomsg.github.io/nng/[nng (Nanomsg-next-generation)].
+`nng-sys` contains the bindings while `nng` is the safe wrapper for the library.
+
+image::https://img.shields.io/crates/v/nng.svg[Crates.io Badge for nng-rs]
+image::https://img.shields.io/crates/v/nng-sys.svg[Crates.io Badge for nng-sys]
