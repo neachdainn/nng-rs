@@ -20,7 +20,7 @@ macro_rules! validate_ptr
 		if $rv != 0 {
 			return Err(crate::error::ErrorKind::from_code($rv).into());
 		}
-		assert!($ptr != std::ptr::null_mut(), "Nng returned a null pointer from a successful function");
+		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	)
 }
 

@@ -210,7 +210,7 @@ create_option!{
 	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_device.3.html
 	MaxTtl -> u8:
 	Get s = s.getopt_int(nng_sys::NNG_OPT_MAXTTL).map(|v| v as u8);
-	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL, val as i32);
+	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL, val.into());
 }
 
 create_option!{

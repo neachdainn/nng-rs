@@ -421,8 +421,8 @@ pub const NNG_ENOARG: nng_errno_enum       = 28;
 pub const NNG_EAMBIGUOUS: nng_errno_enum   = 29;
 pub const NNG_EBADTYPE: nng_errno_enum     = 30;
 pub const NNG_EINTERNAL: nng_errno_enum    = 1000;
-pub const NNG_ESYSERR: nng_errno_enum      = 0x10000000;
-pub const NNG_ETRANERR: nng_errno_enum     = 0x20000000;
+pub const NNG_ESYSERR: nng_errno_enum      = 0x1000_0000;
+pub const NNG_ETRANERR: nng_errno_enum     = 0x2000_0000;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]

@@ -270,7 +270,7 @@ impl Drop for Socket
 }
 
 /// Protocols available for use by sockets.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum Protocol
 {
 	/// Version 0 of the bus protocol.

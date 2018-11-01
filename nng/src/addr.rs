@@ -85,7 +85,8 @@ unsafe fn buf_to_string(buf: &[i8]) -> String
 	// unsafe.
 	use std::slice;
 
-	let buf = slice::from_raw_parts(&buf[0] as *const i8 as _, buf.len());
-	let null_byte = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+	let len = buf.len();
+	let buf = slice::from_raw_parts(&buf[0] as *const i8 as _, len);
+	let null_byte = buf.iter().position(|&b| b == 0).unwrap_or(len);
 	String::from_utf8_lossy(&buf[..null_byte]).into_owned()
 }
