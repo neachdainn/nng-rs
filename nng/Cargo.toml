@@ -11,8 +11,13 @@ keywords = ["nng", "nanomsg"]
 categories = ["api-bindings", "network-programming"]
 license = "MIT"
 
-[dependencies]
-nng-sys = "0.1.1"
+[features]
+default = ["build-nng"]
+build-nng = ["nng-sys/build-nng"]
+
+[dependencies.nng-sys]
+version = "0.1.1"
+default-features = false
 
 [dev-dependencies]
 byteorder = "1.2"
