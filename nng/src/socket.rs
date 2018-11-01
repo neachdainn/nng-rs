@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::os::raw::{c_char, c_int};
 use std::ptr;
 use nng_sys::protocol::*;
 use crate::error::{ErrorKind, Result, SendResult};
@@ -210,7 +209,7 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_getopt_int;
 	GETOPT_MS = nng_sys::nng_getopt_ms;
 	GETOPT_SIZE = nng_sys::nng_getopt_size;
-	GETOPT_SOCKADDR = fake_getopt_sockaddr;
+	GETOPT_SOCKADDR = crate::fake_opt;
 	GETOPT_STRING = nng_sys::nng_getopt_string;
 
 	SETOPT = nng_sys::nng_setopt;
@@ -239,16 +238,6 @@ expose_options!{
 	         transport::tls::CertKeyFile,
 	         transport::websocket::RequestHeaders,
 	         transport::websocket::ResponseHeaders];
-}
-
-/// Fake function for getting the address of a Socket.
-///
-/// Nng does not support any options that get or set a SockAddr. So we must
-/// fake one in order to be able to implement the options trait. Since we're in
-/// full control and this should never be called, we panic.
-extern "C" fn fake_getopt_sockaddr(_: nng_sys::nng_socket, _: *const c_char, _: *mut nng_sys::nng_sockaddr) -> c_int
-{
-	panic!("Socket has no `sockaddr` options");
 }
 
 impl Drop for Socket

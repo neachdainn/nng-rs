@@ -62,19 +62,19 @@ macro_rules! expose_options
 {
 	(
 		$struct:ident :: $member:ident -> $handle:ty;
-		GETOPT_BOOL = $go_b:expr;
-		GETOPT_INT = $go_i:expr;
-		GETOPT_MS = $go_ms:expr;
-		GETOPT_SIZE = $go_sz:expr;
-		GETOPT_SOCKADDR = $go_sa:expr;
-		GETOPT_STRING = $go_str:expr;
+		GETOPT_BOOL = $go_b:path;
+		GETOPT_INT = $go_i:path;
+		GETOPT_MS = $go_ms:path;
+		GETOPT_SIZE = $go_sz:path;
+		GETOPT_SOCKADDR = $go_sa:path;
+		GETOPT_STRING = $go_str:path;
 
-		SETOPT = $so:expr;
-		SETOPT_BOOL = $so_b:expr;
-		SETOPT_INT = $so_i:expr;
-		SETOPT_MS = $so_ms:expr;
-		SETOPT_SIZE = $so_sz:expr;
-		SETOPT_STRING = $so_str:expr;
+		SETOPT = $so:path;
+		SETOPT_BOOL = $so_b:path;
+		SETOPT_INT = $so_i:path;
+		SETOPT_MS = $so_ms:path;
+		SETOPT_SIZE = $so_sz:path;
+		SETOPT_STRING = $so_str:path;
 
 		Gets -> [$($($getters:ident)::+),*];
 		Sets -> [$($($setters:ident)::+),*];

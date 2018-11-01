@@ -1,15 +1,19 @@
 //! Types for dealing with Nng contexts and asynchronous IO operations.
+//!
+//! Contexts allow the independent and concurrent use of stateful operations
+//! using the same socket. For example, two different contexts created on a
+//! _rep_ socket can each receive requests, and send replies to them, without
+//! any regard to or interference with each other.
 use std::ptr;
+use std::time::Duration;
 use crate::error::{Error, ErrorKind, Result, SendResult};
 use crate::socket::Socket;
 use crate::message::Message;
 
 /// A socket context.
 ///
-/// Contexts allow the independent and concurrent use of stateful operations
-/// using the same socket. For example, two different contexts created on a
-/// _rep_ socket can each receive requests, and send replies to them, without
-/// any regard to or interference with each other.
+/// This version does not allow a callback function so it can avoid some of the
+/// overhead associated with multithreading.
 pub struct Context
 {
 	/// The actual `nng_context`.
@@ -157,6 +161,25 @@ impl Context
 		}
 	}
 
+	/// Set the timeout of asynchronous operations.
+	///
+	/// This causes a timer to be started when the operation is actually
+	/// started. If the timer expires before the operation is completed, then
+	/// it is aborted with `ErrorKind::TimedOut`.
+	///
+	/// As most operations involve some context switching, it is usually a good
+	/// idea to allow at least a few tens of milliseconds before timing them
+	/// out — a too small timeout might not allow the operation to properly
+	/// begin before giving up!
+	pub fn set_timeout(&mut self, dur: Option<Duration>)
+	{
+		let ms = crate::duration_to_nng(dur);
+
+		unsafe {
+			nng_sys::nng_aio_set_timeout(self.aio, ms);
+		}
+	}
+
 	/// Returns the positive identifier for this context.
 	pub fn id(&self) -> i32
 	{
@@ -165,6 +188,27 @@ impl Context
 
 		id
 	}
+}
+
+expose_options!{
+	Context :: ctx -> nng_sys::nng_ctx;
+
+	GETOPT_BOOL = nng_sys::nng_ctx_getopt_bool;
+	GETOPT_INT = nng_sys::nng_ctx_getopt_int;
+	GETOPT_MS = nng_sys::nng_ctx_getopt_ms;
+	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
+	GETOPT_SOCKADDR = crate::fake_opt;
+	GETOPT_STRING = crate::fake_opt;
+
+	SETOPT = nng_sys::nng_ctx_setopt;
+	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
+	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
+	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
+	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
+	SETOPT_STRING = crate::fake_opt;
+
+	Gets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
+	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 }
 
 impl Drop for Context
@@ -189,6 +233,8 @@ impl Drop for Context
 		}
 	}
 }
+
+/// The libnng components of a 
 
 /// Represents the state of a Context.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

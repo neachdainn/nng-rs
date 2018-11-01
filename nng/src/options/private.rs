@@ -85,15 +85,7 @@ pub trait HasOpts: Sized
 			(Self::GETOPT_MS)(self.handle(), opt, &mut dur as _)
 		};
 
-		rv2res!(rv, {
-			if dur == nng_sys::NNG_DURATION_INFINITE {
-				None
-			} else if dur >= 0 {
-				Some(Duration::from_millis(dur as u64))
-			} else {
-				panic!("Unexpected value for `nng_duration` ({})", dur)
-			}
-		})
+		rv2res!(rv, crate::nng_to_duration(dur))
 	}
 
 	/// Get the `size_t` option.
@@ -166,20 +158,7 @@ pub trait HasOpts: Sized
 	/// Set the duration to the option.
 	fn setopt_ms(&self, opt: *const c_char, dur: Option<Duration>) -> Result<()>
 	{
-		// The subsecond milliseconds is guaranteed to be less than 1000, which
-		// means converting from `u32` to `i32` is safe. The only other
-		// potential issue is converting the `u64` of seconds to an `i32`.
-		use std::i32::MAX;
-
-		let ms = match dur {
-			None => nng_sys::NNG_DURATION_INFINITE,
-			Some(d) => {
-				let secs = if d.as_secs() > MAX as u64 { MAX } else { d.as_secs() as i32 };
-				let millis = d.subsec_millis() as i32;
-
-				secs.saturating_mul(1000).saturating_add(millis)
-			}
-		};
+		let ms = crate::duration_to_nng(dur);
 
 		let rv = unsafe {
 			(Self::SETOPT_MS)(self.handle(), opt, ms)
