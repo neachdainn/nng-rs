@@ -6,6 +6,9 @@
 //! any regard to or interference with each other.
 use std::ptr;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::panic::{catch_unwind, RefUnwindSafe};
+use std::os::raw::{c_int, c_void};
 use crate::error::{Error, ErrorKind, Result, SendResult};
 use crate::socket::Socket;
 use crate::message::Message;
@@ -234,7 +237,249 @@ impl Drop for Context
 	}
 }
 
+/// A socket context with asynchronous callback.
+///
+/// This version has a callback function that is called every time an event
+/// happens.
+pub struct CbContext
+{
+	/// The shared state of all contexts.
+	inner: Arc<CbContextInner>,
+
+	/// The stored closure that is a part of the callback function.
+	///
+	/// Only one context needs to store this because all other versions are
+	/// inside the closure. It gets really recursive and as such, we absolutely
+	/// need to make sure that this is dropped after the inner bits. If the
+	/// inner bits are dropped after, then the inner bits might accidentally
+	/// try to go into a closure which has been freed.
+	///
+	/// This should never, ever, ever be called or touched at all.
+	_callback: Option<Box<FnMut() + Send + RefUnwindSafe + 'static>>,
+}
+impl CbContext
+{
+	/// Creates a new context for the socket that calls the given callback
+	/// function.
+	pub fn new<F>(socket: &Socket, mut callback: F) -> Result<CbContext>
+		where F: FnMut(&CbContext) + Send + RefUnwindSafe + 'static
+	{
+		// Initialize the context
+		let mut ctx = nng_sys::NNG_CTX_INITIALIZER;
+		let rv = unsafe {
+			nng_sys::nng_ctx_open(&mut ctx as _, socket.handle())
+		};
+		rv2res!(rv)?;
+
+		// Create the inner object first, since we need to reference it from
+		// within the trampoline function.
+		let inner = Arc::new(CbContextInner {
+			mutex: Mutex::new((State::Inactive, AioPtr(ptr::null_mut()))),
+			ctx,
+		});
+
+		// Create the trampoline function that holds the reference to the inner
+		// portion.
+		let rc = CbContext {
+			inner: inner.clone(),
+			_callback: None,
+		};
+		let trampoline = move || {
+			callback(&rc);
+		};
+
+		// Now we can try and allocate the AIO object. Even though there is no
+		// one competing for the lock, we're going to hold onto it this whole
+		// time.
+		let box_fn = {
+			let mut lock = inner.mutex.lock().unwrap();
+			let ptr = lock.1.get();
+			let (rv, box_fn) = unsafe {
+				CbContext::aio_alloc(ptr as _, trampoline)
+			};
+
+			// This is a sketchy bit... But not really. If the return code is an
+			// error, everything goes out of scope and is freed correctly.
+			validate_ptr!(rv, ptr, {
+				// The only error we should get here is `ECLOSED`, which works just
+				// as well for us. Panic if that was not the cases in order to
+				// encourage a bug report.
+				let close_rv = unsafe { nng_sys::nng_ctx_close(ctx) };
+				assert!(close_rv == 0 || close_rv == nng_sys::NNG_ECLOSED, "Unexpected error code when closing context");
+			});
+
+			box_fn
+		};
+
+		// Everything is all set up, we're good to go, return the newly created
+		// Context.
+		Ok(CbContext { inner, _callback: Some(box_fn) })
+	}
+
+	/// Returns the current state of the context.
+	pub fn state(&self) -> State
+	{
+		self.inner.mutex.lock().unwrap().0
+	}
+
+	/// Sends a message using the context.
+	///
+	/// This function returns immediately. To get the result of the operation,
+	/// call `Context::wait` which will block until the send operation has
+	/// completed. If an error occurs, then the result of the wait will contain
+	/// the recovered message.
+	///
+	/// If another operation is currently underway, this will fail with
+	/// `ErrorKind::IncorrectState`.
+	pub fn send(&self, msg: Message) -> SendResult<()>
+	{
+		let mut lock = self.inner.mutex.lock().unwrap();
+
+		if lock.0 != State::Inactive {
+			return Err((msg, ErrorKind::IncorrectState.into()));
+		}
+
+		unsafe {
+			nng_sys::nng_aio_set_msg(*lock.1.get(), msg.into_ptr());
+			nng_sys::nng_ctx_send(self.inner.ctx, *lock.1.get());
+		}
+
+		lock.0 = State::Sending;
+		Ok(())
+	}
+
+	/// Receives a message using the context.
+	///
+	/// This function returns immediately. To get the result of the operation,
+	/// call `Context::wait` which will block until the receive operation has
+	/// completed. If the operation is successful, then the result of the wait
+	/// will contain the received message.
+	///
+	/// If a send operation is currently underway, this will fail with
+	/// `ErrorKind::IncorrectState`.
+	pub fn recv(&self) -> Result<()>
+	{
+		let mut lock = self.inner.mutex.lock().unwrap();
+
+		if lock.0 == State::Sending {
+			return Err(ErrorKind::IncorrectState.into());
+		}
+
+		unsafe {
+			nng_sys::nng_ctx_recv(self.inner.ctx, *lock.1.get());
+		}
+
+		lock.0 = State::Receiving;
+		Ok(())
+	}
+
+	/// Cancels the currently running operation.
+	pub fn cancel(&self)
+	{
+		unsafe {
+			let mut lock = self.inner.mutex.lock().unwrap();
+			nng_sys::nng_aio_cancel(*lock.1.get());
+		}
+	}
+
+	/// Set the timeout of asynchronous operations.
+	///
+	/// This causes a timer to be started when the operation is actually
+	/// started. If the timer expires before the operation is completed, then
+	/// it is aborted with `ErrorKind::TimedOut`.
+	///
+	/// As most operations involve some context switching, it is usually a good
+	/// idea to allow at least a few tens of milliseconds before timing them
+	/// out — a too small timeout might not allow the operation to properly
+	/// begin before giving up!
+	pub fn set_timeout(&self, dur: Option<Duration>)
+	{
+		let ms = crate::duration_to_nng(dur);
+
+		unsafe {
+			let mut lock = self.inner.mutex.lock().unwrap();
+			nng_sys::nng_aio_set_timeout(*lock.1.get(), ms);
+		}
+	}
+
+	/// Performs and asynchronous 
+
+	/// Returns the positive identifier for this context.
+	pub fn id(&self) -> i32
+	{
+		let id = unsafe { nng_sys::nng_ctx_id(self.inner.ctx) };
+		assert!(id > 0, "Invalid context ID returned from valid context");
+
+		id
+	}
+
+	/// Utility function for allocating an `nng_aio`.
+	///
+	/// We need this because we need to be able to get the type of the closure
+	/// and Rust (currently) doesn't have a way to do that.
+	unsafe fn aio_alloc<F>(aio: *mut *mut nng_sys::nng_aio, trampoline: F) -> (c_int, Box<FnMut() + Send + RefUnwindSafe + 'static>)
+		where F: FnMut() + Send + RefUnwindSafe + 'static
+	{
+		let mut box_fn = Box::new(trampoline);
+		let rv = nng_sys::nng_aio_alloc(aio, Some(CbContext::trampoline::<F>), &mut *box_fn as *mut _ as _);
+
+		(rv, box_fn)
+	}
+
+	/// Trampoline function for calling a closure from a C callback.
+	///
+	/// This is unsafe because you have to be absolutely positive that `T` is
+	/// really actually truly the type of the closure.
+	extern "C" fn trampoline<T>(arg: *mut c_void)
+		where T: FnMut() + Send + RefUnwindSafe + 'static
+	{
+		// TODO: We need to inform the user that something went wrong. That
+		// either means propagating the panic on the main thread or emitting a
+		// log message about it. Right now we're just hiding it and that's no
+		// good.
+		let _res = catch_unwind(|| unsafe {
+			let callback_ptr = arg as *mut T;
+			if callback_ptr.is_null() {
+				// This should never, ever happen.
+				panic!("Null argument given to trampoline function");
+			}
+
+			(*callback_ptr)()
+		});
+	}
+}
+
 /// The libnng components of a 
+struct CbContextInner
+{
+	/// The elements of the context that are not thread safe.
+	///
+	/// Basically nothing about the AIO is thread safe. In libnng, it's all
+	/// basically moving pointers around and assuming that the user is doing
+	/// something sane.
+	///
+	/// We could probably do some funky atomic stuff with the state but we're
+	/// already paying the cost of the mutex so we may as well take advantage
+	/// of it's ease-of-use.
+	mutex: Mutex<(State, AioPtr)>,
+
+	/// The underlying context object.
+	///
+	/// This type is actually thread safe, so that's cool.
+	ctx: nng_sys::nng_ctx,
+}
+
+/// A wrapper around the `*mut nng_aio` so `Send` can be implementd.
+struct AioPtr(*mut nng_sys::nng_aio);
+impl AioPtr
+{
+	/// Get the value of the pointer.
+	fn get(&mut self) -> &mut *mut nng_sys::nng_aio
+	{
+		&mut self.0
+	}
+}
+unsafe impl Send for AioPtr {}
 
 /// Represents the state of a Context.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
