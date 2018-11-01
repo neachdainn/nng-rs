@@ -1,14 +1,11 @@
 use std::{error, fmt, io};
-
-use nng_sys;
-
-use message::Message;
+use crate::message::Message;
 
 /// Specialized `Result` type for use with nng.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Specialized `Result` type for use with send operations.
-pub type SendResult<T> = ::std::result::Result<T, (Message, Error)>;
+pub type SendResult<T> = std::result::Result<T, (Message, Error)>;
 
 /// The error type of nng operations.
 #[derive(Debug)]

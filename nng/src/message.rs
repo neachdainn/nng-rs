@@ -9,10 +9,7 @@
 //! information. Most applications will only interact with the body.
 use std::{ptr, slice};
 use std::ops::{Deref, DerefMut};
-
-use nng_sys;
-
-use error::Result;
+use crate::error::Result;
 
 /// An `nng` message type.
 pub struct Message

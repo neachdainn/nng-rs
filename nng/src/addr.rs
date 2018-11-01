@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 use std::net::{SocketAddrV4, SocketAddrV6};
 
-use nng_sys;
-
 /// Represents the addresses used by the underlying transports.
 pub enum SocketAddr
 {
