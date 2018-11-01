@@ -6,16 +6,13 @@ use std::ffi::{CString, CStr};
 use crate::error::{Result, ErrorKind};
 use crate::addr::SocketAddr;
 
-/// Marks a type as an `nng` option.
+/// Exposes the ability to get and set the option.
 ///
 /// This trait does not enforce the availability of any specific options on
 /// any specific type. Calling these methods incorrectly will result in `nng`
 /// returning an error code.
-pub trait Opt
+pub trait OptOps: super::Opt
 {
-	/// The Rust type that the option should (eventually) return.
-	type OptType;
-
 	/// Get the value of the option using the specified type.
 	fn get<T: HasOpts>(s: &T) -> Result<Self::OptType>;
 

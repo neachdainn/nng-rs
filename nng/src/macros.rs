@@ -39,10 +39,12 @@ macro_rules! create_option
 	) => {
 		$(#[$attr])*
 		pub enum $opt {}
-		impl $crate::options::private::Opt for $opt
+		impl $crate::options::Opt for $opt
 		{
 			type OptType = $ot;
-
+		}
+		impl $crate::options::private::OptOps for $opt
+		{
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
 			fn set<T: $crate::options::private::HasOpts>($s: &T, $v: Self::OptType) -> $crate::error::Result<()> { $sexpr }
 		}
