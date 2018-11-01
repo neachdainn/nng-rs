@@ -175,17 +175,15 @@ impl Socket
 	{
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
-		let rv = unsafe {
-			nng_sys::nng_sendmsg(self.handle, data.msgp(), flags)
-		};
+		unsafe {
+			let msgp = data.into_ptr();
+			let rv = nng_sys::nng_sendmsg(self.handle, msgp, flags);
 
-		if rv != 0 {
-			Err((data, ErrorKind::from_code(rv).into()))
-		} else {
-			// If the message was sent, we no longer have ownership over the
-			// memory. Forget that it was a thing and move on.
-			std::mem::forget(data);
-			Ok(())
+			if rv != 0 {
+				Err((Message::from_ptr(msgp), ErrorKind::from_code(rv).into()))
+			} else {
+				Ok(())
+			}
 		}
 	}
 

@@ -32,12 +32,6 @@ pub struct Message
 }
 impl Message
 {
-	/// Returns the pointer to the underlying `nng_msg`.
-	pub(crate) fn msgp(&self) -> *mut nng_sys::nng_msg
-	{
-		self.msgp
-	}
-
 	/// Creates a message from the given `nng_msg`
 	pub(crate) unsafe fn from_ptr(msgp: *mut nng_sys::nng_msg) -> Self
 	{
@@ -46,6 +40,15 @@ impl Message
 			body: Body { msgp },
 			header: Header { msgp },
 		}
+	}
+
+	/// Consumes the message and returns the `nng_msg` pointer.
+	pub(crate) unsafe fn into_ptr(self) -> *mut nng_sys::nng_msg
+	{
+		let ptr = self.msgp;
+		std::mem::forget(self);
+
+		ptr
 	}
 
 	/// Create an empty message.

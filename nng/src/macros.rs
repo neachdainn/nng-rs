@@ -6,7 +6,7 @@ macro_rules! rv2res
 	($rv:expr, $ok:expr) => (
 		match $rv {
 			0 => Ok($ok),
-			e => Err(crate::error::ErrorKind::from_code(e).into()),
+			e => Err($crate::error::Error::from($crate::error::ErrorKind::from_code(e))),
 		}
 	);
 
@@ -17,11 +17,17 @@ macro_rules! rv2res
 macro_rules! validate_ptr
 {
 	($rv:ident, $ptr:ident) => (
+		validate_ptr!($rv, $ptr, {})
+	);
+
+	($rv:ident, $ptr:ident, $before:tt) => (
 		if $rv != 0 {
-			return Err(crate::error::ErrorKind::from_code($rv).into());
+			$before;
+			return Err($crate::error::ErrorKind::from_code($rv).into());
 		}
 		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	)
+
 }
 
 /// Utility macro for creating a new option type.

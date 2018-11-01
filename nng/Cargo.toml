@@ -16,7 +16,8 @@ default = ["build-nng"]
 build-nng = ["nng-sys/build-nng"]
 
 [dependencies.nng-sys]
-version = "0.1.1"
+#version = "0.1.1"
+path = "../nng-sys"
 default-features = false
 
 [dev-dependencies]
