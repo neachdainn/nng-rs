@@ -1,6 +1,9 @@
 //! A safe Rust wrapper for nanomsg-next-generation
 extern crate nng_sys;
 
+#[macro_use]
+extern crate log;
+
 use std::time::Duration;
 
 #[macro_use]

@@ -15,10 +15,9 @@ license = "MIT"
 default = ["build-nng"]
 build-nng = ["nng-sys/build-nng"]
 
-[dependencies.nng-sys]
-#version = "0.1.1"
-path = "../nng-sys"
-default-features = false
+[dependencies]
+nng-sys = { path = "../nng-sys", default-features = false }
+log = "0.4"
 
 [dev-dependencies]
 byteorder = "1.2"

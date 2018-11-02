@@ -403,11 +403,9 @@ impl Inner
 	extern "C" fn trampoline<F>(arg: *mut c_void)
 		where F: FnMut() + RefUnwindSafe + Send + 'static
 	{
-		// TODO: We need to inform the user that something went wrong. That
-		// either means propagating the panic on the main thread or emitting a
-		// log message about it. Right now we're just hiding it and that's no
-		// good.
-		let _res = catch_unwind(|| unsafe {
+		// TODO: I don't like just logging the error. Somehow, this panic
+		// should make its way back to the user. See issue #6.
+		let res = catch_unwind(|| unsafe {
 			let callback_ptr = arg as *mut F;
 			if callback_ptr.is_null() {
 				// This should never, ever happen.
@@ -416,6 +414,10 @@ impl Inner
 
 			(*callback_ptr)()
 		});
+
+		if let Err(e) = res {
+			error!("Panic in callback function: {:?}", e);
+		}
 	}
 }
 
