@@ -21,7 +21,7 @@ pub use addr::SocketAddr;
 pub mod message;
 pub mod options;
 
-pub mod context;
+pub mod aio;
 
 /// A catch-all function for unsupported options operations.
 unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const std::os::raw::c_char, _: T) -> std::os::raw::c_int

@@ -61,7 +61,7 @@ macro_rules! create_option
 macro_rules! expose_options
 {
 	(
-		$struct:ident :: $member:ident -> $handle:ty;
+		$struct:ident :: $($member:ident).+ -> $handle:ty;
 		GETOPT_BOOL = $go_b:path;
 		GETOPT_INT = $go_i:path;
 		GETOPT_MS = $go_ms:path;
@@ -82,7 +82,7 @@ macro_rules! expose_options
 		impl $crate::options::private::HasOpts for $struct
 		{
 			type Handle = $handle;
-			fn handle(&self) -> Self::Handle { self.$member }
+			fn handle(&self) -> Self::Handle { self.$($member).+ }
 
 			const GETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut bool) -> std::os::raw::c_int = $go_b;
 			const GETOPT_INT: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut std::os::raw::c_int) -> std::os::raw::c_int = $go_i;
