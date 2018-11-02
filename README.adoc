@@ -4,6 +4,7 @@ image:https://docs.rs/nng/badge.svg[link="https://docs.rs/nng"]
 image:https://img.shields.io/crates/v/nng.svg[link="https://crates.io/crates/nng"]
 image:https://img.shields.io/badge/license-MIT-blue.svg[MIT License]
 image:https://img.shields.io/badge/rustc-1.30+-lightgray.svg[Rustc 1.30+]
+image:https://gitlab.com/neachdainn/nng-rs/badges/master/pipeline.svg[Pipeline]
 
 This repository is a wrapper for https://nanomsg.github.io/nng/[nng (Nanomsg-next-generation)].
 See the subdirectories for the individual crates for more information.

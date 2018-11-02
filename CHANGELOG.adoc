@@ -1,0 +1,45 @@
+= Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] and this project adheres to https://semver.org/spec/v2.0.0.html[Semantic Versioning].
+
+== [nng-rs Unreleased] ==
+
+=== Added ===
+
+=== Changed ===
+
+=== Deprecated ===
+
+=== Removed ===
+
+=== Fixed ===
+
+=== Security ===
+
+== [nng-sys Unreleased] ==
+
+=== Added ===
+
+=== Changed ===
+
+=== Deprecated ===
+
+=== Removed ===
+
+=== Fixed ===
+
+=== Security ===
+
+//------------------------------------------------------------------------------
+// Past Releases
+//------------------------------------------------------------------------------
+
+== [nng-rs v0.3.0] - 2018-11-02 ==
+
+First fully usable version.
+
+== [nng-sys v0.1.2] - 2018-11-02 ==
+
+First fully usable version
