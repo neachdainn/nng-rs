@@ -2,17 +2,52 @@
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
 image: "rust:1.30"
 
-# Since we default to compiling nng, we need to install some C tooling. We also
-# need to initialize the Git submodules, otherwise we don't have a libnng to
-# build.
+# If we run the test before the docs, we can cache the build and not waste time
+# building it again.
+stages:
+  - test
+  - doc
+
+# Move a few of the "home" directories here so they are easier to cache.
+variables:
+  GIT_SUBMODULE_STRATEGY: normal
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+  APT_CACHE_DIR: $CI_PROJECT_DIR/apt
+
+# Since we default to compiling nng, we need to install some C tooling.
 before_script:
-- git submodule sync
-- git submodule update --init
-- apt-get update -yqq
-- apt-get install -yqq --no-install-recommends build-essential cmake
+  - apt-get update -yqq
+  - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
 
 # Use cargo to test the project
-test:cargo:
+test:
+  stage: test
   script:
-  - rustc --version && cargo --version      # Print version info for debugging
-  - cargo test --all --verbose
+    - rustc --version
+    - cargo --version
+    - cargo test --all --verbose
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
+
+
+# Publish to the pages whenever master is updated
+pages:
+  stage: doc
+  script:
+    - cargo doc --no-deps
+    - mv target/doc public
+    - echo '<meta http-equiv="refresh" content="0; url=nng">' > public/index.html
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
+# Store these before jobs to speed up the build
+cache:
+  paths:
+    - apt/
+    - cargo/
+    - target/
