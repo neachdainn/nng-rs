@@ -1,6 +1,6 @@
 [package]
 name = "nng-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Nathan Kent <nate@nkent.net>"]
 
 description = "Bindings for nanomsg-next-generation (nng)"
