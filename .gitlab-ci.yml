@@ -2,10 +2,14 @@
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
 image: "rust:1.30"
 
-# Since we default to compiling nng, we need to install some C tooling
+# Since we default to compiling nng, we need to install some C tooling. We also
+# need to initialize the Git submodules, otherwise we don't have a libnng to
+# build.
 before_script:
+- git submodule sync
+- git submodule update --init
 - apt-get update -yqq
-- apt-get install -yqq --no-install-recommends build-essential
+- apt-get install -yqq --no-install-recommends build-essential cmake
 
 # Use cargo to test the project
 test:cargo:
