@@ -12,6 +12,7 @@ use std::ops::{Deref, DerefMut};
 use crate::error::Result;
 
 /// An `nng` message type.
+#[derive(Debug)]
 pub struct Message
 {
 	// We would like to be able to return a reference to the body and the head,
@@ -213,6 +214,7 @@ impl DerefMut for Message
 }
 
 /// The body of a `Message`.
+#[derive(Debug)]
 pub struct Body
 {
 	msgp: *mut nng_sys::nng_msg,
@@ -316,6 +318,7 @@ impl DerefMut for Body
 }
 
 /// The header of a `Message`.
+#[derive(Debug)]
 pub struct Header
 {
 	msgp: *mut nng_sys::nng_msg,

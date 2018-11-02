@@ -19,6 +19,8 @@ mod addr;
 pub use addr::SocketAddr;
 
 pub mod message;
+pub use message::Message;
+
 pub mod options;
 
 pub mod aio;

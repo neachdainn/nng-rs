@@ -53,16 +53,24 @@ impl Aio
 {
 	/// Create a new asynchronous I/O handle.
 	///
-	/// If a callback is provided then it will be called on every single I/O
-	/// event and `Aio::result` can be used to determine the results. If no
-	/// callback is provided, then it is valid and required to use `Aio::wait`
-	/// before `Aio::result`.
-	pub fn new<T, F>(callback: T) -> Result<Aio>
-		where T: Into<Option<F>>,
-		      F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
+	/// Without a callback, the result of the I/O operation can only be
+	/// retrieved after a call to `Aio::wait`.
+	pub fn new() -> Result<Aio>
 	{
-		let (inner, box_cb) = Inner::new(callback.into())?;
-		Ok(Aio { inner, callback: box_cb })
+		Ok(Aio { inner: Inner::new()? , callback: None })
+	}
+
+	/// Create a new asynchronous I/O handle.
+	///
+	/// The provided callback will be called on every single I/O event and
+	/// `Aio::result` can be used to determine the result of the operation.
+	/// With a callback provided, using `Aio::wait` is generally recommended
+	/// against.
+	pub fn with_callback<F>(callback: F) -> Result<Aio>
+		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
+	{
+		let (inner, box_cb) = Inner::with_callback(callback)?;
+		Ok(Aio { inner, callback: Some(box_cb) })
 	}
 
 	/// Cancel the currently running I/O operation.
@@ -298,8 +306,18 @@ struct Inner
 }
 impl Inner
 {
-	/// Allocates a new asynchronous I/O context.
-	fn new<F>(callback: Option<F>) -> Result<(SharedInner, Option<Box<FnMut() + Send + RefUnwindSafe + 'static>>)>
+	/// Allocates a new asynchronous I/O context without a callback.
+	fn new() -> Result<SharedInner>
+	{
+		let mut aio = ptr::null_mut();
+		let rv = unsafe { nng_sys::nng_aio_alloc(&mut aio, None, ptr::null_mut()) };
+		validate_ptr!(rv, aio);
+
+		Ok(Arc::new(Mutex::new(Inner { aio: AioPtr(aio), state: State::Inactive(None) })))
+	}
+
+	/// Allocates a new asynchronous I/O context with a callback.
+	fn with_callback<F>(mut callback: F) -> Result<(SharedInner, Box<FnMut() + Send + RefUnwindSafe + 'static>)>
 		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
 	{
 		// We start by creating an (unallocated) shared inner object. The
@@ -311,29 +329,30 @@ impl Inner
 			state: State::Inactive(None),
 		}));
 
-		// Now, if we have a callback, we need to do some crazy trampolining.
-		// Otherwise, we don't have to worry about that.
-		let (rv, box_fn) = if let Some(mut f) = callback {
-			let cb_aio = Aio {
-				inner: shared_inner.clone(),
-				callback: None,
-			};
+		// Now, because we have a callback, we need to do some crazy
+		// trampolining.
+		let cb_aio = Aio {
+			inner: shared_inner.clone(),
+			callback: None,
+		};
 
-			let trampoline = move || {
-				cb_aio.event_update_state();
-				f(&cb_aio)
-			};
+		let trampoline = move || {
+			cb_aio.event_update_state();
+			callback(&cb_aio)
+		};
 
-			// We currently control every version of this mutex, so we know
-			// that it is uncontested and not poisoned.
+		// We currently control every version of this mutex, so we know
+		// that it is uncontested and not poisoned.
+		let (rv, box_fn) = unsafe {
 			let mut l = shared_inner.lock().unwrap();
-			let (rv, box_fn) = unsafe { Inner::aio_alloc_trampoline(&mut *l.aio, trampoline) };
-			(rv, Some(box_fn))
-		} else {
+			Inner::aio_alloc_trampoline(&mut *l.aio, trampoline)
+		};
+
+		/*} else {
 			let mut l = shared_inner.lock().unwrap();
 			let rv = unsafe { nng_sys::nng_aio_alloc(&mut *l.aio, None, ptr::null_mut()) };
 			(rv, None)
-		};
+		};*/
 
 		// Normally, we would check the return code against the pointer - if
 		// the pointer was null with a valid return code, we panic. If the

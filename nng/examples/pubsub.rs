@@ -7,8 +7,7 @@ extern crate byteorder;
 
 use std::{env, mem, process, thread};
 use std::time::{Duration, SystemTime};
-use nng::{Socket, Protocol};
-use nng::message::Message;
+use nng::{Socket, Protocol, Message};
 use nng::options::Options;
 use nng::options::protocol::pubsub::Subscribe;
 use byteorder::{ByteOrder, LittleEndian};

@@ -9,8 +9,7 @@ extern crate byteorder;
 
 use std::{env, mem, process};
 use std::time::SystemTime;
-use nng::{Socket, Protocol};
-use nng::message::Message;
+use nng::{Socket, Protocol, Message};
 use byteorder::{ByteOrder, LittleEndian};
 
 /// Message representing a date request
