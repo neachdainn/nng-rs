@@ -6,7 +6,7 @@ macro_rules! rv2res
 	($rv:expr, $ok:expr) => (
 		match $rv {
 			0 => Ok($ok),
-			e => Err(crate::error::ErrorKind::from_code(e).into()),
+			e => Err($crate::error::Error::from($crate::error::ErrorKind::from_code(e))),
 		}
 	);
 
@@ -17,11 +17,17 @@ macro_rules! rv2res
 macro_rules! validate_ptr
 {
 	($rv:ident, $ptr:ident) => (
+		validate_ptr!($rv, $ptr, {})
+	);
+
+	($rv:ident, $ptr:ident, $before:tt) => (
 		if $rv != 0 {
-			return Err(crate::error::ErrorKind::from_code($rv).into());
+			$before;
+			return Err($crate::error::ErrorKind::from_code($rv).into());
 		}
 		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	)
+
 }
 
 /// Utility macro for creating a new option type.
@@ -55,20 +61,20 @@ macro_rules! create_option
 macro_rules! expose_options
 {
 	(
-		$struct:ident :: $member:ident -> $handle:ty;
-		GETOPT_BOOL = $go_b:expr;
-		GETOPT_INT = $go_i:expr;
-		GETOPT_MS = $go_ms:expr;
-		GETOPT_SIZE = $go_sz:expr;
-		GETOPT_SOCKADDR = $go_sa:expr;
-		GETOPT_STRING = $go_str:expr;
+		$struct:ident :: $($member:ident).+ -> $handle:ty;
+		GETOPT_BOOL = $go_b:path;
+		GETOPT_INT = $go_i:path;
+		GETOPT_MS = $go_ms:path;
+		GETOPT_SIZE = $go_sz:path;
+		GETOPT_SOCKADDR = $go_sa:path;
+		GETOPT_STRING = $go_str:path;
 
-		SETOPT = $so:expr;
-		SETOPT_BOOL = $so_b:expr;
-		SETOPT_INT = $so_i:expr;
-		SETOPT_MS = $so_ms:expr;
-		SETOPT_SIZE = $so_sz:expr;
-		SETOPT_STRING = $so_str:expr;
+		SETOPT = $so:path;
+		SETOPT_BOOL = $so_b:path;
+		SETOPT_INT = $so_i:path;
+		SETOPT_MS = $so_ms:path;
+		SETOPT_SIZE = $so_sz:path;
+		SETOPT_STRING = $so_str:path;
 
 		Gets -> [$($($getters:ident)::+),*];
 		Sets -> [$($($setters:ident)::+),*];
@@ -76,7 +82,7 @@ macro_rules! expose_options
 		impl $crate::options::private::HasOpts for $struct
 		{
 			type Handle = $handle;
-			fn handle(&self) -> Self::Handle { self.$member }
+			fn handle(&self) -> Self::Handle { self.$($member).+ }
 
 			const GETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut bool) -> std::os::raw::c_int = $go_b;
 			const GETOPT_INT: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut std::os::raw::c_int) -> std::os::raw::c_int = $go_i;
