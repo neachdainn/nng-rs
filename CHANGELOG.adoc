@@ -9,11 +9,13 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Added ===
 
 * Sockets can now send messages asynchronously via `Socket::send_async`.
+* Sockets can now receive messages asynchronously via `Socket::recv_async`.
 
 === Changed ===
 
 * The majority of types are now at the root of the crate rather than a module.
 * Asynchronous sending on a context is now via `Context::send` rather than `Aio::send`.
+* Asynchronous receiving on a context is now via `Context::recv` rather than `Aio::recv`.
 
 === Deprecated ===
 

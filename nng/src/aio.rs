@@ -196,7 +196,7 @@ impl Aio
 	/// The API of the asynchronous I/O stuff needs to match what _nng_ does,
 	/// but this type has a lot of bookkeeping associated with sending and
 	/// receiving messages that I do not want to expose to users. As such, the
-	/// `Context::send` is really just a wrapper around this function.
+	/// `Socket::send` is really just a wrapper around this function.
 	pub(crate) fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
 		let mut l = self.inner.lock().unwrap();
@@ -215,20 +215,38 @@ impl Aio
 
 	/// Receive a message using the context asynchronously.
 	///
-	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
-	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress that is _not_ a receive operation, this function
-	/// will return `ErrorKind::TryAgain`.
-	pub fn recv(&self, ctx: &Context) -> Result<()>
+	/// The API of the asynchronous I/O should match what _nng_ does, but the
+	/// Aio object has a lot of bookkeeping. So the real meat of the operation
+	/// happens in this function but it is exposed to the user as a context
+	/// method.
+	pub(crate) fn recv_ctx(&self, ctx: &Context) -> Result<()>
 	{
 		let mut l = self.inner.lock().unwrap();
 
 		match l.state {
 			State::Inactive(_) | State::Receiving => unsafe {
 				nng_sys::nng_ctx_recv(ctx.handle(), *l.aio);
+				l.state = State::Receiving;
+
+				Ok(())
+			},
+			_ => Err(ErrorKind::TryAgain.into()),
+		}
+	}
+
+	/// Receive a message using the socket asynchronously.
+	///
+	/// The API of the asynchronous I/O should match what _nng_ does, but the
+	/// Aio object has a lot of bookkeeping. So the real meat of the operation
+	/// happens in this function but it is exposed to the user as a socket
+	/// method.
+	pub(crate) fn recv_socket(&self, socket: &Socket) -> Result<()>
+	{
+		let mut l = self.inner.lock().unwrap();
+
+		match l.state {
+			State::Inactive(_) | State::Receiving => unsafe {
+				nng_sys::nng_recv_aio(socket.handle(), *l.aio);
 				l.state = State::Receiving;
 
 				Ok(())
