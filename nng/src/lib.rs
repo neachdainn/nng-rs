@@ -15,18 +15,19 @@ pub use error::{Error, ErrorKind, Result};
 mod socket;
 pub use socket::{Socket, Protocol};
 
-pub mod dialer;
-pub mod listener;
+mod dialer;
+pub use dialer::{Dialer, DialerOptions};
+
+mod listener;
+pub use listener::{Listener, ListenerOptions};
 
 mod addr;
 pub use addr::SocketAddr;
 
-pub mod message;
-pub use message::Message;
+mod message;
+pub use message::{Message, Header, Body};
 
 pub mod options;
-
-pub mod aio;
 
 /// A catch-all function for unsupported options operations.
 unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const std::os::raw::c_char, _: T) -> std::os::raw::c_int

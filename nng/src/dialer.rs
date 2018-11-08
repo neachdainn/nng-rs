@@ -26,6 +26,7 @@ use crate::socket::Socket;
 ///
 /// This dialer has already been started on the socket and will continue
 /// serving the connection until either it or the socket is dropped.
+#[derive(Debug)]
 pub struct Dialer
 {
 	/// The handle to the underlying
