@@ -27,6 +27,12 @@ pub use addr::SocketAddr;
 mod message;
 pub use message::{Message, Header, Body};
 
+mod aio;
+pub use aio::Aio;
+
+mod ctx;
+pub use ctx::Context;
+
 pub mod options;
 
 /// A catch-all function for unsupported options operations.

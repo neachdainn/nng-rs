@@ -5,7 +5,8 @@ use std::os::raw::{c_int, c_void};
 use std::ptr;
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
-use crate::aio::Context;
+use crate::ctx::Context;
+use crate::socket::Socket;
 
 /// A handle of asynchronous I/O operations.
 ///
@@ -47,7 +48,7 @@ pub struct Aio
 	/// Keep in mind that the closure has technically been sent to an nng
 	/// thread and it is not `Sync`. Touching it in any way is going to lead to
 	/// issues.
-	callback: Option<Box<FnMut() + Send + RefUnwindSafe + 'static>>,
+	callback: Option<uncallable::UncallableFn>,
 }
 impl Aio
 {
@@ -70,7 +71,7 @@ impl Aio
 		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
 	{
 		let (inner, box_cb) = Inner::with_callback(callback)?;
-		Ok(Aio { inner, callback: Some(box_cb) })
+		Ok(Aio { inner, callback: Some(uncallable::UncallableFn::new(box_cb)) })
 	}
 
 	/// Cancel the currently running I/O operation.
@@ -170,14 +171,11 @@ impl Aio
 
 	/// Send a message using the context asynchronously.
 	///
-	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
-	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `ErrorKind::TryAgain`
-	/// and return the message to the caller.
-	pub fn send(&self, ctx: &Context, msg: Message) -> SendResult<()>
+	/// The API of the asynchronous I/O stuff needs to match what _nng_ does,
+	/// but this type has a lot of bookkeeping associated with sending and
+	/// receiving messages that I do not want to expose to users. As such, the
+	/// `Context::send` is really just a wrapper around this function.
+	pub(crate) fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>
 	{
 		let mut l = self.inner.lock().unwrap();
 
@@ -185,6 +183,28 @@ impl Aio
 			unsafe {
 				nng_sys::nng_aio_set_msg(*l.aio, msg.into_ptr());
 				nng_sys::nng_ctx_send(ctx.handle(), *l.aio);
+
+				l.state = State::Sending;
+
+				Ok(())
+			}
+		} else { Err((msg, ErrorKind::TryAgain.into())) }
+	}
+
+	/// Send a message using the socket asynchronously.
+	///
+	/// The API of the asynchronous I/O stuff needs to match what _nng_ does,
+	/// but this type has a lot of bookkeeping associated with sending and
+	/// receiving messages that I do not want to expose to users. As such, the
+	/// `Context::send` is really just a wrapper around this function.
+	pub(crate) fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
+	{
+		let mut l = self.inner.lock().unwrap();
+
+		if let State::Inactive(_) = l.state {
+			unsafe {
+				nng_sys::nng_aio_set_msg(*l.aio, msg.into_ptr());
+				nng_sys::nng_send_aio(socket.handle(), *l.aio);
 
 				l.state = State::Sending;
 
@@ -467,4 +487,23 @@ enum State
 
 	/// A receive operation is currently running.
 	Receiving,
+}
+
+mod uncallable
+{
+	use super::*;
+
+	/// A newtype to prevent calling the boxed function.
+	pub struct UncallableFn
+	{
+		_func: Box<FnMut() + Send + RefUnwindSafe + 'static>,
+	}
+	impl UncallableFn
+	{
+		/// Creates a new wrapper around the boxed function.
+		pub fn new(func: Box<FnMut() + Send + RefUnwindSafe + 'static>) -> Self
+		{
+			UncallableFn { _func: func }
+		}
+	}
 }
