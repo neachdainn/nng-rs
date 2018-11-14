@@ -44,7 +44,7 @@ impl Socket
 				Protocol::Pair1 => pair1::nng_pair1_open(&mut socket as *mut _),
 				Protocol::Pub0 => pubsub0::nng_pub0_open(&mut socket as *mut _),
 				Protocol::Pull0 => pipeline0::nng_pull0_open(&mut socket as *mut _),
-				Protocol::Push0 => pipeline0::nng_pull0_open(&mut socket as *mut _),
+				Protocol::Push0 => pipeline0::nng_push0_open(&mut socket as *mut _),
 				Protocol::Rep0 => reqrep0::nng_rep0_open(&mut socket as *mut _),
 				Protocol::Req0 => reqrep0::nng_req0_open(&mut socket as *mut _),
 				Protocol::Respondent0 => survey0::nng_respondent0_open(&mut socket as *mut _),
