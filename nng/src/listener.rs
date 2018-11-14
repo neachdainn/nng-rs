@@ -26,6 +26,7 @@ use crate::socket::Socket;
 ///
 /// This listener has already been started on the socket and will continue
 /// serving the connection until either it or the socket is dropped.
+#[derive(Debug)]
 pub struct Listener
 {
 	/// The handle to the underlying

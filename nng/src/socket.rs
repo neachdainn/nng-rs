@@ -3,6 +3,7 @@ use std::ptr;
 use nng_sys::protocol::*;
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
+use crate::aio::Aio;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -184,6 +185,34 @@ impl Socket
 				Ok(())
 			}
 		}
+	}
+
+	/// Send a message using the socket asynchronously.
+	///
+	/// The result of this operation will be available either after calling
+	/// `Aio::wait` or inside of the callback function. If the send operation
+	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress, this function will return `ErrorKind::TryAgain`
+	/// and return the message to the caller.
+	pub fn send_async(&mut self, aio: &Aio, msg: Message) -> SendResult<()>
+	{
+		aio.send_socket(self, msg)
+	}
+
+	/// Receive a message using the socket asynchronously.
+	///
+	/// The result of this operation will be available either after calling
+	/// `Aio::wait` or inside of the callback function. If the send operation
+	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress that is _not_ a receive operation, this function
+	/// will return `ErrorKind::TryAgain`.
+	pub fn recv_async(&mut self, aio: &Aio) -> Result<()>
+	{
+		aio.recv_socket(self)
 	}
 
 	/// Get the positive identifier for the socket.

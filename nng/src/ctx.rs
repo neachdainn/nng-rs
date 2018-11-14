@@ -1,6 +1,8 @@
 use std::sync::Arc;
-use crate::error::Result;
+use crate::error::{Result, SendResult};
 use crate::socket::Socket;
+use crate::aio::Aio;
+use crate::message::Message;
 
 /// A socket context.
 ///
@@ -40,6 +42,34 @@ impl Context
 		assert!(id > 0, "Invalid context ID returned from valid context");
 
 		id
+	}
+
+	/// Send a message using the context asynchronously.
+	///
+	/// The result of this operation will be available either after calling
+	/// `Aio::wait` or inside of the callback function. If the send operation
+	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress, this function will return `ErrorKind::TryAgain`
+	/// and return the message to the caller.
+	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()>
+	{
+		aio.send_ctx(self, msg)
+	}
+
+	/// Receive a message using the context asynchronously.
+	///
+	/// The result of this operation will be available either after calling
+	/// `Aio::wait` or inside of the callback function. If the send operation
+	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress that is _not_ a receive operation, this function
+	/// will return `ErrorKind::TryAgain`.
+	pub fn recv(&self, aio:&Aio) -> Result<()>
+	{
+		aio.recv_ctx(self)
 	}
 
 	/// Returns the inner `nng_ctx` object.

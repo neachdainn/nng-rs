@@ -11,8 +11,7 @@ extern crate byteorder;
 
 use std::{env, thread, process, mem};
 use std::time::{Duration, Instant};
-use nng::{Socket, Protocol, Message};
-use nng::aio::{Aio, Context};
+use nng::{Socket, Protocol, Message, Aio, Context};
 use byteorder::{ByteOrder, LittleEndian};
 
 /// Number of outstanding requests that we can handle at a given time.
@@ -78,7 +77,7 @@ fn server(url: &str) -> Result<(), nng::Error>
 
 	// Now start all of the workers listening.
 	for (a, c) in &workers {
-		a.recv(c)?;
+		c.recv(a)?;
 	}
 
 	thread::sleep(Duration::from_secs(60 * 60 * 24 * 365));
@@ -114,14 +113,14 @@ fn worker_callback(aio: &Aio, ctx: &Context, state: &mut State)
 		},
 		State::Wait => {
 			let msg = Message::new().unwrap();
-			aio.send(ctx, msg).unwrap();
+			ctx.send(aio, msg).unwrap();
 
 			State::Send
 		},
 		State::Send => {
 			// Again, just panic bad if things happened.
 			let _ = aio.result().unwrap();
-			aio.recv(ctx).unwrap();
+			ctx.recv(aio).unwrap();
 
 			State::Recv
 		}

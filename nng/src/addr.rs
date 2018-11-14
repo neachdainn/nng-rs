@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::net::{SocketAddrV4, SocketAddrV6};
 
 /// Represents the addresses used by the underlying transports.
+#[derive(Clone, Debug)]
 pub enum SocketAddr
 {
 	/// An address associated with intra-process communication.
@@ -42,6 +43,7 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 
 /// A ZeroTier socket address.
 #[doc(hidden)]
+#[derive(Copy, Clone, Debug)]
 pub struct SocketAddrZt
 {
 	pub family: u16,

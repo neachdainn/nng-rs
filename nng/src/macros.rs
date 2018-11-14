@@ -44,6 +44,8 @@ macro_rules! create_option
 		Set $s:ident $v:ident = $sexpr:stmt;
 	) => {
 		$(#[$attr])*
+		#[allow(missing_debug_implementations)]
+		#[allow(missing_copy_implementations)]
 		pub enum $opt {}
 		impl $crate::options::Opt for $opt
 		{
