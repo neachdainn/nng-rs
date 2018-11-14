@@ -13,7 +13,10 @@ mod error;
 pub use error::{Error, ErrorKind, Result};
 
 mod socket;
-pub use socket::{Socket, Protocol};
+pub use socket::Socket;
+
+mod protocol;
+pub use protocol::Protocol;
 
 mod dialer;
 pub use dialer::{Dialer, DialerOptions};

@@ -1,9 +1,11 @@
 use std::ffi::CString;
 use std::ptr;
+use std::sync::Arc;
 use nng_sys::protocol::*;
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
 use crate::aio::Aio;
+use crate::protocol::Protocol;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -17,11 +19,11 @@ use crate::aio::Aio;
 /// See the [nng documenatation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_socket.5.html
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Socket
 {
-	/// Handle to the underlying nng socket.
-	handle: nng_sys::nng_socket,
+	/// The shared reference to the underlying nng socket.
+	inner: Arc<Inner>,
 
 	/// Whether or not this socket should block on sending and receiving
 	nonblocking: bool,
@@ -51,7 +53,7 @@ impl Socket
 			}
 		};
 
-		rv2res!(rv, Socket { handle: socket, nonblocking: false })
+		rv2res!(rv, Socket { inner: Arc::new(Inner { handle: socket }), nonblocking: false })
 	}
 
 	/// Initiates a remote connection to a listener.
@@ -86,7 +88,7 @@ impl Socket
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_dial(self.handle, addr.as_ptr(), ptr::null_mut(), flags)
+			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
 		};
 
 		rv2res!(rv)
@@ -119,7 +121,7 @@ impl Socket
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(self.handle, addr.as_ptr(), ptr::null_mut(), flags)
+			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
 		};
 
 		rv2res!(rv)
@@ -151,7 +153,7 @@ impl Socket
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_recvmsg(self.handle, &mut msgp as _, flags)
+			nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags)
 		};
 
 		validate_ptr!(rv, msgp);
@@ -177,7 +179,7 @@ impl Socket
 
 		unsafe {
 			let msgp = data.into_ptr();
-			let rv = nng_sys::nng_sendmsg(self.handle, msgp, flags);
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp, flags);
 
 			if rv != 0 {
 				Err((Message::from_ptr(msgp), ErrorKind::from_code(rv).into()))
@@ -218,7 +220,7 @@ impl Socket
 	/// Get the positive identifier for the socket.
 	pub fn id(&self) -> i32
 	{
-		let id = unsafe { nng_sys::nng_socket_id(self.handle) };
+		let id = unsafe { nng_sys::nng_socket_id(self.inner.handle) };
 		assert!(id > 0, "Invalid socket ID returned from valid socket");
 
 		id
@@ -227,12 +229,12 @@ impl Socket
 	/// Returns the underlying `nng_socket`.
 	pub(crate) fn handle(&self) -> nng_sys::nng_socket
 	{
-		self.handle
+		self.inner.handle
 	}
 }
 
 expose_options!{
-	Socket :: handle -> nng_sys::nng_socket;
+	Socket :: inner.handle -> nng_sys::nng_socket;
 
 	GETOPT_BOOL = nng_sys::nng_getopt_bool;
 	GETOPT_INT = nng_sys::nng_getopt_int;
@@ -269,7 +271,18 @@ expose_options!{
 	         transport::websocket::ResponseHeaders];
 }
 
-impl Drop for Socket
+/// A wrapper type around the underlying `nng_socket`.
+///
+/// This allows us to have mutliple Rust socket types that won't clone the C
+/// socket type before Rust is done with it.
+#[derive(Debug)]
+struct Inner
+{
+	/// Handle to the underlying nng socket.
+	handle: nng_sys::nng_socket,
+}
+
+impl Drop for Inner
 {
 	fn drop(&mut self)
 	{
@@ -283,139 +296,4 @@ impl Drop for Socket
 			"Unexpected error code while closing socket ({})", rv
 		);
 	}
-}
-
-/// Protocols available for use by sockets.
-#[derive(Copy, Clone, Debug)]
-pub enum Protocol
-{
-	/// Version 0 of the bus protocol.
-	///
-	/// The _bus_ protocol provides for building mesh networks where every peer
-	/// is connected to every other peer. In this protocol, each message sent
-	/// by a node is sent to every one of its directly connected peers. See
-	/// the [bus documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_bus.7.html
-	Bus0,
-
-	/// Version 0 of the pair protocol.
-	///
-	/// The _pair_ protocol implements a peer-to-peer pattern, where
-	/// relationships between peers are one-to-one. See the
-	/// [pair documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_pair.7.html
-	Pair0,
-
-	/// Version 1 of the pair protocol.
-	///
-	/// The _pair_ protocol implements a peer-to-peer pattern, where
-	/// relationships between peers are one-to-one. Version 1 of this protocol
-	/// supports and optional _polyamorous_ mode. See the [pair documentation][1]
-	/// for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_pair.7.html
-	Pair1,
-
-	/// Version 0 of the publisher protocol.
-	///
-	/// The _pub_ protocol is one half of a publisher/subscriber pattern. In
-	/// this pattern, a publisher sends data, which is broadcast to all
-	/// subscribers. The subscribing applications only see the data to which
-	/// they have subscribed. See the [publisher/subscriber documentation][1]
-	/// for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_pub.7.html
-	Pub0,
-
-	/// Version 0 of the pull protocol.
-	///
-	/// The _pull_ protocol is one half of a pipeline pattern. The other half
-	/// is the _push_ protocol. In the pipeline pattern, pushers distribute
-	/// messages to pullers. Each message sent by a pusher will be sent to one
-	/// of its peer pullers, chosen in a round-robin fashion from the set of
-	/// connected peers available for receiving. This property makes this
-	/// pattern useful in load-balancing scenarios.
-	///
-	/// See the [pipeline documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_pull.7.html
-	Pull0,
-
-	/// Version 0 of the push protocol.
-	///
-	/// The _push_ protocol is one half of a pipeline pattern. The other side
-	/// is the _pull_ protocol. In the pipeline pattern, pushers distribute
-	/// messages to pullers. Each message sent by a pusher will be sent to one
-	/// of its peer pullers, chosen in a round-robin fashion from the set of
-	/// connected peers available for receiving. This property makes this
-	/// pattern useful in load-balancing scenarios.
-	///
-	/// See the [pipeline documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_push.7.html
-	Push0,
-
-	/// Version 0 of the reply protocol.
-	///
-	/// The _rep_ protocol is one half of a request/reply pattern. In this
-	/// pattern, a requester sends a message to one replier, who is expected to
-	/// reply. The request is resent if no reply arrives, until a reply is
-	/// received or the request times out.
-	///
-	/// See the [request/reply documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_rep.7.html
-	Rep0,
-
-	/// Version 0 of the request protocol.
-	///
-	/// The _req_ protocol is one half of a request/reply pattern. In this
-	/// pattern, a requester sends a message to one replier, who is expected to
-	/// reply. The request is resent if no reply arrives, until a reply is
-	/// received or the request times out.
-	///
-	/// See the [request/reply documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_req.7.html
-	Req0,
-
-	/// Version 0 of the respondent protocol.
-	///
-	/// The _respondent_ protocol is one half of a survey pattern. In this
-	/// pattern, a surveyor sends a survey, which is broadcast to all peer
-	/// respondents. The respondents then have a chance to reply (but are not
-	/// obliged to reply). The survey itself is a timed event, so that
-	/// responses received after the survey has finished are discarded.
-	///
-	/// See the [survery documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_respondent.7.html
-	Respondent0,
-
-	/// Version 0 of the subscriber protocol.
-	///
-	/// The _sub_ protocol is one half of a publisher/subscriber pattern. In
-	/// this pattern, a publisher sends data, which is broadcast to all
-	/// subscribers. The subscribing applications only see the data to which
-	/// they have subscribed.
-	///
-	/// See the [publisher/subscriber documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_sub.7.html
-	Sub0,
-
-	/// Version 0 of the surveyor protocol.
-	///
-	/// The _surveyor_ protocol is one half of a survey pattern. In this
-	/// pattern, a surveyor sends a survey, which is broadcast to all peer
-	/// respondents. The respondents then have a chance to reply (but are not
-	/// obliged to reply). The survey itself is a timed event, so that
-	/// responses received after the survey has finished are discarded.
-	///
-	/// See the [survey documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_surveyor.7.html
-	Surveyor0,
 }
