@@ -10,6 +10,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * Sockets can now send messages asynchronously via `Socket::send_async`.
 * Sockets can now receive messages asynchronously via `Socket::recv_async`.
+* Sockets can now be cloned to have multiple handles to the same underlying NNG socket.
 
 === Changed ===
 
@@ -22,6 +23,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Removed ===
 
 === Fixed ===
+
+* The `Push0` protocol now actually opens a `Push0` socket (instead of a `Pull0` socket).
 
 === Security ===
 
