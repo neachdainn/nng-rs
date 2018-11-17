@@ -355,7 +355,7 @@ impl Inner
 	}
 
 	/// Allocates a new asynchronous I/O context with a callback.
-	fn with_callback<F>(mut callback: F) -> Result<(SharedInner, Box<FnMut() + Send + RefUnwindSafe + 'static>)>
+	fn with_callback<F>(mut callback: F) -> Result<(SharedInner, Box<Fn() + Send + Sync + RefUnwindSafe + 'static>)>
 		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
 	{
 		// We start by creating an (unallocated) shared inner object. The
@@ -383,20 +383,17 @@ impl Inner
 			cb_aio.event_update_state();
 			callback(&cb_aio)
 		});
-		let trampoline = move || (callback_lock.lock().unwrap_or_else(|p| p.into_inner()))();
 
-		// We currently control every version of this mutex, so we know
-		// that it is uncontested and not poisoned.
+		// We are currently chosing to ignore a poisoned mutex. This should be
+		// addressed when #6 is.
+		let trampoline = move || (&mut *callback_lock.lock().unwrap_or_else(|p| p.into_inner()))();
+
+		// We currently control every version of the shared inner mutex, so we
+		// know that it is uncontested and not poisoned.
 		let (rv, box_fn) = unsafe {
 			let mut l = shared_inner.lock().unwrap();
 			Inner::aio_alloc_trampoline(&mut *l.aio, trampoline)
 		};
-
-		/*} else {
-			let mut l = shared_inner.lock().unwrap();
-			let rv = unsafe { nng_sys::nng_aio_alloc(&mut *l.aio, None, ptr::null_mut()) };
-			(rv, None)
-		};*/
 
 		// Normally, we would check the return code against the pointer - if
 		// the pointer was null with a valid return code, we panic. If the
@@ -432,8 +429,8 @@ impl Inner
 	unsafe fn aio_alloc_trampoline<F>(
 		aio: *mut *mut nng_sys::nng_aio,
 		trampoline: F,
-	) -> (c_int, Box<FnMut() + Send + RefUnwindSafe + 'static>)
-		where F: FnMut() + Send + RefUnwindSafe + 'static
+	) -> (c_int, Box<Fn() + Send + Sync + RefUnwindSafe + 'static>)
+		where F: Fn() + Send + Sync + RefUnwindSafe + 'static
 	{
 		let mut box_fn = Box::new(trampoline);
 		let rv = nng_sys::nng_aio_alloc(aio, Some(Inner::trampoline::<F>), &mut *box_fn as *mut _ as _);
@@ -445,7 +442,7 @@ impl Inner
 	/// This is unsafe because you have to be absolutely positive that `T` is
 	/// really actually truly the type of the closure.
 	extern "C" fn trampoline<F>(arg: *mut c_void)
-		where F: FnMut() + RefUnwindSafe + Send + 'static
+		where F: Fn() + Send + Sync + RefUnwindSafe + 'static
 	{
 		// TODO: I don't like just logging the error. Somehow, this panic
 		// should make its way back to the user. See issue #6.
@@ -520,12 +517,12 @@ mod uncallable
 	/// A newtype to prevent calling the boxed function.
 	pub struct UncallableFn
 	{
-		_func: Box<FnMut() + Send + RefUnwindSafe + 'static>,
+		_func: Box<Fn() + Send + Sync + RefUnwindSafe + 'static>,
 	}
 	impl UncallableFn
 	{
 		/// Creates a new wrapper around the boxed function.
-		pub fn new(func: Box<FnMut() + Send + RefUnwindSafe + 'static>) -> Self
+		pub fn new(func: Box<Fn() + Send + Sync + RefUnwindSafe + 'static>) -> Self
 		{
 			UncallableFn { _func: func }
 		}
