@@ -6,7 +6,7 @@ image: "rust:1.30"
 # building it again.
 stages:
   - test
-  - doc
+  - docs_and_examples
 
 # Move a few of the "home" directories here so they are easier to cache.
 variables:
@@ -31,10 +31,19 @@ test:
     - master
     - /^[0-9]+-.*$/
 
+# Make sure that the examples also build
+examples:
+  stage: docs_and_examples
+  script:
+    - cargo build --examples
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
 
 # Publish to the pages whenever master is updated
 pages:
-  stage: doc
+  stage: docs_and_examples
   script:
     - cargo doc --no-deps
     - mv target/doc public

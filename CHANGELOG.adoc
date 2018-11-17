@@ -25,6 +25,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Fixed ===
 
 * The `Push0` protocol now actually opens a `Push0` socket (instead of a `Pull0` socket).
+* Asynchronous I/O callbacks no longer can enter the same callback closure simultaneously.
 
 === Security ===
 
