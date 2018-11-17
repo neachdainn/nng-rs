@@ -374,10 +374,16 @@ impl Inner
 			callback: None,
 		};
 
-		let trampoline = move || {
+		// Within this trampoline, we also need to add a lock to prevent NNG
+		// from entering the closure mutiple times simultaneously. An
+		// alternative to the lock was is to require that the user provide a
+		// `Fn() + Sync` closure but that really puts a damper on the
+		// ergonomics of the API.
+		let callback_lock = Mutex::new(move || {
 			cb_aio.event_update_state();
 			callback(&cb_aio)
-		};
+		});
+		let trampoline = move || (callback_lock.lock().unwrap_or_else(|p| p.into_inner()))();
 
 		// We currently control every version of this mutex, so we know
 		// that it is uncontested and not poisoned.
