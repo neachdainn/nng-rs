@@ -35,6 +35,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Changed ===
 
+* The `build-nng` flag no longer builds _nng_ tests or tools.
+
 === Deprecated ===
 
 === Removed ===
