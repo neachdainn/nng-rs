@@ -30,6 +30,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `Push0` protocol now actually opens a `Push0` socket (instead of a `Pull0` socket).
 * Asynchronous I/O callbacks no longer can enter the same callback closure simultaneously.
+* `SocketAddr` now compiles on platforms where a `c_char` is unsigned. (#11)
 
 === Security ===
 
@@ -41,7 +42,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Changed ===
 
-* The `build-nng` flag no longer builds _nng_ tests or tools.
+* The `build-nng` flag no longer builds _nng_ tests or tools. (#10)
 * Updated to support _nng_ v1.1.1. (#13)
 
 === Deprecated ===
