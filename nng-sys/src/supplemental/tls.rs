@@ -23,6 +23,7 @@ pub enum nng_tls_auth_mode
 extern "C"
 {
 	pub fn nng_tls_config_alloc(cfgp: *mut *mut nng_tls_config, mode: nng_tls_mode) -> c_int;
+	pub fn nng_tls_config_hold(cfg: *mut nng_tls_config);
 	pub fn nng_tls_config_free(cfg: *mut nng_tls_config);
 	pub fn nng_tls_config_server_name(cfg: *mut nng_tls_config, name: *const c_char) -> c_int;
 	pub fn nng_tls_config_ca_chain(cfg: *mut nng_tls_config, chain: *const c_char, cr1: *const c_char) -> c_int;
