@@ -170,5 +170,5 @@ extern "C"
 	pub fn nng_http_client_get_tls(client: *mut nng_http_client, cfgp: *mut *mut nng_tls_config) -> c_int;
 	pub fn nng_http_client_connect(client: *mut nng_http_client, aio: *mut nng_aio);
 	pub fn nng_http_conn_transact(conn: *mut nng_http_con, req: *mut nng_http_req, res: *mut nng_http_res, aio: *mut nng_aio);
-	pub fn nng_http_client_transact(client: *mut nnt_http_client, req: *mut nng_http_req, res: *mut nng_http_res, aio: *mut nng_aio);
+	pub fn nng_http_client_transact(client: *mut nng_http_client, req: *mut nng_http_req, res: *mut nng_http_res, aio: *mut nng_aio);
 }
