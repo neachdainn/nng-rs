@@ -15,6 +15,9 @@ pub use error::{Error, ErrorKind, Result};
 mod socket;
 pub use socket::Socket;
 
+mod pipe;
+pub use pipe::Pipe;
+
 mod protocol;
 pub use protocol::Protocol;
 

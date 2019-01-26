@@ -18,7 +18,7 @@ use crate::protocol::Protocol;
 ///
 /// See the [nng documenatation][1] for more information.
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_socket.5.html
+/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
 #[derive(Clone, Debug)]
 pub struct Socket
 {
@@ -81,7 +81,7 @@ impl Socket
 	///
 	/// See the [nng documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_dial.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
 	pub fn dial(&mut self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
@@ -114,7 +114,7 @@ impl Socket
 	///
 	/// See the [nng documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_listen.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
 	pub fn listen(&mut self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;

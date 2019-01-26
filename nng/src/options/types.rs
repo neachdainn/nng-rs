@@ -38,7 +38,7 @@ create_option!{
 	/// * Sockets can read this option.
 	/// * Dialers and Listeners can retrieve this from their owning Socket.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng.7.html#raw_mode
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng.7.html#raw_mode
 	Raw -> bool:
 	Get s = s.getopt_bool(nng_sys::NNG_OPT_RAW);
 	Set _s _v = panic!("NNG_OPT_RAW is a read-only option");
@@ -207,7 +207,7 @@ create_option!{
 	///     * Respondent v0
 	/// * Dialers and Listeners can retrieve it from their owning Socket, if applicable.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_device.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3.html
 	MaxTtl -> u8:
 	Get s = s.getopt_int(nng_sys::NNG_OPT_MAXTTL).map(|v| v as u8);
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL, val.into());
@@ -394,7 +394,7 @@ pub mod transport
 			///     * WebSocket (Secure)
 			/// * Sockets can use this to set a default value.
 			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_tls.7.html
+			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CaFile -> String:
 			Get _s = panic!("CA File is a write-only option");
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE, &val);
@@ -414,7 +414,7 @@ pub mod transport
 			///     * WebSocket (Secure)
 			/// * Sockets can use this to set a default value.
 			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.0.0/nng_tls.7.html
+			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CertKeyFile -> String:
 			Get _s = panic!("Cert Key File is a write-only option");
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE, &val);
