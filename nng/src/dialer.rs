@@ -25,8 +25,8 @@ use crate::socket::Socket;
 /// A constructed and running dialer.
 ///
 /// This dialer has already been started on the socket and will continue
-/// serving the connection until either it or the socket is dropped.
-#[derive(Debug)]
+/// serving the connection until either it is explicitly closed or the owning socket is closed.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Dialer
 {
 	/// The handle to the underlying
@@ -54,6 +54,25 @@ impl Dialer
 		};
 
 		rv2res!(rv, Dialer { handle })
+	}
+
+	/// Closes the dialer.
+	///
+	/// This also closes any `Pipe` objects that have been created by the dialer. Once this function
+	/// returns, the dialer has been closed and all of its resources have been deallocated.
+	/// Therefore, any attempt to utilize the dialer (with this or any other handle) will result in
+	/// an error.
+	///
+	/// Dialers are implicitly closed when the socket they are associated with is closed.
+	pub fn close(self)
+	{
+		// Closing the dialer should only ever result in success or ECLOSED and
+		// both of those mean that the drop was successful.
+		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
+		assert!(
+			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			"Unexpected error code while closing dialer ({})", rv
+		);
 	}
 
 	/// Returns the positive identifier for the dialer.
@@ -93,20 +112,6 @@ expose_options!{
 	         transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive];
 	Sets -> [];
-}
-
-impl Drop for Dialer
-{
-	fn drop(&mut self)
-	{
-		// Closing the dialer should only ever result in success or ECLOSED and
-		// both of those mean that the drop was successful.
-		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
-		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing dialer ({})", rv
-		);
-	}
 }
 
 /// Configuration utility for nanomsg-next-generation dialers.

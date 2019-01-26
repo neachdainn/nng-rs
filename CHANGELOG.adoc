@@ -11,12 +11,14 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Sockets can now send messages asynchronously via `Socket::send_async`.
 * Sockets can now receive messages asynchronously via `Socket::recv_async`.
 * Sockets can now be cloned to have multiple handles to the same underlying NNG socket.
+* `Socket::close` and `Context::close` have been added to match the style of Dialers, Pipes, and Listeners.
 
 === Changed ===
 
 * The majority of types are now at the root of the crate rather than a module.
 * Asynchronous sending on a context is now via `Context::send` rather than `Aio::send`.
 * Asynchronous receiving on a context is now via `Context::recv` rather than `Aio::recv`.
+* Dialers and listeners are now treated as handle values and do not close on drop.
 
 === Deprecated ===
 
@@ -32,6 +34,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 == [nng-sys Unreleased] ==
 
 === Added ===
+
+* Handle types now derive `PartialEq` and `Eq`.
 
 === Changed ===
 

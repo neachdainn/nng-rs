@@ -10,7 +10,7 @@
 /// See the [nng documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
-#[derive(Debug, ParitalEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Pipe
 {
 	/// The underlying nng pipe.
@@ -28,6 +28,10 @@ impl Pipe
 		// The pipe either closes succesfully, was already closed, or was never open. In any of
 		// those scenarios, the pipe is in the desired state. As such, we don't care about the
 		// return value.
-		unsafe { nng_sys::nng_pipe_close(self.handle); }
+		let rv = unsafe { nng_sys::nng_pipe_close(self.handle) };
+		assert!(
+			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			"Unexpected error code while closing pipe ({})", rv
+		);
 	}
 }

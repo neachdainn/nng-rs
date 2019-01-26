@@ -3,8 +3,7 @@
 //! A listener is the object that is responsible for accepting incoming
 //! connections. A given listener can have many connections to multiple clients
 //! simultaneously.
-//!
-//! Directly creating a listener object is only necessary when one wishes to
+//!  Directly creating a listener object is only necessary when one wishes to
 //! configure the listener before opening it or if one wants to close the
 //! connections without closing the socket. Otherwise, `Socket::listen` can be
 //! used.
@@ -25,8 +24,8 @@ use crate::socket::Socket;
 /// A constructed and running listener.
 ///
 /// This listener has already been started on the socket and will continue
-/// serving the connection until either it or the socket is dropped.
-#[derive(Debug)]
+/// serving the connection until either it is explicitly close or the owning socket is closed.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Listener
 {
 	/// The handle to the underlying
@@ -54,6 +53,25 @@ impl Listener
 		};
 
 		rv2res!(rv, Listener { handle })
+	}
+
+	/// Closes the listener.
+	///
+	/// This also closes any `Pipe` objects that have been created by the listener. Once this
+	/// function returns, the listener has been closed and all of its resources have been
+	/// deallocated. Therefore, any attempt to utilize the listener (with this or any other handle)
+	/// will result in an error.
+	///
+	/// Listeners are implicitly closed when the socket they are associated with is closed.
+	pub fn close(self)
+	{
+		// Closing the listener should only ever result in success or ECLOSED
+		// and both of those mean that the drop was successful.
+		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
+		assert!(
+			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			"Unexpected error code while closing listener ({})", rv
+		);
 	}
 
 	/// Returns the positive identifier for the listener.
@@ -91,20 +109,6 @@ expose_options!{
 	         transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive];
 	Sets -> [];
-}
-
-impl Drop for Listener
-{
-	fn drop(&mut self)
-	{
-		// Closing the listener should only ever result in success or ECLOSED
-		// and both of those mean that the drop was successful.
-		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
-		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing listener ({})", rv
-		);
-	}
 }
 
 /// Configuration utility for nanomsg-next-generation listeners.

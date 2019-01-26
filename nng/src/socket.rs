@@ -134,7 +134,8 @@ impl Socket
 	/// the message cannot be sent. Otherwise, the functions will wailt until
 	/// the operation can complete or any configured timer expires.
 	///
-	/// The default is blocking operations.
+	/// The default is blocking operations. This setting is _not_ propagated to other handles cloned
+	/// from this one.
 	pub fn set_nonblocking(&mut self, nonblocking: bool)
 	{
 		self.nonblocking = nonblocking;
@@ -217,6 +218,24 @@ impl Socket
 		aio.recv_socket(self)
 	}
 
+	/// Close the underlying socket.
+	///
+	/// Messages that have been submitted for sending may be flushed or delivered depending on the
+	/// transport and the linger option. Further attempts to use the socket (via this handle or any
+	/// other) after this call returns will result in an error. Threads waiting for operations on
+	/// the socket when this call is executed may also return with an error.
+	///
+	/// Closing the socket while data is in transmission will likely lead to loss of that data.
+	/// There is no automatic linger or flush to ensure that the socket send buffers have completely
+	/// transmitted. It is recommended to wait a brief period after sending data before calling this
+	/// function.
+	///
+	/// This function will be called automatically when all handles have been dropped.
+	pub fn close(self)
+	{
+		self.inner.close()
+	}
+
 	/// Get the positive identifier for the socket.
 	pub fn id(&self) -> i32
 	{
@@ -281,10 +300,9 @@ struct Inner
 	/// Handle to the underlying nng socket.
 	handle: nng_sys::nng_socket,
 }
-
-impl Drop for Inner
+impl Inner
 {
-	fn drop(&mut self)
+	fn close(&self)
 	{
 		// Closing a socket should only ever return success or ECLOSED and both
 		// of those mean we have nothing to drop. However, just to be sane
@@ -295,5 +313,13 @@ impl Drop for Inner
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
 			"Unexpected error code while closing socket ({})", rv
 		);
+	}
+}
+
+impl Drop for Inner
+{
+	fn drop(&mut self)
+	{
+		self.close()
 	}
 }
