@@ -86,6 +86,7 @@ extern "C"
 	pub fn nng_http_req_set_uri(req: *mut nng_http_req, uri: *const c_char) -> c_int;
 	pub fn nng_http_req_set_data(req: *mut nng_http_req, body: *const c_void, size: size_t) -> c_int;
 	pub fn nng_http_req_copy_data(req: *mut nng_http_req, body: *const c_void, size: size_t) -> c_int;
+	pub fn nng_http_req_get_data(req: *mut nng_http_req, body: *mut *mut c_void, size: *mut size_t);
 }
 
 pub enum nng_http_res {}
@@ -104,6 +105,7 @@ extern "C"
 	pub fn nng_http_res_get_header(res: *mut nng_http_res, key: *const c_char) -> *const c_char;
 	pub fn nng_http_res_set_version(res: *mut nng_http_res, version: *const c_char) -> c_int;
 	pub fn nng_http_res_get_version(res: *mut nng_http_res) -> *const c_char;
+	pub fn nng_http_res_get_data(res: *mut nng_http_res, body: *mut *mut c_void, size: *mut size_t);
 	pub fn nng_http_res_set_data(res: *mut nng_http_res, body: *const c_void, size: size_t) -> c_int;
 	pub fn nng_http_res_copy_data(res: *mut nng_http_res, body: *const c_void, size: size_t) -> c_int;
 }
@@ -120,6 +122,9 @@ extern "C"
 	pub fn nng_http_conn_write_res(conn: *mut nng_http_conn, res: *mut nng_http_res, aio: *mut nng_aio);
 	pub fn nng_http_conn_read_req(conn: *mut nng_http_conn, req: *mut nng_http_req, aio: *mut nng_aio);
 	pub fn nng_http_conn_read_res(conn: *mut nng_http_conn, res: *mut nng_http_res, aio: *mut nng_aio);
+
+	pub fn nng_http_req_reset(req: *mut nng_http_req);
+	pub fn nng_http_res_reset(res: *mut nng_http_res);
 }
 
 pub enum nng_http_handler {}
@@ -129,9 +134,11 @@ extern "C"
 	pub fn nng_http_handler_free(h: *mut nng_http_handler);
 	pub fn nng_http_handler_alloc_file(hp: *mut *mut nng_http_handler, path: *const c_char, filename: *const c_char) -> c_int;
 	pub fn nng_http_handler_alloc_static(hp: *mut *mut nng_http_handler, path: *const c_char, data: *const c_void, size: size_t, content_type: *const c_char) -> c_int;
+	pub fn nng_http_handler_alloc_redirect(hp: *mut *mut nng_http_handler, uri: *const c_char, status: u16, _where: *const c_char) -> c_int;
 	pub fn nng_http_handler_alloc_directory(hp: *mut *mut nng_http_handler, path: *const c_char, dirname: *const c_char) -> c_int;
 	pub fn nng_http_handler_set_method(h: *mut nng_http_handler, method: *const c_char) -> c_int;
 	pub fn nng_http_handler_set_host(h: *mut nng_http_handler, host: *const c_char) -> c_int;
+	pub fn nng_http_handler_collect_body(h: *mut nng_http_handler, want: bool, len: size_t) -> c_int;
 	pub fn nng_http_handler_set_tree(h: *mut nng_http_handler) -> c_int;
 	pub fn nng_http_handler_set_data(h: *mut nng_http_handler, data: *mut c_void, dtor: extern "C" fn(*mut c_void)) -> c_int;
 	pub fn nng_http_handler_get_data(h: *mut nng_http_handler) -> *mut c_void;
@@ -148,6 +155,9 @@ extern "C"
 	pub fn nng_http_server_del_handler(server: *mut nng_http_server, h: *mut nng_http_handler) -> c_int;
 	pub fn nng_http_server_set_tls(server: *mut nng_http_server, cfg: *mut nng_tls_config) -> c_int;
 	pub fn nng_http_server_get_tls(server: *mut nng_http_server, cfgp: *mut *mut nng_tls_config) -> c_int;
+	pub fn nng_http_server_set_error_page(server: *mut nng_http_server, code: u16, body: *const c_char) -> c_int;
+	pub fn nng_http_server_set_error_file(server: *mut nng_http_server, code: u16, path: *const c_char) -> c_int;
+	pub fn nng_http_server_res_error(server: *mut nng_http_server, res: *mut nng_http_res) -> c_int;
 	pub fn nng_http_hijack(conn: *mut nng_http_conn) -> c_int;
 }
 
@@ -159,4 +169,6 @@ extern "C"
 	pub fn nng_http_client_set_tls(client: *mut nng_http_client, cfg: *mut nng_tls_config) -> c_int;
 	pub fn nng_http_client_get_tls(client: *mut nng_http_client, cfgp: *mut *mut nng_tls_config) -> c_int;
 	pub fn nng_http_client_connect(client: *mut nng_http_client, aio: *mut nng_aio);
+	pub fn nng_http_conn_transact(conn: *mut nng_http_conn, req: *mut nng_http_req, res: *mut nng_http_res, aio: *mut nng_aio);
+	pub fn nng_http_client_transact(client: *mut nng_http_client, req: *mut nng_http_req, res: *mut nng_http_res, aio: *mut nng_aio);
 }

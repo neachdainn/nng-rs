@@ -62,6 +62,8 @@ pub mod zerotier
 	cstring!(NNG_OPT_ZT_MTU, b"zt:mtu\0");
 	cstring!(NNG_OPT_ZT_ORBIT, b"zt:orbit\0");
 	cstring!(NNG_OPT_ZT_DEORBIT, b"zt:deorbit\0");
+	cstring!(NNG_OPT_ZT_ADD_LOCAL_ADDR, b"zt:add-local-addr\0");
+	cstring!(NNG_OPT_ZT_CLEAR_LOCAL_ADDRS, b"zt:clear-local-addrs\0");
 
 	#[repr(C)]
 	#[derive(Copy, Clone, Debug)]
