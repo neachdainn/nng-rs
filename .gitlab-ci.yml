@@ -1,11 +1,11 @@
 # Test at a specific version in order to prevent accidentally requiring a new
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
-image: "rust:1.30"
+image: "rust:1.30-slim"
 
 # If we run the test before the docs, we can cache the build and not waste time
 # building it again.
 stages:
-  - format
+  - analysis
   - test
   - docs
 
@@ -19,20 +19,27 @@ variables:
 before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
-  - rustup toolchain install nightly
-  - rustup component add --toolchain nightly rustfmt
 
-# Make sure that the style is correct.
+# Make sure that the style is correct. Since we use unstable formatting
+# features, we use the nightly toolchain for this.
 format:
-  stage: format
+  image: "rustlang/rust:nightly-slim"
+  stage: analysis
   script:
-    - cargo +nightly --version
-    - cargo +nightly fmt --version
-    - cargo +nightly fmt --package nng
+    - rustup component add rustfmt-preview
+    - cargo fmt --version
+    - cargo fmt --package nng
   only:
     - tags
     - master
     - merge_requests
+
+clippy:
+  stage: analysis
+  script:
+    - rustup component add clippy
+    - cargo clippy --version
+    - cargo clippy
 
 # Use cargo to test the project
 test:

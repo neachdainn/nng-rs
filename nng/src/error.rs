@@ -200,9 +200,9 @@ impl ErrorKind
 	///
 	/// This is not an implementation of `From<i32>` because that would make
 	/// the conversion a public part of this crate.
+	#[rustfmt::skip]
 	pub(crate) fn from_code(code: i32) -> ErrorKind
 	{
-		#[rustfmt::skip]
 		match code {
 			0            => panic!("OK result passed as an error"),
 			nng_sys::NNG_EINTR        => ErrorKind::Interrupted,
@@ -245,6 +245,7 @@ impl ErrorKind
 
 impl fmt::Display for ErrorKind
 {
+	#[rustfmt::skip]
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		// Now, we could do a call into nng for this but I think that adds
@@ -256,7 +257,6 @@ impl fmt::Display for ErrorKind
 		// For the system error, we are going to lean on the standard library
 		// to produce the output message for us. I am fairly certain that
 		// creating one is not a heavy operation, so this should be fine.
-		#[rustfmt::skip]
 		match *self {
 			ErrorKind::Interrupted       => write!(f, "Interrupted"),
 			ErrorKind::OutOfMemory       => write!(f, "Out of memory"),
