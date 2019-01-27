@@ -13,6 +13,9 @@ use crate::message::Message;
 use crate::pipe::{Pipe, PipeEvent};
 use crate::protocol::Protocol;
 
+// Using a type alias like this makes Clippy happy.
+type PipeNotifyFn = FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
+
 /// A nanomsg-next-generation socket.
 ///
 /// All communication between application and remote Scalability Protocol peers
@@ -390,7 +393,7 @@ struct Inner
 	///
 	/// This type has a Drop function, so we don't really need to worry about
 	/// the socket being closed before the notify callback is dropped.
-	pipe_notify: Mutex<Option<Box<FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static>>>,
+	pipe_notify: Mutex<Option<Box<PipeNotifyFn>>>,
 }
 impl Inner
 {
