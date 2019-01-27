@@ -9,6 +9,7 @@ extern crate byteorder;
 
 use std::{env, mem, process};
 use std::time::SystemTime;
+
 use nng::{Socket, Protocol, Message};
 use byteorder::{ByteOrder, LittleEndian};
 

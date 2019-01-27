@@ -1,4 +1,5 @@
 use std::sync::Arc;
+
 use crate::error::{Result, SendResult};
 use crate::socket::Socket;
 use crate::aio::Aio;
@@ -93,6 +94,7 @@ impl Context
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Context :: inner.ctx -> nng_sys::nng_ctx;
 

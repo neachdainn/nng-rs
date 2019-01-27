@@ -8,6 +8,7 @@ use std::{env, mem, process, thread};
 use std::time::Duration;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+
 use nng::{Socket, Protocol, Message, PipeEvent};
 use nng::options::Options;
 use nng::options::protocol::pubsub::Subscribe;

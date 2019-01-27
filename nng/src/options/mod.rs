@@ -18,8 +18,7 @@ pub(crate) mod private;
 ///
 /// This trait allows for the getting and setting of options as long as that
 /// option is available. An example of this would be the `Raw` option - it is a
-/// read-only option that is available exclusively to sockets (FIXME: Not sure
-/// this is the case with option fallbacks?). So the following code will work:
+/// read-only option that is available exclusively to sockets. So the following code will work:
 ///
 /// ```ignore
 /// let raw = socket.get_opt::<Raw>()?;

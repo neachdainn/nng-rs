@@ -11,6 +11,7 @@ extern crate byteorder;
 
 use std::{env, thread, process, mem};
 use std::time::{Duration, Instant};
+
 use nng::{Socket, Protocol, Message, Aio, Context};
 use byteorder::{ByteOrder, LittleEndian};
 

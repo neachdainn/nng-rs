@@ -1,6 +1,7 @@
 use std::os::raw::*;
-use {nng_aio, nng_url};
-use supplemental::tls::nng_tls_config;
+
+use crate::{nng_aio, nng_url};
+use crate::supplemental::tls::nng_tls_config;
 
 type size_t = usize;
 

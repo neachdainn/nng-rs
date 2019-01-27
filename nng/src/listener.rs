@@ -18,6 +18,7 @@
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::ffi::CString;
+
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
@@ -94,6 +95,7 @@ impl Listener
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Listener :: handle -> nng_sys::nng_listener;
 
@@ -186,6 +188,7 @@ impl ListenerOptions
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	ListenerOptions :: handle -> nng_sys::nng_listener;
 

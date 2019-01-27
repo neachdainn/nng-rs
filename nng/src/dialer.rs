@@ -19,6 +19,7 @@
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
 use std::ffi::CString;
+
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
@@ -95,6 +96,7 @@ impl Dialer
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Dialer :: handle -> nng_sys::nng_dialer;
 
@@ -191,6 +193,7 @@ impl DialerOptions
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	DialerOptions :: handle -> nng_sys::nng_dialer;
 

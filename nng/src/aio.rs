@@ -3,6 +3,9 @@ use std::sync::{Arc, Mutex};
 use std::panic::{catch_unwind, RefUnwindSafe};
 use std::os::raw::{c_int, c_void};
 use std::ptr;
+
+use log::error;
+
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
 use crate::ctx::Context;
@@ -446,8 +449,8 @@ impl Inner
 	extern "C" fn trampoline<F>(arg: *mut c_void)
 		where F: Fn() + Send + Sync + RefUnwindSafe + 'static
 	{
-		// TODO: I don't like just logging the error. Somehow, this panic
-		// should make its way back to the user. See issue #6.
+		// TODO(#6): I don't like just logging the error. Somehow, this panic
+		// should make its way back to the user
 		let res = catch_unwind(|| unsafe {
 			let callback_ptr = arg as *mut F;
 			if callback_ptr.is_null() {

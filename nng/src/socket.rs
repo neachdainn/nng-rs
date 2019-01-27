@@ -3,7 +3,10 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use std::panic::{catch_unwind, RefUnwindSafe};
 use std::os::raw::{c_int, c_void};
+
 use nng_sys::protocol::*;
+use log::error;
+
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
 use crate::aio::Aio;
@@ -322,6 +325,7 @@ impl std::cmp::PartialEq for Socket
 }
 impl std::cmp::Eq for Socket { }
 
+#[rustfmt::skip]
 expose_options!{
 	Socket :: inner.handle -> nng_sys::nng_socket;
 

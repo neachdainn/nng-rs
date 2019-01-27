@@ -1,4 +1,5 @@
 use std::{error, fmt, io};
+
 use crate::message::Message;
 
 /// Specialized `Result` type for use with nng.
@@ -51,6 +52,7 @@ impl From<Error> for io::Error
 		if let ErrorKind::SystemErr(c) = e.kind {
 			io::Error::from_raw_os_error(c)
 		} else {
+			#[rustfmt::skip]
 			let new_kind = match e.kind {
 				ErrorKind::Interrupted => io::ErrorKind::Interrupted,
 				ErrorKind::InvalidInput | ErrorKind::NoArgument => io::ErrorKind::InvalidInput,
@@ -81,6 +83,7 @@ impl fmt::Display for Error
 
 /// General categories of nng errors
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[rustfmt::skip]
 pub enum ErrorKind
 {
 	/// The operation was interrupted
@@ -199,6 +202,7 @@ impl ErrorKind
 	/// the conversion a public part of this crate.
 	pub(crate) fn from_code(code: i32) -> ErrorKind
 	{
+		#[rustfmt::skip]
 		match code {
 			0            => panic!("OK result passed as an error"),
 			nng_sys::NNG_EINTR        => ErrorKind::Interrupted,
@@ -252,6 +256,7 @@ impl fmt::Display for ErrorKind
 		// For the system error, we are going to lean on the standard library
 		// to produce the output message for us. I am fairly certain that
 		// creating one is not a heavy operation, so this should be fine.
+		#[rustfmt::skip]
 		match *self {
 			ErrorKind::Interrupted       => write!(f, "Interrupted"),
 			ErrorKind::OutOfMemory       => write!(f, "Out of memory"),

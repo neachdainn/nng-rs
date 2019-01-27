@@ -96,6 +96,7 @@ impl Pipe
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Pipe :: handle -> nng_sys::nng_pipe;
 

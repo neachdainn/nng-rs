@@ -1,5 +1,6 @@
 //! Types of options available.
 use std::time::Duration;
+
 use crate::addr::SocketAddr;
 
 create_option!{

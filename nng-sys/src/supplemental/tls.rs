@@ -1,4 +1,5 @@
 use std::os::raw::*;
+
 type size_t = usize;
 
 pub enum nng_tls_config {}

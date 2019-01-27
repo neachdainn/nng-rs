@@ -3,6 +3,7 @@ use std::ptr;
 use std::time::Duration;
 use std::os::raw::{c_char, c_int, c_void};
 use std::ffi::{CString, CStr};
+
 use crate::error::{Result, ErrorKind};
 use crate::addr::SocketAddr;
 
