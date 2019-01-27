@@ -19,7 +19,7 @@ use crate::protocol::Protocol;
 /// See the [nng documenatation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Socket
 {
 	/// The shared reference to the underlying nng socket.
@@ -294,7 +294,7 @@ expose_options!{
 ///
 /// This allows us to have mutliple Rust socket types that won't clone the C
 /// socket type before Rust is done with it.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Inner
 {
 	/// Handle to the underlying nng socket.

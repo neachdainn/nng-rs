@@ -63,7 +63,8 @@ impl Dialer
 	/// Therefore, any attempt to utilize the dialer (with this or any other handle) will result in
 	/// an error.
 	///
-	/// Dialers are implicitly closed when the socket they are associated with is closed.
+	/// Dialers are implicitly closed when the socket they are associated with is closed. Dialers
+	/// are _not_ closed when all handles are dropped.
 	pub fn close(self)
 	{
 		// Closing the dialer should only ever result in success or ECLOSED and
@@ -82,6 +83,15 @@ impl Dialer
 		assert!(id > 0, "Invalid dialer ID returned from valid socket");
 
 		id
+	}
+
+	/// Create a new Dialer handle from a libnng handle.
+	///
+	/// This function will panic if the handle is not valid.
+	pub(crate) fn from_nng_sys(handle: nng_sys::nng_dialer) -> Self
+	{
+		assert!(handle.id > 0, "Dialer handle is not initialized");
+		Dialer { handle }
 	}
 }
 

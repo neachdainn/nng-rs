@@ -5,10 +5,6 @@ use crate::addr::SocketAddr;
 create_option!{
 	/// The local address used for communication.
 	///
-	/// The availability of this option is dependent on the transport. Dialers only
-	/// have this available when using the `IPC` transport. Listeners have it
-	/// available for all transports _except_ `InProc` and `WebSocket`.
-	///
 	/// ## Support
 	///
 	/// * Dialers can read from this with the IPC transport.
@@ -17,9 +13,35 @@ create_option!{
 	///     * ZeroTier
 	///     * IPC
 	///     * TLS
+	/// * Pipes can read from this on the following transports:
+	///     * IPC
+	///     * InProc
+	///     * TCP
+	///     * ZeroTier
+	///     * WebSocket
+	///     * TLS
 	LocalAddr -> SocketAddr:
 	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_LOCADDR);
 	Set _s _v = panic!("NNG_OPT_LOCADDR is a read-only option");
+}
+
+create_option!{
+	/// The remote address of the peer.
+	///
+	/// The availability of this option is dependent on the transport.
+	///
+	/// ## Support
+	///
+	/// * Pipes can read from this on the following transports:
+	///     * IPC
+	///     * InProc
+	///     * TCP
+	///     * ZeroTier
+	///     * WebSocket
+	///     * TLS
+	RemAddr -> SocketAddr:
+	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_REMADDR);
+	Set _s _v = panic!("NNG_OPT_REMADDR is a read-only option");
 }
 
 create_option!{
@@ -116,6 +138,8 @@ create_option!{
 	///     * IPC
 	///     * TLS
 	///     * WebSocket
+	/// * Pipes can read this value on the following transports:
+	///     * ZeroTier
 	/// * Sockets can utilize this to set a new default value.
 	RecvMaxSize -> usize:
 	Get s = s.getopt_size(nng_sys::NNG_OPT_RECVMAXSZ);
@@ -248,7 +272,7 @@ pub mod protocol
 			///
 			/// ## Support
 			///
-			/// * Sockets can use this option when using the Sub v0 protocol.
+			/// * Sockets can set this option when using the Sub v0 protocol.
 			Subscribe -> Vec<u8>:
 			Get _s = panic!("Subscribe is a write-only option");
 			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_SUBSCRIBE, &val);
@@ -263,7 +287,7 @@ pub mod protocol
 			///
 			/// ## Support
 			///
-			/// * Sockets can use this option when using the Sub v0 protocol.
+			/// * Sockets can set this option when using the Sub v0 protocol.
 			Unsubscribe -> Vec<u8>:
 			Get _s = panic!("Subscribe is a write-only option");
 			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_UNSUBSCRIBE, &val);
@@ -345,6 +369,9 @@ pub mod transport
 			/// * Dialers and Listeners can use this option with the following transports:
 			///     * TCP
 			///     * TLS
+			/// * Pipes can read this value on the following transports:
+			///     * TCP
+			///     * TLS
 			/// * Sockets can use this to set a default value.
 			NoDelay -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_NODELAY);
@@ -371,6 +398,9 @@ pub mod transport
 			/// * Dialers and Listeners can use this option with the following transports:
 			///     * TCP
 			///     * TLS
+			/// * Pipes can read this value on the following transports:
+			///     * TCP
+			///     * TLS
 			/// * Sockets can use this to set a default value.
 			KeepAlive -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE);
@@ -389,10 +419,10 @@ pub mod transport
 			///
 			/// ## Support
 			///
-			/// * Dialers and Listeners can use this option with the following transports:
+			/// * Dialers and Listeners can set this option with the following transports:
 			///     * TLS
 			///     * WebSocket (Secure)
-			/// * Sockets can use this to set a default value.
+			/// * Sockets can set this to set a default value.
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CaFile -> String:
@@ -409,7 +439,7 @@ pub mod transport
 			///
 			/// ## Support
 			///
-			/// * Dialers and Listeners can use this option with the following transports:
+			/// * Dialers and Listeners can set this option with the following transports:
 			///     * TLS
 			///     * WebSocket (Secure)
 			/// * Sockets can use this to set a default value.
@@ -418,6 +448,24 @@ pub mod transport
 			CertKeyFile -> String:
 			Get _s = panic!("Cert Key File is a write-only option");
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE, &val);
+		}
+
+		create_option!{
+			/// Indicates whether the remote peer has been properly verified using TLS
+			/// authentication.
+			///
+			/// This may return incorrect results if peer authentication is disabled.
+			///
+			/// ## Support
+			///
+			/// * Pipes can read this option on the following transports:
+			///     * WebSocket
+			///     * TLS
+			///
+			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
+			TlsVerified -> bool:
+			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED);
+			Set _s _v = panic!("NNG_OPT_TLS_VERIFIED is a read-only option");
 		}
 	}
 
@@ -430,10 +478,11 @@ pub mod transport
 			///
 			/// ## Support
 			///
-			/// * Dialers can use this when using the WebSocket transport.
-			/// * Sockets can use this to set a default value.
+			/// * Dialers can set this when using the WebSocket transport.
+			/// * Pipes can read this value when using the WebSocket transport.
+			/// * Sockets can set this to set a default value.
 			RequestHeaders -> String:
-			Get _s = panic!("Request headers are a write-only option");
+			Get s = s.getopt_string(nng_sys::transport::websocket::NNG_OPT_WS_REQUEST_HEADERS);
 			Set s val = s.setopt_string(nng_sys::transport::websocket::NNG_OPT_WS_REQUEST_HEADERS, &val);
 		}
 
@@ -443,10 +492,11 @@ pub mod transport
 			///
 			/// ## Support
 			///
-			/// * Listeners can use this when using the WebSocket transport.
-			/// * Sockets can use this to set a default value.
+			/// * Listeners can set this when using the WebSocket transport.
+			/// * Pipes can read this when using the WebSocket transport.
+			/// * Sockets can set this to set a default value.
 			ResponseHeaders -> String:
-			Get _s = panic!("Response headers are a write-only option");
+			Get s = s.getopt_string(nng_sys::transport::websocket::NNG_OPT_WS_RESPONSE_HEADERS);
 			Set s val = s.setopt_string(nng_sys::transport::websocket::NNG_OPT_WS_RESPONSE_HEADERS, &val);
 		}
 	}

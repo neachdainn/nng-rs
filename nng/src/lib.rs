@@ -47,6 +47,12 @@ unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const std::os::raw::c_char, _: T) 
 	panic!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
 
+/// A catch-all function for unsupported generic options operations.
+unsafe extern "C" fn fake_genopt<H>(_: H, _: *const std::os::raw::c_char, _: *const std::os::raw::c_void, _:usize) -> std::os::raw::c_int
+{
+	panic!("{} does not support the generic option operation", stringify!(H))
+}
+
 /// Converts a Rust Duration into an `nng_duration`.
 fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 {

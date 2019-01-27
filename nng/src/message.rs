@@ -10,6 +10,7 @@
 use std::{ptr, slice};
 use std::ops::{Deref, DerefMut};
 use crate::error::Result;
+use crate::pipe::Pipe;
 
 /// An `nng` message type.
 #[derive(Debug)]
@@ -157,6 +158,34 @@ impl Message
 	pub fn header_mut(&mut self) -> &mut Header
 	{
 		&mut self.header
+	}
+
+	/// Returns the pipe object associated with the message.
+	///
+	/// On receive, this is the pipe from which the message was received. On transmit, this would be
+	/// the pipe that the message should be delivered to, if a specific peer is required. Note that
+	/// not all protocols support overriding the destination pipe.
+	///
+	/// The most usual use case for this is to obtain information about the peer from which the
+	/// message was received. This can be used to provide different behaviors for different peers,
+	/// such as a higher level of authentication for peers located on an untrusted network.
+	pub fn pipe(&mut self) -> Option<Pipe>
+	{
+		let pipe = unsafe { nng_sys::nng_msg_get_pipe(self.msgp) };
+
+		if pipe.id > 0 {
+			Some(Pipe::from_nng_sys(pipe))
+		} else { None }
+	}
+
+	/// Sets the pipe associated with the message.
+	///
+	/// This is most useful when used with protocols that support directing a message to a specific
+	/// peer. For example, the _pair_ version 1 protocol can do this when in polyamorous mode. Not
+	/// all protocols support this.
+	pub fn set_pipe(&mut self, pipe: &Pipe)
+	{
+		unsafe { nng_sys::nng_msg_set_pipe(self.msgp, pipe.handle()) }
 	}
 }
 impl Drop for Message

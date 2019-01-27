@@ -12,6 +12,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Sockets can now receive messages asynchronously via `Socket::recv_async`.
 * Sockets can now be cloned to have multiple handles to the same underlying NNG socket.
 * `Socket::close` and `Context::close` have been added to match the style of Dialers, Pipes, and Listeners.
+* Pipes and the pipe notify functionality has been implemented. (#14)
 
 === Changed ===
 

@@ -63,6 +63,7 @@ impl Listener
 	/// will result in an error.
 	///
 	/// Listeners are implicitly closed when the socket they are associated with is closed.
+	/// Listeners are _not_ closed when all handles are dropped.
 	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
@@ -81,6 +82,15 @@ impl Listener
 		assert!(id > 0, "Invalid listener ID returned from valid socket");
 
 		id
+	}
+
+	/// Create a new Listener handle from a libnng handle.
+	///
+	/// This function will panic if the handle is not valid.
+	pub(crate) fn from_nng_sys(handle: nng_sys::nng_listener) -> Self
+	{
+		assert!(handle.id > 0, "Listener handle is not initialized");
+		Listener { handle }
 	}
 }
 
