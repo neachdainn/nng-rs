@@ -40,6 +40,10 @@ clippy:
     - rustup component add clippy
     - cargo clippy --version
     - cargo clippy
+  only:
+    - tags
+    - master
+    - merge_requests
 
 # Use cargo to test the project
 test:
