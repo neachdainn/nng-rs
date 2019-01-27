@@ -37,7 +37,7 @@ format:
 # Make sure that we're listening to Clippy. Use nightly so we get the latest
 # lints even if we're not updating the test version.
 clippy:
-  image: "rust:latest-slim"
+  image: "rust:latest"
   stage: analysis
   script:
     - rustup component add clippy
