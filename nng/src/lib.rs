@@ -1,5 +1,6 @@
 //! A safe Rust wrapper for nanomsg-next-generation
 #![deny(clippy::all)]
+#![allow(clippy::new_ret_no_self)]
 
 #[macro_use]
 mod util;
