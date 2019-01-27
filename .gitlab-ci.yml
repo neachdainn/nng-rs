@@ -5,8 +5,9 @@ image: "rust:1.30"
 # If we run the test before the docs, we can cache the build and not waste time
 # building it again.
 stages:
+  - format
   - test
-  - docs_and_examples
+  - docs
 
 # Move a few of the "home" directories here so they are easier to cache.
 variables:
@@ -18,6 +19,19 @@ variables:
 before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
+  - rustup component add --toolchain nightly rustfmt
+
+# Make sure that the style is correct.
+format:
+  stage: format
+  script:
+    - cargo +nightly --version
+    - cargo +nightly fmt --version
+    - cargo +nightly fmt --package nng
+  only:
+    - tags
+    - master
+    - /^[0-9]+-.*$/
 
 # Use cargo to test the project
 test:
@@ -33,7 +47,7 @@ test:
 
 # Make sure that the examples also build
 examples:
-  stage: docs_and_examples
+  stage: docs
   script:
     - cargo build --examples
   only:
@@ -43,7 +57,7 @@ examples:
 
 # Publish to the pages whenever master is updated
 pages:
-  stage: docs_and_examples
+  stage: docs
   script:
     - cargo doc --no-deps
     - mv target/doc public
