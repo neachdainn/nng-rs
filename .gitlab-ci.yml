@@ -28,7 +28,7 @@ format:
   script:
     - rustup component add rustfmt
     - cargo fmt --version
-    - cargo fmt --package nng --check
+    - cargo fmt --package nng -- --check
   only:
     - tags
     - master
