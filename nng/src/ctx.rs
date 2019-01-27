@@ -72,6 +72,20 @@ impl Context
 		aio.recv_ctx(self)
 	}
 
+	/// Closes the context.
+	///
+	/// Messages that have been submitted for sending may be flushed or delivered, depending on the
+	/// underlying transport and the linger option. Further attempts to use the context (with this
+	/// or any other handle) will result in an error. Threads waiting for operations on the context
+	/// when this call is executed may also return with an error.
+	///
+	/// Closing the owning socket also closes this context. Additionally, the context is closed once
+	/// all handles have been dropped.
+	pub fn close(self)
+	{
+		self.inner.close()
+	}
+
 	/// Returns the inner `nng_ctx` object.
 	pub(crate) fn handle(&self) -> nng_sys::nng_ctx
 	{
@@ -86,15 +100,15 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_ctx_getopt_int;
 	GETOPT_MS = nng_sys::nng_ctx_getopt_ms;
 	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
-	GETOPT_SOCKADDR = crate::fake_opt;
-	GETOPT_STRING = crate::fake_opt;
+	GETOPT_SOCKADDR = crate::util::fake_opt;
+	GETOPT_STRING = crate::util::fake_opt;
 
 	SETOPT = nng_sys::nng_ctx_setopt;
 	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
 	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
 	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
 	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
-	SETOPT_STRING = crate::fake_opt;
+	SETOPT_STRING = crate::util::fake_opt;
 
 	Gets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
@@ -106,9 +120,9 @@ struct Inner
 {
 	ctx: nng_sys::nng_ctx,
 }
-impl Drop for Inner
+impl Inner
 {
-	fn drop(&mut self)
+	fn close(&self)
 	{
 		// The only time this can error is if the socket is already closed or
 		// was never open. Neither of those are an issue for us.
@@ -117,5 +131,13 @@ impl Drop for Inner
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
 			"Unexpected error code while closing context ({})", rv
 		);
+	}
+}
+
+impl Drop for Inner
+{
+	fn drop(&mut self)
+	{
+		self.close()
 	}
 }

@@ -30,23 +30,23 @@ cstring!(NNG_RELEASE_SUFFIX, b"\0");
 pub const NNG_MAXADDRLEN: c_int = 128;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct nng_ctx { pub id: u32 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct nng_dialer { pub id: u32 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct nng_listener { pub id: u32 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct nng_pipe { pub id: u32 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct nng_socket { pub id: u32 }
 
 pub type nng_duration = i32;

@@ -1,13 +1,14 @@
 //! A simple PUB/SUB demonstration application.
 //!
-//! This application simply publishes the seconds since the Unix epoch every
-//! few seconds.
+//! This application simply publishes current number of subscribers every few seconds.
 extern crate nng;
 extern crate byteorder;
 
 use std::{env, mem, process, thread};
-use std::time::{Duration, SystemTime};
-use nng::{Socket, Protocol, Message};
+use std::time::Duration;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use nng::{Socket, Protocol, Message, PipeEvent};
 use nng::options::Options;
 use nng::options::protocol::pubsub::Subscribe;
 use byteorder::{ByteOrder, LittleEndian};
@@ -33,18 +34,25 @@ fn main() -> Result<(), nng::Error>
 fn publisher(url: &str) -> Result<(), nng::Error>
 {
 	let mut s = Socket::new(Protocol::Pub0)?;
+	let count = Arc::new(AtomicUsize::new(0));
+	let count_clone = count.clone();
+
+	s.pipe_notify(move |_, ev| {
+		match ev {
+			PipeEvent::AddPost => count_clone.fetch_add(1, Ordering::Relaxed),
+			PipeEvent::RemovePost => count_clone.fetch_sub(1, Ordering::Relaxed),
+			_ => 0,
+		};
+	})?;
+
 	s.listen(url)?;
 
 	loop {
 		// Sleep for a little bit before sending the next message.
 		thread::sleep(Duration::from_secs(3));
 
-		// Calculate the time and send it.
-		let data = SystemTime::now()
-			.duration_since(SystemTime::UNIX_EPOCH)
-			.expect("Current system time is before Unix epoch")
-			.as_secs();
-
+		// Load the number of subscribers and send the value across
+		let data = count.load(Ordering::Relaxed) as u64;
 		let mut msg = Message::zeros(mem::size_of::<u64>())?;
 		LittleEndian::write_u64(&mut msg, data);
 
@@ -65,7 +73,7 @@ fn subscriber(url: &str) -> Result<(), nng::Error>
 
 	loop {
 		let msg = s.recv()?;
-		let epoch = LittleEndian::read_u64(&msg);
-		println!("SUBSCRIBER: UNIX EPOCH WAS {} SECONDS AGO", epoch);
+		let subs = LittleEndian::read_u64(&msg);
+		println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
 	}
 }

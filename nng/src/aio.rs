@@ -8,6 +8,8 @@ use crate::message::Message;
 use crate::ctx::Context;
 use crate::socket::Socket;
 
+type UncallableFn = crate::util::BlackBox<Box<Fn() + Send + Sync + RefUnwindSafe + 'static>>;
+
 /// A handle of asynchronous I/O operations.
 ///
 /// The handle is initialized with a completion callback which will be executed
@@ -48,7 +50,7 @@ pub struct Aio
 	/// Keep in mind that the closure has technically been sent to an nng
 	/// thread and it is not `Sync`. Touching it in any way is going to lead to
 	/// issues.
-	callback: Option<uncallable::UncallableFn>,
+	callback: Option<UncallableFn>,
 }
 impl Aio
 {
@@ -71,7 +73,7 @@ impl Aio
 		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
 	{
 		let (inner, box_cb) = Inner::with_callback(callback)?;
-		Ok(Aio { inner, callback: Some(uncallable::UncallableFn::new(box_cb)) })
+		Ok(Aio { inner, callback: Some(UncallableFn::new(box_cb)) })
 	}
 
 	/// Cancel the currently running I/O operation.
@@ -123,7 +125,7 @@ impl Aio
 	/// begin before giving up!
 	pub fn set_timeout(&self, dur: Option<Duration>)
 	{
-		let ms = crate::duration_to_nng(dur);
+		let ms = crate::util::duration_to_nng(dur);
 
 		unsafe {
 			let l = self.inner.lock().unwrap();
@@ -270,7 +272,7 @@ impl Aio
 	/// operation in progress, this function will return `ErrorKind::TryAgain`.
 	pub fn sleep(&self, dur: Duration) -> Result<()>
 	{
-		let ms = crate::duration_to_nng(Some(dur));
+		let ms = crate::util::duration_to_nng(Some(dur));
 
 		let mut l = self.inner.lock().unwrap();
 
@@ -457,7 +459,7 @@ impl Inner
 		});
 
 		if let Err(e) = res {
-			error!("Panic in callback function: {:?}", e);
+			error!("Panic in AIO callback function: {:?}", e);
 		}
 	}
 }
@@ -508,23 +510,4 @@ enum State
 
 	/// A receive operation is currently running.
 	Receiving,
-}
-
-mod uncallable
-{
-	use super::*;
-
-	/// A newtype to prevent calling the boxed function.
-	pub struct UncallableFn
-	{
-		_func: Box<Fn() + Send + Sync + RefUnwindSafe + 'static>,
-	}
-	impl UncallableFn
-	{
-		/// Creates a new wrapper around the boxed function.
-		pub fn new(func: Box<Fn() + Send + Sync + RefUnwindSafe + 'static>) -> Self
-		{
-			UncallableFn { _func: func }
-		}
-	}
 }
