@@ -6,14 +6,14 @@
 //! The protocol is simple: the client sends a request with the number of
 //! milliseconds to wait, the server waits that long and sends back an empty
 //! reply.
-extern crate nng;
 extern crate byteorder;
+extern crate nng;
 
-use std::{env, thread, process, mem};
 use std::time::{Duration, Instant};
+use std::{env, mem, process, thread};
 
-use nng::{Socket, Protocol, Message, Aio, Context};
 use byteorder::{ByteOrder, LittleEndian};
+use nng::{Aio, Context, Message, Protocol, Socket};
 
 /// Number of outstanding requests that we can handle at a given time.
 ///
@@ -38,7 +38,7 @@ fn main() -> Result<(), nng::Error>
 		_ => {
 			println!("Usage:\nasync server <url>\n  or\nasync client <url> <ms>");
 			process::exit(1);
-		}
+		},
 	}
 }
 
@@ -68,10 +68,7 @@ fn server(url: &str) -> Result<(), nng::Error>
 	let mut s = Socket::new(Protocol::Rep0)?;
 
 	// Create all of the worker contexts
-	let workers: Vec<_> =
-		(0..PARALLEL)
-		.map(|_| create_worker(&s))
-		.collect::<Result<_, _>>()?;
+	let workers: Vec<_> = (0..PARALLEL).map(|_| create_worker(&s)).collect::<Result<_, _>>()?;
 
 	// Only after we have the workers do we start listening.
 	s.listen(url)?;
@@ -124,7 +121,7 @@ fn worker_callback(aio: &Aio, ctx: &Context, state: &mut State)
 			ctx.recv(aio).unwrap();
 
 			State::Recv
-		}
+		},
 	};
 
 	*state = new_state;
@@ -132,4 +129,9 @@ fn worker_callback(aio: &Aio, ctx: &Context, state: &mut State)
 
 /// State of a request.
 #[derive(Copy, Clone)]
-enum State { Recv, Wait, Send }
+enum State
+{
+	Recv,
+	Wait,
+	Send,
+}

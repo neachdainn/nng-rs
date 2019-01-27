@@ -1,18 +1,19 @@
 //! A simple PUB/SUB demonstration application.
 //!
-//! This application simply publishes current number of subscribers every few seconds.
-extern crate nng;
+//! This application simply publishes current number of subscribers every few
+//! seconds.
 extern crate byteorder;
+extern crate nng;
 
-use std::{env, mem, process, thread};
-use std::time::Duration;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
+use std::{env, mem, process, thread};
 
-use nng::{Socket, Protocol, Message, PipeEvent};
-use nng::options::Options;
-use nng::options::protocol::pubsub::Subscribe;
 use byteorder::{ByteOrder, LittleEndian};
+use nng::options::protocol::pubsub::Subscribe;
+use nng::options::Options;
+use nng::{Message, PipeEvent, Protocol, Socket};
 
 /// Entry point of the application.
 fn main() -> Result<(), nng::Error>
@@ -22,12 +23,12 @@ fn main() -> Result<(), nng::Error>
 	let args: Vec<_> = env::args().take(3).collect();
 
 	match &args[..] {
-		[_, t, url] if t == "publisher"  => publisher(url),
+		[_, t, url] if t == "publisher" => publisher(url),
 		[_, t, url] if t == "subscriber" => subscriber(url),
 		_ => {
 			println!("Usage: pubsub publisher|subscriber <url>");
 			process::exit(1);
-		}
+		},
 	}
 }
 

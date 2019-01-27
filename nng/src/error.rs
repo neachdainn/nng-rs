@@ -51,7 +51,8 @@ impl From<Error> for io::Error
 	{
 		if let ErrorKind::SystemErr(c) = e.kind {
 			io::Error::from_raw_os_error(c)
-		} else {
+		}
+		else {
 			#[rustfmt::skip]
 			let new_kind = match e.kind {
 				ErrorKind::Interrupted => io::ErrorKind::Interrupted,

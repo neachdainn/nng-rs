@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::error::{Result, SendResult};
-use crate::socket::Socket;
 use crate::aio::Aio;
+use crate::error::{Result, SendResult};
 use crate::message::Message;
+use crate::socket::Socket;
 
 /// A socket context.
 ///
@@ -29,9 +29,7 @@ impl Context
 	pub fn new(socket: &Socket) -> Result<Context>
 	{
 		let mut ctx = nng_sys::NNG_CTX_INITIALIZER;
-		let rv = unsafe {
-			nng_sys::nng_ctx_open(&mut ctx as _, socket.handle())
-		};
+		let rv = unsafe { nng_sys::nng_ctx_open(&mut ctx as _, socket.handle()) };
 
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
 	}
@@ -68,20 +66,21 @@ impl Context
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `ErrorKind::TryAgain`.
-	pub fn recv(&self, aio:&Aio) -> Result<()>
+	pub fn recv(&self, aio: &Aio) -> Result<()>
 	{
 		aio.recv_ctx(self)
 	}
 
 	/// Closes the context.
 	///
-	/// Messages that have been submitted for sending may be flushed or delivered, depending on the
-	/// underlying transport and the linger option. Further attempts to use the context (with this
-	/// or any other handle) will result in an error. Threads waiting for operations on the context
+	/// Messages that have been submitted for sending may be flushed or
+	/// delivered, depending on the underlying transport and the linger option.
+	/// Further attempts to use the context (with this or any other handle)
+	/// will result in an error. Threads waiting for operations on the context
 	/// when this call is executed may also return with an error.
 	///
-	/// Closing the owning socket also closes this context. Additionally, the context is closed once
-	/// all handles have been dropped.
+	/// Closing the owning socket also closes this context. Additionally, the
+	/// context is closed once all handles have been dropped.
 	pub fn close(self)
 	{
 		self.inner.close()
@@ -116,7 +115,6 @@ expose_options!{
 	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 }
 
-
 /// A wrapper around an `nng_ctx`.
 struct Inner
 {
@@ -131,7 +129,8 @@ impl Inner
 		let rv = unsafe { nng_sys::nng_ctx_close(self.ctx) };
 		assert!(
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing context ({})", rv
+			"Unexpected error code while closing context ({})",
+			rv
 		);
 	}
 }

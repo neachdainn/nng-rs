@@ -1,6 +1,6 @@
+use std::net::{SocketAddrV4, SocketAddrV6};
 use std::os::raw::c_char;
 use std::path::PathBuf;
-use std::net::{SocketAddrV4, SocketAddrV6};
 
 /// Represents the addresses used by the underlying transports.
 #[derive(Clone, Debug)]
@@ -31,14 +31,27 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 {
 	fn from(addr: nng_sys::nng_sockaddr) -> SocketAddr
 	{
-		unsafe { match addr.s_family {
-			nng_sys::NNG_AF_INPROC => SocketAddr::InProc(buf_to_string(&addr.s_inproc.sa_name[..])),
-			nng_sys::NNG_AF_IPC => SocketAddr::Ipc(buf_to_string(&addr.s_ipc.sa_path[..]).into()),
-			nng_sys::NNG_AF_INET => SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port)),
-			nng_sys::NNG_AF_INET6 => SocketAddr::Inet6(SocketAddrV6::new(addr.s_in6.sa_addr.into(), addr.s_in6.sa_port, 0, 0)),
-			nng_sys::NNG_AF_ZT => SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
-			_ => SocketAddr::Unspecified,
-		}}
+		unsafe {
+			match addr.s_family {
+				nng_sys::NNG_AF_INPROC => {
+					SocketAddr::InProc(buf_to_string(&addr.s_inproc.sa_name[..]))
+				},
+				nng_sys::NNG_AF_IPC => {
+					SocketAddr::Ipc(buf_to_string(&addr.s_ipc.sa_path[..]).into())
+				},
+				nng_sys::NNG_AF_INET => {
+					SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port))
+				},
+				nng_sys::NNG_AF_INET6 => SocketAddr::Inet6(SocketAddrV6::new(
+					addr.s_in6.sa_addr.into(),
+					addr.s_in6.sa_port,
+					0,
+					0,
+				)),
+				nng_sys::NNG_AF_ZT => SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
+				_ => SocketAddr::Unspecified,
+			}
+		}
 	}
 }
 
@@ -48,9 +61,9 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 pub struct SocketAddrZt
 {
 	pub family: u16,
-	pub nwid: u64,
+	pub nwid:   u64,
 	pub nodeid: u64,
-	pub port: u32,
+	pub port:   u32,
 }
 impl SocketAddrZt
 {
@@ -59,13 +72,12 @@ impl SocketAddrZt
 	{
 		SocketAddrZt {
 			family: addr.sa_family,
-			nwid: addr.sa_nwid,
+			nwid:   addr.sa_nwid,
 			nodeid: addr.sa_nodeid,
-			port: addr.sa_port,
+			port:   addr.sa_port,
 		}
 	}
 }
-
 
 /// Creates a `String` from a slice that _probably_ contains UTF-8 and
 /// _probably_ is null terminated.
