@@ -34,7 +34,10 @@ format:
     - master
     - merge_requests
 
+# Make sure that we're listening to Clippy. Use nightly so we get the latest
+# lints even if we're not updating the test version.
 clippy:
+  image: "rustlang/rust:nightly-slim"
   stage: analysis
   script:
     - rustup component add clippy
@@ -52,6 +55,20 @@ test:
     - rustc --version
     - cargo --version
     - cargo test --all --verbose
+  only:
+    - tags
+    - master
+    - merge_requests
+
+# Check the project against nightly, just to see if anything regresses.
+test-nightly:
+  image: "rustlang/rust:nightly-slim"
+  stage: test
+  script:
+    - rustc --version
+    - cargo --version
+    - cargo test --all --verbose
+  allow_failure: true
   only:
     - tags
     - master
