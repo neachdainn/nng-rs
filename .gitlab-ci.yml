@@ -19,6 +19,7 @@ variables:
 before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
+  - rustup toolchain install nightly
   - rustup component add --toolchain nightly rustfmt
 
 # Make sure that the style is correct.
@@ -31,7 +32,7 @@ format:
   only:
     - tags
     - master
-    - /^[0-9]+-.*$/
+    - merge_requests
 
 # Use cargo to test the project
 test:
@@ -43,7 +44,7 @@ test:
   only:
     - tags
     - master
-    - /^[0-9]+-.*$/
+    - merge_requests
 
 # Make sure that the examples also build
 examples:
@@ -53,7 +54,7 @@ examples:
   only:
     - tags
     - master
-    - /^[0-9]+-.*$/
+    - merge_requests
 
 # Publish to the pages whenever master is updated
 pages:
