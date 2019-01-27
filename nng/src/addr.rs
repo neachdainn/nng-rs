@@ -1,3 +1,4 @@
+use std::os::raw::c_char;
 use std::path::PathBuf;
 use std::net::{SocketAddrV4, SocketAddrV6};
 
@@ -71,7 +72,7 @@ impl SocketAddrZt
 ///
 /// The function is unsafe because it reinterprets the `i8` buffer as a `u8`
 /// buffer via a call to `slice::from_raw_parts`.
-unsafe fn buf_to_string(buf: &[i8]) -> String
+unsafe fn buf_to_string(buf: &[c_char]) -> String
 {
 	// Unfortunately, the Rust standard library doesn't have a `from_ptr_len`
 	// style function that would allow me to pass in the whole buffer. Instead,
@@ -86,7 +87,7 @@ unsafe fn buf_to_string(buf: &[i8]) -> String
 	use std::slice;
 
 	let len = buf.len();
-	let buf = slice::from_raw_parts(&buf[0] as *const i8 as _, len);
+	let buf = slice::from_raw_parts(&buf[0] as *const c_char as _, len);
 	let null_byte = buf.iter().position(|&b| b == 0).unwrap_or(len);
 	String::from_utf8_lossy(&buf[..null_byte]).into_owned()
 }
