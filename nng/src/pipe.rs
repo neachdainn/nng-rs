@@ -106,12 +106,12 @@ expose_options!{
 	GETOPT_SOCKADDR = nng_sys::nng_pipe_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_pipe_getopt_string;
 
-	SETOPT = crate::fake_genopt;
-	SETOPT_BOOL = crate::fake_opt;
-	SETOPT_INT = crate::fake_opt;
-	SETOPT_MS = crate::fake_opt;
-	SETOPT_SIZE = crate::fake_opt;
-	SETOPT_STRING =crate::fake_opt;
+	SETOPT = crate::util::fake_genopt;
+	SETOPT_BOOL = crate::util::fake_opt;
+	SETOPT_INT = crate::util::fake_opt;
+	SETOPT_MS = crate::util::fake_opt;
+	SETOPT_SIZE = crate::util::fake_opt;
+	SETOPT_STRING =crate::util::fake_opt;
 
 	Gets -> [LocalAddr, RemAddr, RecvMaxSize,
 	         transport::tcp::NoDelay,
@@ -120,4 +120,45 @@ expose_options!{
 	         transport::websocket::RequestHeaders,
 	         transport::websocket::ResponseHeaders];
 	Sets -> [];
+}
+
+/// An event that happens on a Pipe instance.
+pub enum PipeEvent
+{
+	/// Occurs after a connection and negotiation has completed but before the pipe is added to the
+	/// socket.
+	///
+	/// If the pipe is closed at this point, the socket will never see the pipe and no further
+	/// events will occur for the given pipe.
+	AddPre,
+
+	/// This event occurs after the pipe is fully added to the socket.
+	///
+	/// Prior to this time, it is not possible to communicate over the pipe with the socket.
+	AddPost,
+
+	/// Occurs after the pipe has been removed from the socket.
+	///
+	/// The underlying transport may be closed at this point and it is not possible to communicate
+	/// with this pipe.
+	RemovePost,
+
+	/// An unknown event.
+	///
+	/// Should never happen - used for forward compatibility.
+	#[doc(hidden)]
+	Unknown(i32),
+}
+impl PipeEvent
+{
+	/// Converts the nng code into a PipeEvent.
+	pub(crate) fn from_code(event: std::os::raw::c_int) -> Self
+	{
+		match event {
+			nng_sys::NNG_PIPE_EV_ADD_PRE => PipeEvent::AddPre,
+			nng_sys::NNG_PIPE_EV_ADD_POST => PipeEvent::AddPost,
+			nng_sys::NNG_PIPE_EV_REM_POST => PipeEvent::RemovePost,
+			n => PipeEvent::Unknown(n),
+		}
+	}
 }

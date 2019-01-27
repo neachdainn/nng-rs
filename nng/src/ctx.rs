@@ -100,15 +100,15 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_ctx_getopt_int;
 	GETOPT_MS = nng_sys::nng_ctx_getopt_ms;
 	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
-	GETOPT_SOCKADDR = crate::fake_opt;
-	GETOPT_STRING = crate::fake_opt;
+	GETOPT_SOCKADDR = crate::util::fake_opt;
+	GETOPT_STRING = crate::util::fake_opt;
 
 	SETOPT = nng_sys::nng_ctx_setopt;
 	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
 	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
 	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
 	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
-	SETOPT_STRING = crate::fake_opt;
+	SETOPT_STRING = crate::util::fake_opt;
 
 	Gets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];

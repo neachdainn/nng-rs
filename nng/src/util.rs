@@ -1,4 +1,7 @@
-//! The collection of macros used by this project.
+//! Utility code.
+//!
+//! Things that make developing this crate slightly easier.
+use std::time::Duration;
 
 /// Converts a `nng` return code into a Rust `Result`.
 macro_rules! rv2res
@@ -103,5 +106,62 @@ macro_rules! expose_options
 
 		$(impl $crate::options::GetOpt<$crate::options::$($getters)::+> for $struct {})*
 		$(impl $crate::options::SetOpt<$crate::options::$($setters)::+> for $struct {})*
+	}
+}
+
+/// A catch-all function for unsupported options operations.
+pub unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const std::os::raw::c_char, _: T) -> std::os::raw::c_int
+{
+	panic!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
+}
+
+/// A catch-all function for unsupported generic options operations.
+pub unsafe extern "C" fn fake_genopt<H>(_: H, _: *const std::os::raw::c_char, _: *const std::os::raw::c_void, _:usize) -> std::os::raw::c_int
+{
+	panic!("{} does not support the generic option operation", stringify!(H))
+}
+
+/// Converts a Rust Duration into an `nng_duration`.
+pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
+{
+	// The subsecond milliseconds is guaranteed to be less than 1000, which
+	// means converting from `u32` to `i32` is safe. The only other
+	// potential issue is converting the `u64` of seconds to an `i32`.
+	use std::i32::MAX;
+
+	match dur {
+		None => nng_sys::NNG_DURATION_INFINITE,
+		Some(d) => {
+			let secs = if d.as_secs() > MAX as u64 { MAX } else { d.as_secs() as i32 };
+			let millis = d.subsec_millis() as i32;
+
+			secs.saturating_mul(1000).saturating_add(millis)
+		}
+	}
+}
+
+/// Converts an `nng_duration` into a Rust Duration.
+pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
+{
+	if ms == nng_sys::NNG_DURATION_INFINITE {
+		None
+	} else if ms >= 0 {
+		Some(Duration::from_millis(ms as u64))
+	} else {
+		panic!("Unexpected value for `nng_duration` ({})", ms)
+	}
+}
+
+/// Wraps around an object to prevent any interaction with it.
+pub struct BlackBox<T>
+{
+	_data: T,
+}
+impl<T> BlackBox<T>
+{
+	/// Creates a new wrapper the object.
+	pub fn new(_data: T) -> Self
+	{
+		BlackBox { _data }
 	}
 }

@@ -1,11 +1,14 @@
 use std::ffi::CString;
 use std::ptr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::panic::{catch_unwind, RefUnwindSafe};
+use std::os::raw::{c_int, c_void};
 use nng_sys::protocol::*;
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
 use crate::aio::Aio;
 use crate::protocol::Protocol;
+use crate::pipe::{Pipe, PipeEvent};
 
 /// A nanomsg-next-generation socket.
 ///
@@ -19,7 +22,7 @@ use crate::protocol::Protocol;
 /// See the [nng documenatation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct Socket
 {
 	/// The shared reference to the underlying nng socket.
@@ -53,7 +56,10 @@ impl Socket
 			}
 		};
 
-		rv2res!(rv, Socket { inner: Arc::new(Inner { handle: socket }), nonblocking: false })
+		rv2res!(rv, Socket {
+			inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
+			nonblocking: false,
+		})
 	}
 
 	/// Initiates a remote connection to a listener.
@@ -218,6 +224,35 @@ impl Socket
 		aio.recv_socket(self)
 	}
 
+	/// Register a callback function to be called whenever a pipe event occurs on the socket.
+	///
+	/// Only a single callback function can be supplied at a time. Registering a new callback
+	/// implicitely unregisters any previously registered. If an error is returned, then the
+	/// callback may be registered for a subset of the events.
+	pub fn pipe_notify<F>(&mut self, callback: F) -> Result<()>
+		where F: FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static
+	{
+		// Make sure that we're not currently in the middle of a callback. This _needs_ to be held
+		// for the duration of this function.
+		let mut lock_guard = self.inner.pipe_notify.lock().expect("Mutex is poisoned");
+
+		// Now that we know that no thread is currently in the callbacks, the first thing we need to
+		// do is replace it with our new one.
+		*lock_guard = Some(Box::new(callback));
+
+		// Because we're going to override the stored closure, we absolutely need to try and set the
+		// callback function for every single event. We cannot return early or we risk nng trying to
+		// call into a closure that has been freed.
+		let events = [nng_sys::NNG_PIPE_EV_ADD_PRE, nng_sys::NNG_PIPE_EV_ADD_POST, nng_sys::NNG_PIPE_EV_REM_POST];
+
+		events.iter()
+			.map(|&ev| unsafe {
+				nng_sys::nng_pipe_notify(self.inner.handle, ev, Some(Self::trampoline), & *self.inner as *const _ as _)
+			})
+			.map(|rv| rv2res!(rv))
+			.fold(Ok(()), |acc, res| acc.and(res))
+	}
+
 	/// Close the underlying socket.
 	///
 	/// Messages that have been submitted for sending may be flushed or delivered depending on the
@@ -250,7 +285,42 @@ impl Socket
 	{
 		self.inner.handle
 	}
+
+	/// Trampoline function for calling the pipe event closure from C.
+	///
+	/// This is unsafe because you have to be absolutely positive that you really do have a pointer
+	/// to an `Inner` type..
+	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: c_int, arg: *mut c_void)
+	{
+		let res = catch_unwind(|| unsafe {
+			let pipe = Pipe::from_nng_sys(pipe);
+			let ev = PipeEvent::from_code(ev);
+
+			assert!(!arg.is_null(), "Null pointer passed as argument to trampoline");
+			let inner = &*(arg as *const _ as *const Inner);
+
+			// It may be entirely possible that entered the trampoline function with a valid
+			// callback and then, before we got here, it was removed. As such, just ignore the case
+			// where there is not callback function.
+			if let Some(ref mut callback) = *inner.pipe_notify.lock().expect("Poisoned mutex") {
+				(*callback)(pipe, ev)
+			}
+		});
+
+		if let Err(e) = res {
+			error!("Panic in pipe notify callback function: {:?}", e);
+		}
+	}
 }
+
+impl std::cmp::PartialEq for Socket
+{
+	fn eq(&self, other: &Socket) -> bool
+	{
+		self.inner.handle == other.inner.handle
+	}
+}
+impl std::cmp::Eq for Socket { }
 
 expose_options!{
 	Socket :: inner.handle -> nng_sys::nng_socket;
@@ -259,7 +329,7 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_getopt_int;
 	GETOPT_MS = nng_sys::nng_getopt_ms;
 	GETOPT_SIZE = nng_sys::nng_getopt_size;
-	GETOPT_SOCKADDR = crate::fake_opt;
+	GETOPT_SOCKADDR = crate::util::fake_opt;
 	GETOPT_STRING = nng_sys::nng_getopt_string;
 
 	SETOPT = nng_sys::nng_setopt;
@@ -294,11 +364,16 @@ expose_options!{
 ///
 /// This allows us to have mutliple Rust socket types that won't clone the C
 /// socket type before Rust is done with it.
-#[derive(Debug, PartialEq, Eq)]
 struct Inner
 {
 	/// Handle to the underlying nng socket.
 	handle: nng_sys::nng_socket,
+
+	/// The current pipe event callback.
+	///
+	/// This type has a Drop function, so we don't really need to worry about the socket being
+	/// closed before the notify callback is dropped.
+	pipe_notify: Mutex<Option<Box<FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static>>>,
 }
 impl Inner
 {

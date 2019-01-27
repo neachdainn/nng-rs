@@ -85,7 +85,7 @@ pub trait HasOpts: Sized
 			(Self::GETOPT_MS)(self.handle(), opt, &mut dur as _)
 		};
 
-		rv2res!(rv, crate::nng_to_duration(dur))
+		rv2res!(rv, crate::util::nng_to_duration(dur))
 	}
 
 	/// Get the `size_t` option.
@@ -158,7 +158,7 @@ pub trait HasOpts: Sized
 	/// Set the duration to the option.
 	fn setopt_ms(&self, opt: *const c_char, dur: Option<Duration>) -> Result<()>
 	{
-		let ms = crate::duration_to_nng(dur);
+		let ms = crate::util::duration_to_nng(dur);
 
 		let rv = unsafe {
 			(Self::SETOPT_MS)(self.handle(), opt, ms)
