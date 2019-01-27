@@ -20,6 +20,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Asynchronous sending on a context is now via `Context::send` rather than `Aio::send`.
 * Asynchronous receiving on a context is now via `Context::recv` rather than `Aio::recv`.
 * Dialers and listeners are now treated as handle values and do not close on drop.
+* The PUBSUB example now publishes the number of subscribers rather than the time in order to show off the pipe notify functionality.
 
 === Deprecated ===
 
