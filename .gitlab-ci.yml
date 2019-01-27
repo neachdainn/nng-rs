@@ -1,6 +1,6 @@
 # Test at a specific version in order to prevent accidentally requiring a new
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
-image: "rust:1.30-slim"
+image: "rust:1.31-slim"
 
 # If we run the test before the docs, we can cache the build and not waste time
 # building it again.
@@ -26,9 +26,9 @@ format:
   image: "rustlang/rust:nightly-slim"
   stage: analysis
   script:
-    - rustup component add rustfmt-preview
+    - rustup component add rustfmt
     - cargo fmt --version
-    - cargo fmt --package nng
+    - cargo fmt --package nng --check
   only:
     - tags
     - master
