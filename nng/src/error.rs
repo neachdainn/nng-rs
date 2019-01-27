@@ -1,4 +1,5 @@
 use std::{error, fmt, io};
+
 use crate::message::Message;
 
 /// Specialized `Result` type for use with nng.
@@ -50,7 +51,9 @@ impl From<Error> for io::Error
 	{
 		if let ErrorKind::SystemErr(c) = e.kind {
 			io::Error::from_raw_os_error(c)
-		} else {
+		}
+		else {
+			#[rustfmt::skip]
 			let new_kind = match e.kind {
 				ErrorKind::Interrupted => io::ErrorKind::Interrupted,
 				ErrorKind::InvalidInput | ErrorKind::NoArgument => io::ErrorKind::InvalidInput,
@@ -81,6 +84,7 @@ impl fmt::Display for Error
 
 /// General categories of nng errors
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[rustfmt::skip]
 pub enum ErrorKind
 {
 	/// The operation was interrupted
@@ -197,6 +201,7 @@ impl ErrorKind
 	///
 	/// This is not an implementation of `From<i32>` because that would make
 	/// the conversion a public part of this crate.
+	#[rustfmt::skip]
 	pub(crate) fn from_code(code: i32) -> ErrorKind
 	{
 		match code {
@@ -241,6 +246,7 @@ impl ErrorKind
 
 impl fmt::Display for ErrorKind
 {
+	#[rustfmt::skip]
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		// Now, we could do a call into nng for this but I think that adds

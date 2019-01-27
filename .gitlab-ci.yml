@@ -1,12 +1,13 @@
 # Test at a specific version in order to prevent accidentally requiring a new
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
-image: "rust:1.30"
+image: "rust:1.31-slim"
 
 # If we run the test before the docs, we can cache the build and not waste time
 # building it again.
 stages:
+  - analysis
   - test
-  - docs_and_examples
+  - docs
 
 # Move a few of the "home" directories here so they are easier to cache.
 variables:
@@ -19,6 +20,34 @@ before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
 
+# Make sure that the style is correct. Since we use unstable formatting
+# features, we use the nightly toolchain for this.
+format:
+  image: "rustlang/rust:nightly-slim"
+  stage: analysis
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --version
+    - cargo fmt --package nng -- --check
+  only:
+    - tags
+    - master
+    - merge_requests
+
+# Make sure that we're listening to Clippy. Use nightly so we get the latest
+# lints even if we're not updating the test version.
+clippy:
+  image: "rust:latest"
+  stage: analysis
+  script:
+    - rustup component add clippy
+    - cargo clippy --version
+    - cargo clippy
+  only:
+    - tags
+    - master
+    - merge_requests
+
 # Use cargo to test the project
 test:
   stage: test
@@ -29,21 +58,35 @@ test:
   only:
     - tags
     - master
-    - /^[0-9]+-.*$/
+    - merge_requests
+
+# Check the project against nightly, just to see if anything regresses.
+test-nightly:
+  image: "rustlang/rust:nightly-slim"
+  stage: test
+  script:
+    - rustc --version
+    - cargo --version
+    - cargo test --all --verbose
+  allow_failure: true
+  only:
+    - tags
+    - master
+    - merge_requests
 
 # Make sure that the examples also build
 examples:
-  stage: docs_and_examples
+  stage: docs
   script:
     - cargo build --examples
   only:
     - tags
     - master
-    - /^[0-9]+-.*$/
+    - merge_requests
 
 # Publish to the pages whenever master is updated
 pages:
-  stage: docs_and_examples
+  stage: docs
   script:
     - cargo doc --no-deps
     - mv target/doc public

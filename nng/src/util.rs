@@ -4,33 +4,32 @@
 use std::time::Duration;
 
 /// Converts a `nng` return code into a Rust `Result`.
-macro_rules! rv2res
-{
-	($rv:expr, $ok:expr) => (
+macro_rules! rv2res {
+	($rv:expr, $ok:expr) => {
 		match $rv {
 			0 => Ok($ok),
 			e => Err($crate::error::Error::from($crate::error::ErrorKind::from_code(e))),
-		}
-	);
+			}
+	};
 
-	($rv:expr) => ( rv2res!($rv, ()) )
+	($rv:expr) => {
+		rv2res!($rv, ())
+	};
 }
 
 /// Checks an `nng` return code and validates the pointer.
-macro_rules! validate_ptr
-{
-	($rv:ident, $ptr:ident) => (
+macro_rules! validate_ptr {
+	($rv:ident, $ptr:ident) => {
 		validate_ptr!($rv, $ptr, {})
-	);
+	};
 
-	($rv:ident, $ptr:ident, $before:tt) => (
+	($rv:ident, $ptr:ident, $before:tt) => {
 		if $rv != 0 {
 			$before;
 			return Err($crate::error::ErrorKind::from_code($rv).into());
-		}
+			}
 		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
-	)
-
+	};
 }
 
 /// Utility macro for creating a new option type.
@@ -110,13 +109,22 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const std::os::raw::c_char, _: T) -> std::os::raw::c_int
+pub unsafe extern "C" fn fake_opt<H, T>(
+	_: H,
+	_: *const std::os::raw::c_char,
+	_: T,
+) -> std::os::raw::c_int
 {
 	panic!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
 
 /// A catch-all function for unsupported generic options operations.
-pub unsafe extern "C" fn fake_genopt<H>(_: H, _: *const std::os::raw::c_char, _: *const std::os::raw::c_void, _:usize) -> std::os::raw::c_int
+pub unsafe extern "C" fn fake_genopt<H>(
+	_: H,
+	_: *const std::os::raw::c_char,
+	_: *const std::os::raw::c_void,
+	_: usize,
+) -> std::os::raw::c_int
 {
 	panic!("{} does not support the generic option operation", stringify!(H))
 }
@@ -136,7 +144,7 @@ pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 			let millis = d.subsec_millis() as i32;
 
 			secs.saturating_mul(1000).saturating_add(millis)
-		}
+		},
 	}
 }
 
@@ -145,9 +153,11 @@ pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 {
 	if ms == nng_sys::NNG_DURATION_INFINITE {
 		None
-	} else if ms >= 0 {
+	}
+	else if ms >= 0 {
 		Some(Duration::from_millis(ms as u64))
-	} else {
+	}
+	else {
 		panic!("Unexpected value for `nng_duration` ({})", ms)
 	}
 }

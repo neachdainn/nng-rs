@@ -1,41 +1,29 @@
 //! A safe Rust wrapper for nanomsg-next-generation
-extern crate nng_sys;
-
-#[macro_use]
-extern crate log;
+#![deny(clippy::all)]
+#![allow(clippy::new_ret_no_self)]
 
 #[macro_use]
 mod util;
-
-mod error;
-pub use error::{Error, ErrorKind, Result};
-
-mod socket;
-pub use socket::Socket;
-
-mod pipe;
-pub use pipe::{Pipe, PipeEvent};
-
-mod protocol;
-pub use protocol::Protocol;
-
-mod dialer;
-pub use dialer::{Dialer, DialerOptions};
-
-mod listener;
-pub use listener::{Listener, ListenerOptions};
-
 mod addr;
-pub use addr::SocketAddr;
-
-mod message;
-pub use message::{Message, Header, Body};
-
 mod aio;
-pub use aio::Aio;
-
 mod ctx;
-pub use ctx::Context;
+mod dialer;
+mod error;
+mod listener;
+mod message;
+mod pipe;
+mod protocol;
+mod socket;
 
 pub mod options;
 
+pub use crate::addr::SocketAddr;
+pub use crate::aio::Aio;
+pub use crate::ctx::Context;
+pub use crate::dialer::{Dialer, DialerOptions};
+pub use crate::error::{Error, ErrorKind, Result};
+pub use crate::listener::{Listener, ListenerOptions};
+pub use crate::message::{Body, Header, Message};
+pub use crate::pipe::{Pipe, PipeEvent};
+pub use crate::protocol::Protocol;
+pub use crate::socket::Socket;

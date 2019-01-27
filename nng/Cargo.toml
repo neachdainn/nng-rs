@@ -11,6 +11,8 @@ keywords = ["nng", "nanomsg"]
 categories = ["api-bindings", "network-programming"]
 license = "MIT"
 
+edition = "2018"
+
 [features]
 default = ["build-nng"]
 build-nng = ["nng-sys/build-nng"]

@@ -4,13 +4,14 @@
 //! derived from the legacy nanomsg demonstration program. The program
 //! implements a simple RPC style service, which just returns the number of
 //! seconds since the Unix epoch.
-extern crate nng;
 extern crate byteorder;
+extern crate nng;
 
-use std::{env, mem, process};
 use std::time::SystemTime;
-use nng::{Socket, Protocol, Message};
+use std::{env, mem, process};
+
 use byteorder::{ByteOrder, LittleEndian};
+use nng::{Message, Protocol, Socket};
 
 /// Message representing a date request
 const DATE_REQUEST: u64 = 1;
@@ -28,7 +29,7 @@ fn main() -> Result<(), nng::Error>
 		_ => {
 			println!("Usage: reqrep client|server <URL>");
 			process::exit(1);
-		}
+		},
 	}
 }
 

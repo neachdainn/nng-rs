@@ -1,11 +1,14 @@
-use std::time::Duration;
-use std::sync::{Arc, Mutex};
-use std::panic::{catch_unwind, RefUnwindSafe};
 use std::os::raw::{c_int, c_void};
+use std::panic::{catch_unwind, RefUnwindSafe};
 use std::ptr;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use log::error;
+
+use crate::ctx::Context;
 use crate::error::{ErrorKind, Result, SendResult};
 use crate::message::Message;
-use crate::ctx::Context;
 use crate::socket::Socket;
 
 type UncallableFn = crate::util::BlackBox<Box<Fn() + Send + Sync + RefUnwindSafe + 'static>>;
@@ -60,7 +63,7 @@ impl Aio
 	/// retrieved after a call to `Aio::wait`.
 	pub fn new() -> Result<Aio>
 	{
-		Ok(Aio { inner: Inner::new()? , callback: None })
+		Ok(Aio { inner: Inner::new()?, callback: None })
 	}
 
 	/// Create a new asynchronous I/O handle.
@@ -70,7 +73,8 @@ impl Aio
 	/// With a callback provided, using `Aio::wait` is generally recommended
 	/// against.
 	pub fn with_callback<F>(callback: F) -> Result<Aio>
-		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
+	where
+		F: FnMut(&Aio) + Send + RefUnwindSafe + 'static,
 	{
 		let (inner, box_cb) = Inner::with_callback(callback)?;
 		Ok(Aio { inner, callback: Some(UncallableFn::new(box_cb)) })
@@ -95,7 +99,10 @@ impl Aio
 
 		if let State::Inactive(ref mut m) = l.state {
 			m.take()
-		} else { None }
+		}
+		else {
+			None
+		}
 	}
 
 	/// Returns the result of the previous ansynchronous I/O operation.
@@ -190,7 +197,10 @@ impl Aio
 
 				Ok(())
 			}
-		} else { Err((msg, ErrorKind::TryAgain.into())) }
+		}
+		else {
+			Err((msg, ErrorKind::TryAgain.into()))
+		}
 	}
 
 	/// Send a message using the socket asynchronously.
@@ -212,7 +222,10 @@ impl Aio
 
 				Ok(())
 			}
-		} else { Err((msg, ErrorKind::TryAgain.into())) }
+		}
+		else {
+			Err((msg, ErrorKind::TryAgain.into()))
+		}
 	}
 
 	/// Receive a message using the context asynchronously.
@@ -282,7 +295,10 @@ impl Aio
 			l.state = State::Sleeping;
 
 			Ok(())
-		} else { Err(ErrorKind::TryAgain.into()) }
+		}
+		else {
+			Err(ErrorKind::TryAgain.into())
+		}
 	}
 
 	/// Update the state of the Aio.
@@ -309,7 +325,10 @@ impl Aio
 				let rv = nng_sys::nng_aio_result(*l.aio);
 				let msg = if rv != 0 {
 					Some(Message::from_ptr(nng_sys::nng_aio_get_msg(*l.aio)))
-				} else { None };
+				}
+				else {
+					None
+				};
 
 				State::Inactive(msg)
 			},
@@ -318,7 +337,10 @@ impl Aio
 				let rv = nng_sys::nng_aio_result(*l.aio);
 				let msg = if rv == 0 {
 					Some(Message::from_ptr(nng_sys::nng_aio_get_msg(*l.aio)))
-				} else { None };
+				}
+				else {
+					None
+				};
 
 				State::Inactive(msg)
 			},
@@ -357,24 +379,24 @@ impl Inner
 	}
 
 	/// Allocates a new asynchronous I/O context with a callback.
-	fn with_callback<F>(mut callback: F) -> Result<(SharedInner, Box<Fn() + Send + Sync + RefUnwindSafe + 'static>)>
-		where F: FnMut(&Aio) + Send + RefUnwindSafe + 'static
+	fn with_callback<F>(
+		mut callback: F,
+	) -> Result<(SharedInner, Box<Fn() + Send + Sync + RefUnwindSafe + 'static>)>
+	where
+		F: FnMut(&Aio) + Send + RefUnwindSafe + 'static,
 	{
 		// We start by creating an (unallocated) shared inner object. The
 		// object is uninitialized but it has a fixed address now so we can
 		// allocate the `nng_aio`. The thing to watch out for is making sure
 		// that we don't try to drop this until it is fully initialized.
 		let shared_inner = Arc::new(Mutex::new(Inner {
-			aio: AioPtr(ptr::null_mut()),
+			aio:   AioPtr(ptr::null_mut()),
 			state: State::Inactive(None),
 		}));
 
 		// Now, because we have a callback, we need to do some crazy
 		// trampolining.
-		let cb_aio = Aio {
-			inner: shared_inner.clone(),
-			callback: None,
-		};
+		let cb_aio = Aio { inner: shared_inner.clone(), callback: None };
 
 		// Within this trampoline, we also need to add a lock to prevent NNG
 		// from entering the closure mutiple times simultaneously. An
@@ -415,8 +437,12 @@ impl Inner
 				std::mem::forget(shared_inner);
 			}
 			Err(ErrorKind::from_code(rv).into())
-		} else {
-			assert!(!shared_inner.lock().unwrap().aio.is_null(), "Nng returned null pointer from successful function");
+		}
+		else {
+			assert!(
+				!shared_inner.lock().unwrap().aio.is_null(),
+				"Nng returned null pointer from successful function"
+			);
 			Ok((shared_inner, box_fn))
 		}
 	}
@@ -432,10 +458,12 @@ impl Inner
 		aio: *mut *mut nng_sys::nng_aio,
 		trampoline: F,
 	) -> (c_int, Box<Fn() + Send + Sync + RefUnwindSafe + 'static>)
-		where F: Fn() + Send + Sync + RefUnwindSafe + 'static
+	where
+		F: Fn() + Send + Sync + RefUnwindSafe + 'static,
 	{
 		let mut box_fn = Box::new(trampoline);
-		let rv = nng_sys::nng_aio_alloc(aio, Some(Inner::trampoline::<F>), &mut *box_fn as *mut _ as _);
+		let rv =
+			nng_sys::nng_aio_alloc(aio, Some(Inner::trampoline::<F>), &mut *box_fn as *mut _ as _);
 		(rv, box_fn)
 	}
 
@@ -444,10 +472,11 @@ impl Inner
 	/// This is unsafe because you have to be absolutely positive that `T` is
 	/// really actually truly the type of the closure.
 	extern "C" fn trampoline<F>(arg: *mut c_void)
-		where F: Fn() + Send + Sync + RefUnwindSafe + 'static
+	where
+		F: Fn() + Send + Sync + RefUnwindSafe + 'static,
 	{
-		// TODO: I don't like just logging the error. Somehow, this panic
-		// should make its way back to the user. See issue #6.
+		// TODO(#6): I don't like just logging the error. Somehow, this panic
+		// should make its way back to the user
 		let res = catch_unwind(|| unsafe {
 			let callback_ptr = arg as *mut F;
 			if callback_ptr.is_null() {

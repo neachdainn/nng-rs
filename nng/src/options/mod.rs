@@ -18,8 +18,8 @@ pub(crate) mod private;
 ///
 /// This trait allows for the getting and setting of options as long as that
 /// option is available. An example of this would be the `Raw` option - it is a
-/// read-only option that is available exclusively to sockets (FIXME: Not sure
-/// this is the case with option fallbacks?). So the following code will work:
+/// read-only option that is available exclusively to sockets. So the following
+/// code will work:
 ///
 /// ```ignore
 /// let raw = socket.get_opt::<Raw>()?;
@@ -34,14 +34,16 @@ pub trait Options: private::HasOpts
 {
 	/// Reads the specified option from the object.
 	fn get_opt<T: private::OptOps>(&self) -> Result<T::OptType>
-		where Self: GetOpt<T>
+	where
+		Self: GetOpt<T>,
 	{
 		T::get(self)
 	}
 
 	/// Writes the specified option to the object.
 	fn set_opt<T: private::OptOps>(&self, val: T::OptType) -> Result<()>
-		where Self: SetOpt<T>
+	where
+		Self: SetOpt<T>,
 	{
 		T::set(self, val)
 	}
@@ -56,7 +58,11 @@ pub trait Opt
 }
 
 /// Marks that a type can get the specific `nng` option.
-pub trait GetOpt<T: private::OptOps>: private::HasOpts {}
+pub trait GetOpt<T: private::OptOps>: private::HasOpts
+{
+}
 
 /// Marks that a type can set the specific `nng` option.
-pub trait SetOpt<T: private::OptOps>: private::HasOpts {}
+pub trait SetOpt<T: private::OptOps>: private::HasOpts
+{
+}

@@ -1,5 +1,5 @@
 use std::os::raw::*;
-use nng_duration;
+use crate::nng_duration;
 
 pub type nng_time = u64;
 extern "C"

@@ -1,9 +1,10 @@
+#![deny(clippy::all)]
 #![allow(non_camel_case_types)]
 ///! FFI Bindings for nanomsg-next-generation
 // This file defines things in the same order as "nng.h" in order to make it
 // easier to spot changes between versions.
-
 use std::os::raw::*;
+
 type size_t = usize;
 
 /// Macro for making constant c-strings

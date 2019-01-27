@@ -7,8 +7,9 @@
 //! Messages are divided into a header and a body, where the body generally
 //! carries user-payload and the header carries protocol specific header
 //! information. Most applications will only interact with the body.
-use std::{ptr, slice};
 use std::ops::{Deref, DerefMut};
+use std::{ptr, slice};
+
 use crate::error::Result;
 use crate::pipe::Pipe;
 
@@ -22,7 +23,6 @@ pub struct Message
 	// duplicated code. Instead, we're going to make them members of this
 	// struct and return references to that. This will solve the borrowing
 	// issue and avoid code duplication.
-
 	/// The pointer to the actual message.
 	msgp: *mut nng_sys::nng_msg,
 
@@ -37,11 +37,7 @@ impl Message
 	/// Creates a message from the given `nng_msg`
 	pub(crate) unsafe fn from_ptr(msgp: *mut nng_sys::nng_msg) -> Self
 	{
-		Message {
-			msgp,
-			body: Body { msgp },
-			header: Header { msgp },
-		}
+		Message { msgp, body: Body { msgp }, header: Header { msgp } }
 	}
 
 	/// Consumes the message and returns the `nng_msg` pointer.
@@ -57,9 +53,7 @@ impl Message
 	pub fn new() -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe {
-			nng_sys::nng_msg_alloc(&mut msgp as _, 0)
-		};
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, 0) };
 
 		validate_ptr!(rv, msgp);
 		Ok(unsafe { Message::from_ptr(msgp) })
@@ -72,15 +66,15 @@ impl Message
 	pub fn with_capacity(cap: usize) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe {
-			nng_sys::nng_msg_alloc(&mut msgp as _, cap)
-		};
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, cap) };
 
 		validate_ptr!(rv, msgp);
 
 		// When nng allocates a message, it fills the body and sets the size to
 		// whatever you requested. It makes sense in a C context, less so here.
-		unsafe { nng_sys::nng_msg_clear(msgp); }
+		unsafe {
+			nng_sys::nng_msg_clear(msgp);
+		}
 
 		Ok(unsafe { Message::from_ptr(msgp) })
 	}
@@ -89,9 +83,7 @@ impl Message
 	pub fn zeros(size: usize) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe {
-			nng_sys::nng_msg_alloc(&mut msgp as _, size)
-		};
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, size) };
 
 		validate_ptr!(rv, msgp);
 		Ok(unsafe { Message::from_ptr(msgp) })
@@ -107,9 +99,7 @@ impl Message
 	pub fn try_from(s: &[u8]) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe {
-			nng_sys::nng_msg_alloc(&mut msgp as _, s.len())
-		};
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, s.len()) };
 
 		validate_ptr!(rv, msgp);
 
@@ -128,9 +118,7 @@ impl Message
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 
-		let rv = unsafe {
-			nng_sys::nng_msg_dup(&mut msgp as _, self.msgp)
-		};
+		let rv = unsafe { nng_sys::nng_msg_dup(&mut msgp as _, self.msgp) };
 
 		validate_ptr!(rv, msgp);
 		Ok(unsafe { Message::from_ptr(msgp) })
@@ -162,27 +150,32 @@ impl Message
 
 	/// Returns the pipe object associated with the message.
 	///
-	/// On receive, this is the pipe from which the message was received. On transmit, this would be
-	/// the pipe that the message should be delivered to, if a specific peer is required. Note that
-	/// not all protocols support overriding the destination pipe.
+	/// On receive, this is the pipe from which the message was received. On
+	/// transmit, this would be the pipe that the message should be delivered
+	/// to, if a specific peer is required. Note that not all protocols support
+	/// overriding the destination pipe.
 	///
-	/// The most usual use case for this is to obtain information about the peer from which the
-	/// message was received. This can be used to provide different behaviors for different peers,
-	/// such as a higher level of authentication for peers located on an untrusted network.
+	/// The most usual use case for this is to obtain information about the peer
+	/// from which the message was received. This can be used to provide
+	/// different behaviors for different peers, such as a higher level of
+	/// authentication for peers located on an untrusted network.
 	pub fn pipe(&mut self) -> Option<Pipe>
 	{
 		let pipe = unsafe { nng_sys::nng_msg_get_pipe(self.msgp) };
 
 		if pipe.id > 0 {
 			Some(Pipe::from_nng_sys(pipe))
-		} else { None }
+		}
+		else {
+			None
+		}
 	}
 
 	/// Sets the pipe associated with the message.
 	///
-	/// This is most useful when used with protocols that support directing a message to a specific
-	/// peer. For example, the _pair_ version 1 protocol can do this when in polyamorous mode. Not
-	/// all protocols support this.
+	/// This is most useful when used with protocols that support directing a
+	/// message to a specific peer. For example, the _pair_ version 1 protocol
+	/// can do this when in polyamorous mode. Not all protocols support this.
 	pub fn set_pipe(&mut self, pipe: &Pipe)
 	{
 		unsafe { nng_sys::nng_msg_set_pipe(self.msgp, pipe.handle()) }
@@ -253,9 +246,7 @@ impl Body
 	/// Appends the data to the back of the message body.
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_append(self.msgp, data.as_ptr() as _, data.len())
-		};
+		let rv = unsafe { nng_sys::nng_msg_append(self.msgp, data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -286,9 +277,7 @@ impl Body
 	/// Prepends the data to the message body.
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_insert(self.msgp, data.as_ptr() as _, data.len())
-		};
+		let rv = unsafe { nng_sys::nng_msg_insert(self.msgp, data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -309,9 +298,7 @@ impl Body
 	/// Remove the first `len` bytes from the front of the message body.
 	pub fn trim(&mut self, len: usize) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_trim(self.msgp, len)
-		};
+		let rv = unsafe { nng_sys::nng_msg_trim(self.msgp, len) };
 
 		rv2res!(rv)
 	}
@@ -357,9 +344,8 @@ impl Header
 	/// Appends the data to the back of the message header.
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_header_append(self.msgp, data.as_ptr() as _, data.len())
-		};
+		let rv =
+			unsafe { nng_sys::nng_msg_header_append(self.msgp, data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -390,9 +376,8 @@ impl Header
 	/// Prepends the data to the message header.
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_header_insert(self.msgp, data.as_ptr() as _, data.len())
-		};
+		let rv =
+			unsafe { nng_sys::nng_msg_header_insert(self.msgp, data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -400,9 +385,7 @@ impl Header
 	/// Remove the first `len` bytes from the front of the message header.
 	pub fn trim(&mut self, len: usize) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_header_trim(self.msgp, len)
-		};
+		let rv = unsafe { nng_sys::nng_msg_header_trim(self.msgp, len) };
 
 		rv2res!(rv)
 	}

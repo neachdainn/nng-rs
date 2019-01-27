@@ -1,8 +1,9 @@
 //! Types of options available.
 use std::time::Duration;
+
 use crate::addr::SocketAddr;
 
-create_option!{
+create_option! {
 	/// The local address used for communication.
 	///
 	/// ## Support
@@ -25,7 +26,7 @@ create_option!{
 	Set _s _v = panic!("NNG_OPT_LOCADDR is a read-only option");
 }
 
-create_option!{
+create_option! {
 	/// The remote address of the peer.
 	///
 	/// The availability of this option is dependent on the transport.
@@ -44,7 +45,7 @@ create_option!{
 	Set _s _v = panic!("NNG_OPT_REMADDR is a read-only option");
 }
 
-create_option!{
+create_option! {
 	/// Whether or not the socket is in "raw" mode.
 	///
 	/// Raw mode sockets generally do not have any protocol-specific semantics
@@ -66,7 +67,7 @@ create_option!{
 	Set _s _v = panic!("NNG_OPT_RAW is a read-only option");
 }
 
-create_option!{
+create_option! {
 	/// The minimum amount of time to wait before attempting to establish a
 	/// connection after a previous attempt has failed.
 	///
@@ -82,7 +83,7 @@ create_option!{
 	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMINT, val);
 }
 
-create_option!{
+create_option! {
 	/// The maximum amount of time to wait before attempting to establish a
 	/// connection after a previous attempt has failed.
 	///
@@ -102,7 +103,7 @@ create_option!{
 	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMAXT, val);
 }
 
-create_option!{
+create_option! {
 	/// The depth of the socket's receive buffer as a number of messages.
 	///
 	/// Messages received by the transport may be buffered until the
@@ -117,7 +118,7 @@ create_option!{
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_RECVBUF, val);
 }
 
-create_option!{
+create_option! {
 	/// The maximum message size that the will be accepted from a remote peer.
 	///
 	/// If a peer attempts to send a message larger than this, then the message
@@ -146,7 +147,7 @@ create_option!{
 	Set s val = s.setopt_size(nng_sys::NNG_OPT_RECVMAXSZ, val);
 }
 
-create_option!{
+create_option! {
 	/// The socket receive timeout.
 	///
 	/// When no message is available for receiving at the socket for this period
@@ -161,7 +162,7 @@ create_option!{
 	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECVTIMEO, val);
 }
 
-create_option!{
+create_option! {
 	/// The depth of the socket send buffer as a number of messages.
 	///
 	/// Messages sent by an application may be buffered by the socket until a
@@ -177,7 +178,7 @@ create_option!{
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_SENDBUF, val);
 }
 
-create_option!{
+create_option! {
 	/// The socket send timeout.
 	///
 	/// When a message cannot be queued for delivery by the socket for this
@@ -193,7 +194,7 @@ create_option!{
 	Set s val = s.setopt_ms(nng_sys::NNG_OPT_SENDTIMEO, val);
 }
 
-create_option!{
+create_option! {
 	/// The socket name.
 	///
 	/// By default this is a string corresponding to the value of the socket.
@@ -209,7 +210,7 @@ create_option!{
 	Set s val = s.setopt_string(nng_sys::NNG_OPT_SOCKNAME, &val);
 }
 
-create_option!{
+create_option! {
 	/// The maximum number of "hops" a message may traverse.
 	///
 	/// The intention here is to prevent forwarding loops in [device chains][1].
@@ -237,7 +238,7 @@ create_option!{
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL, val.into());
 }
 
-create_option!{
+create_option! {
 	/// The URL with which a listener or dialer was configured.
 	///
 	/// Note that some transports will canonify URLs before returning them to
@@ -257,7 +258,7 @@ pub mod protocol
 	/// Options dealing with the PUBSUB protocol.
 	pub mod pubsub
 	{
-		create_option!{
+		create_option! {
 			/// Register a topic that the subscriber is interested in.
 			///
 			/// This option takes an array of bytes, of arbitrary size. Each
@@ -278,7 +279,7 @@ pub mod protocol
 			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_SUBSCRIBE, &val);
 		}
 
-		create_option!{
+		create_option! {
 			/// Remove a topic from the subscription list.
 			///
 			/// Note that if the topic was not previously subscribed via the
@@ -299,7 +300,7 @@ pub mod protocol
 	{
 		use std::time::Duration;
 
-		create_option!{
+		create_option! {
 			/// Amount of time to wait before sending a new request.
 			///
 			/// When a new request is started, a timer of this duration is also
@@ -325,7 +326,7 @@ pub mod protocol
 	{
 		use std::time::Duration;
 
-		create_option!{
+		create_option! {
 			/// Amount of time that the following surveys will last.
 			///
 			/// When a new survey is started, a timer of this duration is also
@@ -353,7 +354,7 @@ pub mod transport
 	/// Options related to transports built on top of TCP.
 	pub mod tcp
 	{
-		create_option!{
+		create_option! {
 			/// Disable (or enable) the use of Nagle's algorithm for TCP
 			/// connections.
 			///
@@ -378,7 +379,7 @@ pub mod transport
 			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_NODELAY, val);
 		}
 
-		create_option!{
+		create_option! {
 			/// Enable the sending of keep-alive messages on the underlying TCP stream.
 			///
 			/// This option is `false` by default. When enabled, if no messages are
@@ -391,7 +392,7 @@ pub mod transport
 			/// This option has two purposes. First, it can be used to detect dead
 			/// peers on an otherwise quiescent network. Second, it can be used to
 			/// keep connection table entries in NAT and other middleware from
-			/// being expiring due to lack of activity. 
+			/// being expiring due to lack of activity.
 			///
 			/// ## Support
 			///
@@ -411,7 +412,7 @@ pub mod transport
 	/// Options related to the TLS transport.
 	pub mod tls
 	{
-		create_option!{
+		create_option! {
 			/// Used to load certificates associated associated private key from a
 			/// file.
 			///
@@ -430,7 +431,7 @@ pub mod transport
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE, &val);
 		}
 
-		create_option!{
+		create_option! {
 			/// Used to load the local certificate and associated private key from
 			/// a file.
 			///
@@ -450,7 +451,7 @@ pub mod transport
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE, &val);
 		}
 
-		create_option!{
+		create_option! {
 			/// Indicates whether the remote peer has been properly verified using TLS
 			/// authentication.
 			///
@@ -472,7 +473,7 @@ pub mod transport
 	/// Options related to the WebSocket and Secure WebSocket transports.
 	pub mod websocket
 	{
-		create_option!{
+		create_option! {
 			/// A multiline string terminated by CRLF sequences, that can be used
 			/// to add further headers to the HTTP request sent when connecting.
 			///
@@ -486,7 +487,7 @@ pub mod transport
 			Set s val = s.setopt_string(nng_sys::transport::websocket::NNG_OPT_WS_REQUEST_HEADERS, &val);
 		}
 
-		create_option!{
+		create_option! {
 			/// A multiline string terminated by CRLF sequences, that can be used
 			/// to add further headers to the HTTP response sent when connecting.
 			///

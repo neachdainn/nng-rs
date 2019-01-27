@@ -19,13 +19,15 @@
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
 use std::ffi::CString;
+
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
 /// A constructed and running dialer.
 ///
 /// This dialer has already been started on the socket and will continue
-/// serving the connection until either it is explicitly closed or the owning socket is closed.
+/// serving the connection until either it is explicitly closed or the owning
+/// socket is closed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Dialer
 {
@@ -58,13 +60,14 @@ impl Dialer
 
 	/// Closes the dialer.
 	///
-	/// This also closes any `Pipe` objects that have been created by the dialer. Once this function
-	/// returns, the dialer has been closed and all of its resources have been deallocated.
-	/// Therefore, any attempt to utilize the dialer (with this or any other handle) will result in
+	/// This also closes any `Pipe` objects that have been created by the
+	/// dialer. Once this function returns, the dialer has been closed and all
+	/// of its resources have been deallocated. Therefore, any attempt to
+	/// utilize the dialer (with this or any other handle) will result in
 	/// an error.
 	///
-	/// Dialers are implicitly closed when the socket they are associated with is closed. Dialers
-	/// are _not_ closed when all handles are dropped.
+	/// Dialers are implicitly closed when the socket they are associated with
+	/// is closed. Dialers are _not_ closed when all handles are dropped.
 	pub fn close(self)
 	{
 		// Closing the dialer should only ever result in success or ECLOSED and
@@ -72,7 +75,8 @@ impl Dialer
 		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
 		assert!(
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing dialer ({})", rv
+			"Unexpected error code while closing dialer ({})",
+			rv
 		);
 	}
 
@@ -95,6 +99,7 @@ impl Dialer
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Dialer :: handle -> nng_sys::nng_dialer;
 
@@ -149,12 +154,15 @@ impl DialerOptions
 		// work with.
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
 		let mut handle = nng_sys::NNG_DIALER_INITIALIZER;
-		let rv = unsafe { nng_sys::nng_dialer_create(&mut handle as *mut _, socket.handle(), addr.as_ptr()) };
+		let rv = unsafe {
+			nng_sys::nng_dialer_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
+		};
 
 		rv2res!(rv, DialerOptions { handle })
 	}
 
-	/// Cause the dialer to start connecting to the address with which it was created.
+	/// Cause the dialer to start connecting to the address with which it was
+	/// created.
 	///
 	/// Normally, the first attempt to connect to the dialer's address is done
 	/// synchronously, including any necessary name resolution. As a result, a
@@ -176,9 +184,7 @@ impl DialerOptions
 		// If there is an error starting the dialer, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe {
-			nng_sys::nng_dialer_start(self.handle, flags)
-		};
+		let rv = unsafe { nng_sys::nng_dialer_start(self.handle, flags) };
 
 		match rv {
 			0 => {
@@ -191,6 +197,7 @@ impl DialerOptions
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	DialerOptions :: handle -> nng_sys::nng_dialer;
 
@@ -234,7 +241,8 @@ impl Drop for DialerOptions
 		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
 		assert!(
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing dialer ({})", rv
+			"Unexpected error code while closing dialer ({})",
+			rv
 		);
 	}
 }

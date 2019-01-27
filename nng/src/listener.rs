@@ -18,13 +18,15 @@
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::ffi::CString;
+
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
 /// A constructed and running listener.
 ///
 /// This listener has already been started on the socket and will continue
-/// serving the connection until either it is explicitly close or the owning socket is closed.
+/// serving the connection until either it is explicitly close or the owning
+/// socket is closed.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Listener
 {
@@ -57,13 +59,14 @@ impl Listener
 
 	/// Closes the listener.
 	///
-	/// This also closes any `Pipe` objects that have been created by the listener. Once this
-	/// function returns, the listener has been closed and all of its resources have been
-	/// deallocated. Therefore, any attempt to utilize the listener (with this or any other handle)
-	/// will result in an error.
+	/// This also closes any `Pipe` objects that have been created by the
+	/// listener. Once this function returns, the listener has been closed and
+	/// all of its resources have been deallocated. Therefore, any attempt to
+	/// utilize the listener (with this or any other handle) will result in an
+	/// error.
 	///
-	/// Listeners are implicitly closed when the socket they are associated with is closed.
-	/// Listeners are _not_ closed when all handles are dropped.
+	/// Listeners are implicitly closed when the socket they are associated with
+	/// is closed. Listeners are _not_ closed when all handles are dropped.
 	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
@@ -71,7 +74,8 @@ impl Listener
 		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
 		assert!(
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing listener ({})", rv
+			"Unexpected error code while closing listener ({})",
+			rv
 		);
 	}
 
@@ -94,6 +98,7 @@ impl Listener
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	Listener :: handle -> nng_sys::nng_listener;
 
@@ -125,8 +130,8 @@ expose_options!{
 ///
 /// This object allows for the configuration of listeners before they are
 /// started. If it is not necessary to change listener settings or to close the
-/// listener without closing the socket, then `Socket::listen` provides a simpler
-/// interface and does not require tracking an object.
+/// listener without closing the socket, then `Socket::listen` provides a
+/// simpler interface and does not require tracking an object.
 pub struct ListenerOptions
 {
 	/// The underlying listener object that we are configuring
@@ -146,7 +151,9 @@ impl ListenerOptions
 		// work with.
 		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
 		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
-		let rv = unsafe { nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr()) };
+		let rv = unsafe {
+			nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
+		};
 
 		rv2res!(rv, ListenerOptions { handle })
 	}
@@ -171,9 +178,7 @@ impl ListenerOptions
 		// If there is an error starting the listener, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe {
-			nng_sys::nng_listener_start(self.handle, flags)
-		};
+		let rv = unsafe { nng_sys::nng_listener_start(self.handle, flags) };
 
 		match rv {
 			0 => {
@@ -186,6 +191,7 @@ impl ListenerOptions
 	}
 }
 
+#[rustfmt::skip]
 expose_options!{
 	ListenerOptions :: handle -> nng_sys::nng_listener;
 
@@ -226,7 +232,8 @@ impl Drop for ListenerOptions
 		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
 		assert!(
 			rv == 0 || rv == nng_sys::NNG_ECLOSED,
-			"Unexpected error code while closing listener ({})", rv
+			"Unexpected error code while closing listener ({})",
+			rv
 		);
 	}
 }
