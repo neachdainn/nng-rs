@@ -1,5 +1,11 @@
 # Bindings for nanomsg-next-generation (nng)
 
+[![docs.rs](https://docs.rs/nng-sys/badge.svg)](https://docs.rs/nng-sys)
+[![crates.io](http://img.shields.io/crates/v/nng-sys.svg)](http://crates.io/crates/nng-sys)
+![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Rustc 1.31+](https://img.shields.io/badge/rustc-1.31+-lightgray.svg)
+![Pipeline](https://gitlab.com/neachdainn/nng-rs/badges/master/pipeline.svg)
+
 This crate provides the FFI bindings for [nng][1].
 In the future, the major and minor components of the version will be guaranteed to match the major and minor versions of the corresponding `nng` version.
 However, it is currently in active development along with [the nng crate][2] and so the versions do not match.
