@@ -28,7 +28,6 @@ fn client() -> Result<(), nng::Error>
 
 	// Wait for the response
 	let res = s.recv()?;
-
 	println!("Response: {:?}", res);
 
 	Ok(())
@@ -42,7 +41,6 @@ fn server() -> Result<(), nng::Error>
 	loop {
 		// Wait for a request from the client
 		let mut msg = s.recv()?;
-
 
 		// Respond to the client
 		msg[1] += 1;
