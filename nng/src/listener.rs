@@ -19,6 +19,9 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::ffi::CString;
 
+#[cfg(windows)]
+use winapi::um::winnt::SECURITY_DESCRIPTOR;
+
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
@@ -156,6 +159,23 @@ impl ListenerOptions
 		};
 
 		rv2res!(rv, ListenerOptions { handle })
+	}
+
+	/// Sets the security descriptor for the underlying named pipe.
+	#[cfg(windows)]
+	pub fn set_security_descriptor(&mut self, security_descriptor: *mut SECURITY_DESCRIPTOR) -> Result<()>
+	{
+		use nng_sys::transport::ipc::NNG_OPT_IPC_SECURITY_DESCRIPTOR;
+
+		let rv = unsafe {
+			nng_sys::nng_listener_setopt_ptr(
+				self.handle,
+				NNG_OPT_IPC_SECURITY_DESCRIPTOR,
+				security_descriptor as *mut _,
+			)
+		};
+
+		rv2res!(rv)
 	}
 
 	/// Cause the listener to start listening on the address with which it was
