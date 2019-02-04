@@ -355,7 +355,7 @@ pub mod protocol
 pub mod transport
 {
 	/// Options related to transports built on top of IPC.
-	pub mod icp
+	pub mod ipc
 	{
 		#[cfg(windows)]
 		create_option! {
@@ -387,7 +387,7 @@ pub mod transport
 			///   Windows platform.
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
-			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR;
+			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
 			Get _s = panic!("IPC Security Descriptor is a write-only option");
 			Set s val = s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR, val);
 		}
