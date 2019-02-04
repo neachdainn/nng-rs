@@ -1,9 +1,6 @@
 //! Types of options available.
 use std::time::Duration;
 
-#[cfg(windows)]
-use winapi::um::winnt::PSECURITY_DESCRIPTOR;
-
 use crate::addr::SocketAddr;
 
 create_option! {
@@ -358,6 +355,9 @@ pub mod transport
 	pub mod ipc
 	{
 		#[cfg(windows)]
+		use winapi::um::winnt::PSECURITY_DESCRIPTOR;
+
+		#[cfg(windows)]
 		create_option! {
 			/// Configures the `SECURITY_DESCRIPTOR` that is used when creating the underlying named
 			/// pipe.
@@ -389,7 +389,7 @@ pub mod transport
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
 			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
 			Get _s = panic!("IPC Security Descriptor is a write-only option");
-			Set s val = s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR, val);
+			Set s val = s.setopt_ptr(nng_sys::transport::ipc::NNG_OPT_IPC_SECURITY_DESCRIPTOR, val);
 		}
 	}
 

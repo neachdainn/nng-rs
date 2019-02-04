@@ -19,11 +19,11 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::ffi::CString;
 
-#[cfg(windows)]
-use winapi::um::winnt::PSECURITY_DESCRIPTOR;
-
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
+
+#[cfg(windows)]
+use crate::options::transport::ipc::IpcSecurityDescriptor;
 
 /// A constructed and running listener.
 ///
@@ -229,7 +229,7 @@ expose_options!{
 }
 
 #[cfg(windows)]
-impl crate::options::SetOpt<crate::options::IpcSecurityDescriptor> for ListenerOptions {}
+impl crate::options::SetOpt<IpcSecurityDescriptor> for ListenerOptions {}
 
 impl Drop for ListenerOptions
 {
