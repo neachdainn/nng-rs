@@ -108,6 +108,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
 	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
 	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
+	SETOPT_PTR = crate::util::fake_opt;
 	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
 	SETOPT_STRING = crate::util::fake_opt;
 

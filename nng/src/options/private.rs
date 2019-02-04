@@ -64,6 +64,8 @@ pub trait HasOpts: Sized
 		*const c_char,
 		nng_sys::nng_duration,
 	) -> c_int;
+	/// Raw `nng` function to set a pointer option.
+	const SETOPT_PTR: unsafe extern "C" fn(Self::Handle, *const c_char, *mut c_void) -> c_int;
 	/// Raw `nng` function to set a `size_t` option.
 	const SETOPT_SIZE: unsafe extern "C" fn(Self::Handle, *const c_char, usize) -> c_int;
 	/// Raw `nng` function to set a string value.
@@ -164,6 +166,15 @@ pub trait HasOpts: Sized
 		let ms = crate::util::duration_to_nng(dur);
 
 		let rv = unsafe { (Self::SETOPT_MS)(self.handle(), opt, ms) };
+		rv2res!(rv)
+	}
+
+	/// Set the value of the pointer to the option.
+	///
+	/// TODO(#22): This is not a safe interface.
+	fn setopt_ptr(&self, opt: *const c_char, val: *mut c_void) -> Result<()>
+	{
+		let rv = unsafe { (Self::SETOPT_PTR)(self.handle(), opt, val) };
 		rv2res!(rv)
 	}
 

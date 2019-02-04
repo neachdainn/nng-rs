@@ -356,6 +356,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_setopt_bool;
 	SETOPT_INT = nng_sys::nng_setopt_int;
 	SETOPT_MS = nng_sys::nng_setopt_ms;
+	SETOPT_PTR = nng_sys::nng_setopt_ptr;
 	SETOPT_SIZE = nng_sys::nng_setopt_size;
 	SETOPT_STRING = nng_sys::nng_setopt_string;
 

@@ -77,6 +77,7 @@ macro_rules! expose_options
 		SETOPT_BOOL = $so_b:path;
 		SETOPT_INT = $so_i:path;
 		SETOPT_MS = $so_ms:path;
+		SETOPT_PTR = $so_ptr:path;
 		SETOPT_SIZE = $so_sz:path;
 		SETOPT_STRING = $so_str:path;
 
@@ -99,6 +100,7 @@ macro_rules! expose_options
 			const SETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, bool) -> std::os::raw::c_int = $so_b;
 			const SETOPT_INT: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, std::os::raw::c_int) -> std::os::raw::c_int = $so_i;
 			const SETOPT_MS: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, nng_sys::nng_duration) -> std::os::raw::c_int = $so_ms;
+			const SETOPT_PTR: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut std::os::raw::c_void) -> std::os::raw::c_int = $so_ptr;
 			const SETOPT_SIZE: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, usize) -> std::os::raw::c_int = $so_sz;
 			const SETOPT_STRING: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *const std::os::raw::c_char) -> std::os::raw::c_int = $so_str;
 		}

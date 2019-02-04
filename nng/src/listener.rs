@@ -20,7 +20,7 @@
 use std::ffi::CString;
 
 #[cfg(windows)]
-use winapi::um::winnt::SECURITY_DESCRIPTOR;
+use winapi::um::winnt::PSECURITY_DESCRIPTOR;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
@@ -116,6 +116,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
 	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
 	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
 
@@ -159,23 +160,6 @@ impl ListenerOptions
 		};
 
 		rv2res!(rv, ListenerOptions { handle })
-	}
-
-	/// Sets the security descriptor for the underlying named pipe.
-	#[cfg(windows)]
-	pub fn set_security_descriptor(&mut self, security_descriptor: *mut SECURITY_DESCRIPTOR) -> Result<()>
-	{
-		use nng_sys::transport::ipc::NNG_OPT_IPC_SECURITY_DESCRIPTOR;
-
-		let rv = unsafe {
-			nng_sys::nng_listener_setopt_ptr(
-				self.handle,
-				NNG_OPT_IPC_SECURITY_DESCRIPTOR,
-				security_descriptor as *mut _,
-			)
-		};
-
-		rv2res!(rv)
 	}
 
 	/// Cause the listener to start listening on the address with which it was
@@ -226,6 +210,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
 	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
 	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
 
@@ -242,6 +227,9 @@ expose_options!{
 	         transport::tls::CertKeyFile,
 	         transport::websocket::ResponseHeaders];
 }
+
+#[cfg(windows)]
+impl crate::options::SetOpt<crate::options::IpcSecurityDescriptor> for ListenerOptions {}
 
 impl Drop for ListenerOptions
 {
