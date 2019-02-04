@@ -22,6 +22,9 @@ use std::ffi::CString;
 use crate::error::{Error, ErrorKind, Result};
 use crate::socket::Socket;
 
+#[cfg(windows)]
+use crate::options::transport::ipc::IpcSecurityDescriptor;
+
 /// A constructed and running listener.
 ///
 /// This listener has already been started on the socket and will continue
@@ -113,6 +116,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
 	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
 	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
 
@@ -206,6 +210,7 @@ expose_options!{
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
 	SETOPT_INT = nng_sys::nng_listener_setopt_int;
 	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
+	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
 	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
 	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
 
@@ -222,6 +227,9 @@ expose_options!{
 	         transport::tls::CertKeyFile,
 	         transport::websocket::ResponseHeaders];
 }
+
+#[cfg(windows)]
+impl crate::options::SetOpt<IpcSecurityDescriptor> for ListenerOptions {}
 
 impl Drop for ListenerOptions
 {

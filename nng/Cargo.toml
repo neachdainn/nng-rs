@@ -24,5 +24,8 @@ build-nng = ["nng-sys/build-nng"]
 nng-sys = { version = "0.1.2", path = "../nng-sys", default-features = false }
 log = "0.4"
 
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.6", features = ["winnt", "std"] }
+
 [dev-dependencies]
 byteorder = "1.2"

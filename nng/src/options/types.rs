@@ -351,6 +351,48 @@ pub mod protocol
 /// Options dealing with the underlying transport.
 pub mod transport
 {
+	/// Options related to transports built on top of IPC.
+	pub mod ipc
+	{
+		#[cfg(windows)]
+		use winapi::um::winnt::PSECURITY_DESCRIPTOR;
+
+		#[cfg(windows)]
+		create_option! {
+			/// Configures the `SECURITY_DESCRIPTOR` that is used when creating the underlying named
+			/// pipe.
+			///
+			/// **THIS OPTION IS NOT RUST SAFE AND IS UNSTABLE**
+			///
+			/// This option should be considered unstable. The goal will be to eventually wrap the
+			/// `SECURITY_DESCRIPTOR` in a safe wrapper but I do not have the knowledge about
+			/// Windows API to implement a reasonable version and I also do not have a Windows
+			/// machine to test this on.
+			///
+			/// Until then, management of the lifetimes of the object behind the pointer is left to
+			/// the user. The NNG documentation for this option is available [here][1]. Keep in mind
+			/// that:
+			///
+			/// 1. NNG only copies the pointer. That means that the pointed-to object needs to live
+			///    for as long as NNG requires it, which is probably until the Listener is
+			///    constructed. The safest bet is probably just to leak the object.
+			/// 2. This option is not safe from a Rust point-of-view. Passing in bad data can cause
+			///    bad things to happen.
+			///
+			/// TODO(#22): Make `SECURITY_DESCRIPTOR` API safe
+			///
+			/// ## Supports
+			///
+			/// * This option can be set on `ListenerOption` while using the IPC transport on a
+			///   Windows platform.
+			///
+			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
+			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
+			Get _s = panic!("IPC Security Descriptor is a write-only option");
+			Set s val = s.setopt_ptr(nng_sys::transport::ipc::NNG_OPT_IPC_SECURITY_DESCRIPTOR, val);
+		}
+	}
+
 	/// Options related to transports built on top of TCP.
 	pub mod tcp
 	{

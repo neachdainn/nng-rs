@@ -120,6 +120,7 @@ expose_options!{
 	SETOPT_BOOL = crate::util::fake_opt;
 	SETOPT_INT = crate::util::fake_opt;
 	SETOPT_MS = crate::util::fake_opt;
+	SETOPT_PTR = crate::util::fake_opt;
 	SETOPT_SIZE = crate::util::fake_opt;
 	SETOPT_STRING =crate::util::fake_opt;
 
