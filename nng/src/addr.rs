@@ -1,3 +1,4 @@
+use std::fmt;
 use std::net::{SocketAddrV4, SocketAddrV6};
 use std::os::raw::c_char;
 use std::path::PathBuf;
@@ -25,6 +26,25 @@ pub enum SocketAddr
 	/// An invalid address type.
 	#[doc(hidden)]
 	Unspecified,
+}
+
+impl fmt::Display for SocketAddr
+{
+	/// Format trait for an empty format, `{}`.
+	///
+	/// Note that this is liable to change and does not necessarily map to the URL originally
+	/// provided to NNG.
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		match self {
+			SocketAddr::InProc(s) => write!(f, "inproc://{}", s),
+			SocketAddr::Ipc(s) => write!(f, "ipc://{}", s.to_string_lossy()),
+			SocketAddr::Inet(s) => write!(f, "tcp://{}", s),
+			SocketAddr::Inet6(s) => write!(f, "tcp://{}", s),
+			SocketAddr::ZeroTier(s) => write!(f, "zt://{}", s),
+			SocketAddr::Unspecified => write!(f, "unspecified"),
+		}
+	}
 }
 
 impl From<nng_sys::nng_sockaddr> for SocketAddr
@@ -76,6 +96,16 @@ impl SocketAddrZt
 			nodeid: addr.sa_nodeid,
 			port:   addr.sa_port,
 		}
+	}
+}
+impl fmt::Display for SocketAddrZt
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		// I have no idea if this output is meaningful at all. This is just vaguely based off the
+		// URI format for ZeroTier, ignoring fields that don't appear in the specification and
+		// guessing how all of the others align.
+		write!(f, "{}.{}:{}", self.nodeid, self.nwid, self.port)
 	}
 }
 
