@@ -255,6 +255,37 @@ create_option! {
 /// Options relating to the socket protocol.
 pub mod protocol
 {
+	/// Options dealing with the PAIR protocol.
+	pub mod pair
+	{
+		create_option! {
+			/// Enables or disables the use of _polyamorous_ mode.
+			///
+			/// Normally pair sockets are for one-to-one communication and a given peer will reject
+			/// new connections if it already has an active connection to another peer. In
+			/// _polyamorous_ mode, which is only available with Version 1, a socket can support
+			/// many one-to-one connections.
+			///
+			/// In this mode, the application must choose the remote peer to receive an outgoing
+			/// message by setting the `Pipe` for the `Message`. Most often the value of the
+			/// outgoing pipe will be obtained from an incoming message, such as when replying to an
+			/// incoming message.
+			///
+			/// In order to prevent head-of-line blocking, if the peer on the given pipe is not able
+			/// to receive (or if the pipe is no longer available, such as if the peer has
+			/// disconnected), then the message will be discarded with no notification to the
+			/// sender.
+			///
+			/// ## Support
+			///
+			/// * Sockets are able to read and write this value if they are using the `Pair1`
+			///   protocol.
+			Polyamorous -> bool:
+			Get s = s.getopt_bool(nng_sys::protocol::pair1::NNG_OPT_PAIR1_POLY);
+			Set s v = s.setopt_bool(nng_sys::protocol::pair1::NNG_OPT_PAIR1_POLY, v);
+		}
+	}
+
 	/// Options dealing with the PUBSUB protocol.
 	pub mod pubsub
 	{

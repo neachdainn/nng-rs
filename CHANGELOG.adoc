@@ -9,6 +9,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Added ===
 
 * The `IPC_SECURITY_DESCRIPTOR` option has been added. This is *unstable* and *unsafe*, so use with caution.
+* The `PAIR1_POLY` option has been added.
 
 === Changed ===
 
