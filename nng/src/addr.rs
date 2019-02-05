@@ -4,7 +4,7 @@ use std::os::raw::c_char;
 use std::path::PathBuf;
 
 /// Represents the addresses used by the underlying transports.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum SocketAddr
 {
 	/// An address associated with intra-process communication.
@@ -77,7 +77,7 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 
 /// A ZeroTier socket address.
 #[doc(hidden)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct SocketAddrZt
 {
 	pub family: u16,
