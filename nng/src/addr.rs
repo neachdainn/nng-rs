@@ -32,8 +32,8 @@ impl fmt::Display for SocketAddr
 {
 	/// Format trait for an empty format, `{}`.
 	///
-	/// Note that this is liable to change and does not necessarily map to the URL originally
-	/// provided to NNG.
+	/// Note that this is liable to change and does not necessarily map to the
+	/// URL originally provided to NNG.
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
 		match self {
@@ -102,9 +102,9 @@ impl fmt::Display for SocketAddrZt
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		// I have no idea if this output is meaningful at all. This is just vaguely based off the
-		// URI format for ZeroTier, ignoring fields that don't appear in the specification and
-		// guessing how all of the others align.
+		// I have no idea if this output is meaningful at all. This is just vaguely
+		// based off the URI format for ZeroTier, ignoring fields that don't appear in
+		// the specification and guessing how all of the others align.
 		write!(f, "{}.{}:{}", self.nodeid, self.nwid, self.port)
 	}
 }
