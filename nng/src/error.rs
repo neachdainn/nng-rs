@@ -83,7 +83,7 @@ impl fmt::Display for Error
 }
 
 /// General categories of nng errors
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[rustfmt::skip]
 pub enum ErrorKind
 {

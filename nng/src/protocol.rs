@@ -1,5 +1,5 @@
 /// Protocols available for use by sockets.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Protocol
 {
 	/// Version 0 of the bus protocol.

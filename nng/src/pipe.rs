@@ -134,6 +134,7 @@ expose_options!{
 }
 
 /// An event that happens on a Pipe instance.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PipeEvent
 {
 	/// Occurs after a connection and negotiation has completed but before the
