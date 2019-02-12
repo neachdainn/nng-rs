@@ -47,6 +47,36 @@ pub trait Options: private::HasOpts
 	{
 		T::set(self, val)
 	}
+
+	/// Reads the specified option from the object.
+	///
+	/// The user is required to understand and enforce all invariants associated with this option.
+	/// Usually, this means checking that a returned pointer is not `null`.
+	///
+	/// All options exposed this way should be considered unstable, as the plan is to eventually
+	/// create a safe interface for them.
+	unsafe fn unsafe_get_opt<T: private::OptOps>(&self) -> Result<T::OptType>
+	where
+		Self: UnsafeGetOpt<T>
+	{
+		T::get(self)
+	}
+
+	/// Writes the specified option to the object.
+	///
+	/// The user is required to understand and enforce all invariants associated with this option.
+	/// This usually means that the provided pointer lives as long as the object receiving the
+	/// option. It is particularly important to note that many NNG options do _not_ copy the value
+	/// behind pointer options.
+	///
+	/// All options exposed this way should be considered unstable, as the plan is to eventually
+	/// create a safe interface for them.
+	unsafe fn unsafe_set_opt<T: private::OptOps>(&self, val: T::OptType) -> Result<()>
+	where
+		Self: UnsafeGetOpt<T>
+	{
+		T::set(self, val)
+	}
 }
 impl<T: private::HasOpts> Options for T {}
 
@@ -58,11 +88,13 @@ pub trait Opt
 }
 
 /// Marks that a type can get the specific `nng` option.
-pub trait GetOpt<T: private::OptOps>: private::HasOpts
-{
-}
+pub trait GetOpt<T: private::OptOps>: private::HasOpts {}
 
 /// Marks that a type can set the specific `nng` option.
-pub trait SetOpt<T: private::OptOps>: private::HasOpts
-{
-}
+pub trait SetOpt<T: private::OptOps>: private::HasOpts {}
+
+/// Marks that a type can (unsafely) get the specific `nng` option.
+pub trait UnsafeGetOpt<T: private::OptOps>: private::HasOpts {}
+
+/// Marks that a type can (unsafely) set the specific `nng` option.
+pub trait UnsafeSetOpt<T: private::OptOps>: private::HasOpts {}
