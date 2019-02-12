@@ -229,7 +229,7 @@ expose_options!{
 }
 
 #[cfg(windows)]
-impl crate::options::SetOpt<IpcSecurityDescriptor> for ListenerOptions {}
+impl crate::options::UnsafeSetOpt<IpcSecurityDescriptor> for ListenerOptions {}
 
 impl Drop for ListenerOptions
 {
