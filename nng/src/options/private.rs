@@ -5,7 +5,7 @@ use std::ptr;
 use std::time::Duration;
 
 use crate::addr::SocketAddr;
-use crate::error::{ErrorKind, Result};
+use crate::error::{Error, Result};
 
 /// Exposes the ability to get and set the option.
 ///
@@ -189,7 +189,7 @@ pub trait HasOpts: Sized
 	/// Set the value of the option to the value of the string.
 	fn setopt_string(&self, opt: *const c_char, val: &str) -> Result<()>
 	{
-		let cval = CString::new(val).map_err(|_| ErrorKind::InvalidInput)?;
+		let cval = CString::new(val).map_err(|_| Error::InvalidInput)?;
 		let rv = unsafe { (Self::SETOPT_STRING)(self.handle(), opt, cval.as_ptr()) };
 
 		rv2res!(rv)
