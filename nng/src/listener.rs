@@ -19,7 +19,7 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::ffi::CString;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::socket::Socket;
 
 #[cfg(windows)]
@@ -49,7 +49,7 @@ impl Listener
 		// creating the listener will far outweigh the cost of allocating a
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
-		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
@@ -153,7 +153,7 @@ impl ListenerOptions
 		// creating the listener will far outweigh the cost of allocating a
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
-		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
 		let rv = unsafe {
 			nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
@@ -190,7 +190,7 @@ impl ListenerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, ErrorKind::from_code(e).into())),
+			e => Err((self, Error::from_code(e))),
 		}
 	}
 }

@@ -11,81 +11,10 @@ pub(crate) type SendResult<T> = std::result::Result<T, SendError>;
 /// Error type for send operations.
 pub(crate) type SendError = (Message, Error);
 
-/// The error type of nng operations.
-#[derive(Debug)]
-pub struct Error
-{
-	/// The underlying nng error code
-	kind: ErrorKind,
-}
-impl Error
-{
-	/// Returns the underlying `ErrorKind`.
-	pub fn kind(&self) -> ErrorKind
-	{
-		self.kind
-	}
-}
-
-impl error::Error for Error {}
-
-impl From<ErrorKind> for Error
-{
-	fn from(kind: ErrorKind) -> Error
-	{
-		Error { kind }
-	}
-}
-
-impl From<SendError> for Error
-{
-	fn from((_, e): SendError) -> Error
-	{
-		e
-	}
-}
-
-impl From<Error> for io::Error
-{
-	fn from(e: Error) -> io::Error
-	{
-		if let ErrorKind::SystemErr(c) = e.kind {
-			io::Error::from_raw_os_error(c)
-		}
-		else {
-			#[rustfmt::skip]
-			let new_kind = match e.kind {
-				ErrorKind::Interrupted => io::ErrorKind::Interrupted,
-				ErrorKind::InvalidInput | ErrorKind::NoArgument => io::ErrorKind::InvalidInput,
-				ErrorKind::TimedOut => io::ErrorKind::TimedOut,
-				ErrorKind::TryAgain => io::ErrorKind::WouldBlock,
-				ErrorKind::ConnectionRefused => io::ErrorKind::ConnectionRefused,
-				ErrorKind::PermissionDenied => io::ErrorKind::PermissionDenied,
-				ErrorKind::ConnectionAborted => io::ErrorKind::ConnectionAborted,
-				ErrorKind::ConnectionReset => io::ErrorKind::ConnectionReset,
-				ErrorKind::Canceled => io::ErrorKind::Interrupted, // I am not sure about this one
-				ErrorKind::ResourceExists => io::ErrorKind::AlreadyExists,
-				ErrorKind::BadType => io::ErrorKind::InvalidData,
-				_ => io::ErrorKind::Other,
-			};
-
-			io::Error::new(new_kind, e)
-		}
-	}
-}
-
-impl fmt::Display for Error
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-	{
-		write!(f, "{}", self.kind)
-	}
-}
-
-/// General categories of nng errors
+/// Errors potentially returned by NNG operations.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[rustfmt::skip]
-pub enum ErrorKind
+pub enum Error
 {
 	/// The operation was interrupted
 	Interrupted,
@@ -195,61 +124,100 @@ pub enum ErrorKind
 	#[doc(hidden)]
 	Unknown(i32),
 }
-impl ErrorKind
+impl Error
 {
-	/// Converts an `i32` into an `ErrorKind`.
+	/// Converts an `i32` into an `Error`.
 	///
 	/// This is not an implementation of `From<i32>` because that would make
 	/// the conversion a public part of this crate.
 	#[rustfmt::skip]
-	pub(crate) fn from_code(code: i32) -> ErrorKind
+	pub(crate) fn from_code(code: i32) -> Error
 	{
 		match code {
 			0            => panic!("OK result passed as an error"),
-			nng_sys::NNG_EINTR        => ErrorKind::Interrupted,
-			nng_sys::NNG_ENOMEM       => ErrorKind::OutOfMemory,
-			nng_sys::NNG_EINVAL       => ErrorKind::InvalidInput,
-			nng_sys::NNG_EBUSY        => ErrorKind::Busy,
-			nng_sys::NNG_ETIMEDOUT    => ErrorKind::TimedOut,
-			nng_sys::NNG_ECONNREFUSED => ErrorKind::ConnectionRefused,
-			nng_sys::NNG_ECLOSED      => ErrorKind::Closed,
-			nng_sys::NNG_EAGAIN       => ErrorKind::TryAgain,
-			nng_sys::NNG_ENOTSUP      => ErrorKind::NotSupported,
-			nng_sys::NNG_EADDRINUSE   => ErrorKind::AddressInUse,
-			nng_sys::NNG_ESTATE       => ErrorKind::IncorrectState,
-			nng_sys::NNG_ENOENT       => ErrorKind::EntryNotFound,
-			nng_sys::NNG_EPROTO       => ErrorKind::ProtocolError,
-			nng_sys::NNG_EUNREACHABLE => ErrorKind::DestUnreachable,
-			nng_sys::NNG_EADDRINVAL   => ErrorKind::AddressInvalid,
-			nng_sys::NNG_EPERM        => ErrorKind::PermissionDenied,
-			nng_sys::NNG_EMSGSIZE     => ErrorKind::MessageTooLarge,
-			nng_sys::NNG_ECONNABORTED => ErrorKind::ConnectionAborted,
-			nng_sys::NNG_ECONNRESET   => ErrorKind::ConnectionReset,
-			nng_sys::NNG_ECANCELED    => ErrorKind::Canceled,
-			nng_sys::NNG_ENOFILES     => ErrorKind::OutOfFiles,
-			nng_sys::NNG_ENOSPC       => ErrorKind::OutOfSpace,
-			nng_sys::NNG_EEXIST       => ErrorKind::ResourceExists,
-			nng_sys::NNG_EREADONLY    => ErrorKind::ReadOnly,
-			nng_sys::NNG_EWRITEONLY   => ErrorKind::WriteOnly,
-			nng_sys::NNG_ECRYPTO      => ErrorKind::Crypto,
-			nng_sys::NNG_EPEERAUTH    => ErrorKind::PeerAuth,
-			nng_sys::NNG_ENOARG       => ErrorKind::NoArgument,
-			nng_sys::NNG_EAMBIGUOUS   => ErrorKind::Ambiguous,
-			nng_sys::NNG_EBADTYPE     => ErrorKind::BadType,
-			nng_sys::NNG_EINTERNAL    => ErrorKind::Internal,
-			c if c & nng_sys::NNG_ESYSERR != 0 => ErrorKind::SystemErr(c & !nng_sys::NNG_ESYSERR),
-			c if c & nng_sys::NNG_ETRANERR != 0 => ErrorKind::TransportErr(c & !nng_sys::NNG_ETRANERR),
-			_ => ErrorKind::Unknown(code),
+			nng_sys::NNG_EINTR        => Error::Interrupted,
+			nng_sys::NNG_ENOMEM       => Error::OutOfMemory,
+			nng_sys::NNG_EINVAL       => Error::InvalidInput,
+			nng_sys::NNG_EBUSY        => Error::Busy,
+			nng_sys::NNG_ETIMEDOUT    => Error::TimedOut,
+			nng_sys::NNG_ECONNREFUSED => Error::ConnectionRefused,
+			nng_sys::NNG_ECLOSED      => Error::Closed,
+			nng_sys::NNG_EAGAIN       => Error::TryAgain,
+			nng_sys::NNG_ENOTSUP      => Error::NotSupported,
+			nng_sys::NNG_EADDRINUSE   => Error::AddressInUse,
+			nng_sys::NNG_ESTATE       => Error::IncorrectState,
+			nng_sys::NNG_ENOENT       => Error::EntryNotFound,
+			nng_sys::NNG_EPROTO       => Error::ProtocolError,
+			nng_sys::NNG_EUNREACHABLE => Error::DestUnreachable,
+			nng_sys::NNG_EADDRINVAL   => Error::AddressInvalid,
+			nng_sys::NNG_EPERM        => Error::PermissionDenied,
+			nng_sys::NNG_EMSGSIZE     => Error::MessageTooLarge,
+			nng_sys::NNG_ECONNABORTED => Error::ConnectionAborted,
+			nng_sys::NNG_ECONNRESET   => Error::ConnectionReset,
+			nng_sys::NNG_ECANCELED    => Error::Canceled,
+			nng_sys::NNG_ENOFILES     => Error::OutOfFiles,
+			nng_sys::NNG_ENOSPC       => Error::OutOfSpace,
+			nng_sys::NNG_EEXIST       => Error::ResourceExists,
+			nng_sys::NNG_EREADONLY    => Error::ReadOnly,
+			nng_sys::NNG_EWRITEONLY   => Error::WriteOnly,
+			nng_sys::NNG_ECRYPTO      => Error::Crypto,
+			nng_sys::NNG_EPEERAUTH    => Error::PeerAuth,
+			nng_sys::NNG_ENOARG       => Error::NoArgument,
+			nng_sys::NNG_EAMBIGUOUS   => Error::Ambiguous,
+			nng_sys::NNG_EBADTYPE     => Error::BadType,
+			nng_sys::NNG_EINTERNAL    => Error::Internal,
+			c if c & nng_sys::NNG_ESYSERR != 0 => Error::SystemErr(c & !nng_sys::NNG_ESYSERR),
+			c if c & nng_sys::NNG_ETRANERR != 0 => Error::TransportErr(c & !nng_sys::NNG_ETRANERR),
+			_ => Error::Unknown(code),
 		}
 	}
 }
 
-impl fmt::Display for ErrorKind
+impl From<SendError> for Error
+{
+	fn from((_, e): SendError) -> Error
+	{
+		e
+	}
+}
+
+impl From<Error> for io::Error
+{
+	fn from(e: Error) -> io::Error
+	{
+		if let Error::SystemErr(c) = e {
+			io::Error::from_raw_os_error(c)
+		}
+		else {
+			#[rustfmt::skip]
+			let new_kind = match e {
+				Error::Interrupted => io::ErrorKind::Interrupted,
+				Error::InvalidInput | Error::NoArgument => io::ErrorKind::InvalidInput,
+				Error::TimedOut => io::ErrorKind::TimedOut,
+				Error::TryAgain => io::ErrorKind::WouldBlock,
+				Error::ConnectionRefused => io::ErrorKind::ConnectionRefused,
+				Error::PermissionDenied => io::ErrorKind::PermissionDenied,
+				Error::ConnectionAborted => io::ErrorKind::ConnectionAborted,
+				Error::ConnectionReset => io::ErrorKind::ConnectionReset,
+				Error::Canceled => io::ErrorKind::Interrupted, // I am not sure about this one
+				Error::ResourceExists => io::ErrorKind::AlreadyExists,
+				Error::BadType => io::ErrorKind::InvalidData,
+				_ => io::ErrorKind::Other,
+			};
+
+			io::Error::new(new_kind, e)
+		}
+	}
+}
+
+impl error::Error for Error {}
+
+impl fmt::Display for Error
 {
 	#[rustfmt::skip]
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		// Now, we could do a call into nng for this but I think that adds
+		// Now, we could do a call into NNG for this but I think that adds
 		// unnecessary complication since we would have to deal with c-strings
 		// and unsafe code. We also couldn't do that for anything that wasn't a
 		// "standard" error since that code is technically not thread-safe. It
@@ -259,40 +227,40 @@ impl fmt::Display for ErrorKind
 		// to produce the output message for us. I am fairly certain that
 		// creating one is not a heavy operation, so this should be fine.
 		match *self {
-			ErrorKind::Interrupted       => write!(f, "Interrupted"),
-			ErrorKind::OutOfMemory       => write!(f, "Out of memory"),
-			ErrorKind::InvalidInput      => write!(f, "Invalid argument"),
-			ErrorKind::Busy              => write!(f, "Resource busy"),
-			ErrorKind::TimedOut          => write!(f, "Timed out"),
-			ErrorKind::ConnectionRefused => write!(f, "Connection refused"),
-			ErrorKind::Closed            => write!(f, "Object closed"),
-			ErrorKind::TryAgain          => write!(f, "Try again"),
-			ErrorKind::NotSupported      => write!(f, "Not supported"),
-			ErrorKind::AddressInUse      => write!(f, "Address in use"),
-			ErrorKind::IncorrectState    => write!(f, "Incorrect state"),
-			ErrorKind::EntryNotFound     => write!(f, "Entry not found"),
-			ErrorKind::ProtocolError     => write!(f, "Protocol error"),
-			ErrorKind::DestUnreachable   => write!(f, "Destination unreachable"),
-			ErrorKind::AddressInvalid    => write!(f, "Address invalid"),
-			ErrorKind::PermissionDenied  => write!(f, "Permission denied"),
-			ErrorKind::MessageTooLarge   => write!(f, "Message too large"),
-			ErrorKind::ConnectionReset   => write!(f, "Connection reset"),
-			ErrorKind::ConnectionAborted => write!(f, "Connection aborted"),
-			ErrorKind::Canceled          => write!(f, "Operation canceled"),
-			ErrorKind::OutOfFiles        => write!(f, "Out of files"),
-			ErrorKind::OutOfSpace        => write!(f, "Out of space"),
-			ErrorKind::ResourceExists    => write!(f, "Resource already exists"),
-			ErrorKind::ReadOnly          => write!(f, "Read only resource"),
-			ErrorKind::WriteOnly         => write!(f, "Write only resource"),
-			ErrorKind::Crypto            => write!(f, "Cryptographic error"),
-			ErrorKind::PeerAuth          => write!(f, "Peer could not be authenticated"),
-			ErrorKind::NoArgument        => write!(f, "Option requires argument"),
-			ErrorKind::Ambiguous         => write!(f, "Ambiguous option"),
-			ErrorKind::BadType           => write!(f, "Incorrect type"),
-			ErrorKind::Internal          => write!(f, "Internal error detected"),
-			ErrorKind::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c)),
-			ErrorKind::TransportErr(c)   => write!(f, "Transport error #{}", c),
-			ErrorKind::Unknown(c)        => write!(f, "Unknown error code #{}", c),
+			Error::Interrupted       => write!(f, "Interrupted"),
+			Error::OutOfMemory       => write!(f, "Out of memory"),
+			Error::InvalidInput      => write!(f, "Invalid argument"),
+			Error::Busy              => write!(f, "Resource busy"),
+			Error::TimedOut          => write!(f, "Timed out"),
+			Error::ConnectionRefused => write!(f, "Connection refused"),
+			Error::Closed            => write!(f, "Object closed"),
+			Error::TryAgain          => write!(f, "Try again"),
+			Error::NotSupported      => write!(f, "Not supported"),
+			Error::AddressInUse      => write!(f, "Address in use"),
+			Error::IncorrectState    => write!(f, "Incorrect state"),
+			Error::EntryNotFound     => write!(f, "Entry not found"),
+			Error::ProtocolError     => write!(f, "Protocol error"),
+			Error::DestUnreachable   => write!(f, "Destination unreachable"),
+			Error::AddressInvalid    => write!(f, "Address invalid"),
+			Error::PermissionDenied  => write!(f, "Permission denied"),
+			Error::MessageTooLarge   => write!(f, "Message too large"),
+			Error::ConnectionReset   => write!(f, "Connection reset"),
+			Error::ConnectionAborted => write!(f, "Connection aborted"),
+			Error::Canceled          => write!(f, "Operation canceled"),
+			Error::OutOfFiles        => write!(f, "Out of files"),
+			Error::OutOfSpace        => write!(f, "Out of space"),
+			Error::ResourceExists    => write!(f, "Resource already exists"),
+			Error::ReadOnly          => write!(f, "Read only resource"),
+			Error::WriteOnly         => write!(f, "Write only resource"),
+			Error::Crypto            => write!(f, "Cryptographic error"),
+			Error::PeerAuth          => write!(f, "Peer could not be authenticated"),
+			Error::NoArgument        => write!(f, "Option requires argument"),
+			Error::Ambiguous         => write!(f, "Ambiguous option"),
+			Error::BadType           => write!(f, "Incorrect type"),
+			Error::Internal          => write!(f, "Internal error detected"),
+			Error::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c)),
+			Error::TransportErr(c)   => write!(f, "Transport error #{}", c),
+			Error::Unknown(c)        => write!(f, "Unknown error code #{}", c),
 		}
 	}
 }

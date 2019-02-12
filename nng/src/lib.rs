@@ -21,7 +21,7 @@ pub use crate::addr::SocketAddr;
 pub use crate::aio::Aio;
 pub use crate::ctx::Context;
 pub use crate::dialer::{Dialer, DialerOptions};
-pub use crate::error::{Error, ErrorKind, Result};
+pub use crate::error::{Error, Result};
 pub use crate::listener::{Listener, ListenerOptions};
 pub use crate::message::{Body, Header, Message};
 pub use crate::pipe::{Pipe, PipeEvent};

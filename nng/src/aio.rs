@@ -7,7 +7,7 @@ use std::time::Duration;
 use log::error;
 
 use crate::ctx::Context;
-use crate::error::{ErrorKind, Result, SendResult};
+use crate::error::{Error, Result, SendResult};
 use crate::message::Message;
 use crate::socket::Socket;
 
@@ -124,7 +124,7 @@ impl Aio
 	///
 	/// This causes a timer to be started when the operation is actually
 	/// started. If the timer expires before the operation is completed, then
-	/// it is aborted with `ErrorKind::TimedOut`.
+	/// it is aborted with `Error::TimedOut`.
 	///
 	/// As most operations involve some context switching, it is usually a good
 	/// idea to allow at least a few tens of milliseconds before timing them
@@ -199,7 +199,7 @@ impl Aio
 			}
 		}
 		else {
-			Err((msg, ErrorKind::TryAgain.into()))
+			Err((msg, Error::TryAgain))
 		}
 	}
 
@@ -224,7 +224,7 @@ impl Aio
 			}
 		}
 		else {
-			Err((msg, ErrorKind::TryAgain.into()))
+			Err((msg, Error::TryAgain))
 		}
 	}
 
@@ -245,7 +245,7 @@ impl Aio
 
 				Ok(())
 			},
-			_ => Err(ErrorKind::TryAgain.into()),
+			_ => Err(Error::TryAgain),
 		}
 	}
 
@@ -266,7 +266,7 @@ impl Aio
 
 				Ok(())
 			},
-			_ => Err(ErrorKind::TryAgain.into()),
+			_ => Err(Error::TryAgain),
 		}
 	}
 
@@ -275,14 +275,14 @@ impl Aio
 	/// If the sleep finishes completely, it will never return an error. If a
 	/// timeout has been set and it is shorter than the duration of the sleep
 	/// operation, the sleep operation will end early with
-	/// `ErrorKind::TimedOut`.
+	/// `Error::TimedOut`.
 	///
 	/// The result of this operation will be available either after calling
 	/// `Aio::wait` or inside of the callback function. If the send operation
 	/// fails, the message can be retrieved using the `Aio::get_msg` function.
 	///
 	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `ErrorKind::TryAgain`.
+	/// operation in progress, this function will return `Error::TryAgain`.
 	pub fn sleep(&self, dur: Duration) -> Result<()>
 	{
 		let ms = crate::util::duration_to_nng(Some(dur));
@@ -297,7 +297,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(ErrorKind::TryAgain.into())
+			Err(Error::TryAgain)
 		}
 	}
 
@@ -436,7 +436,7 @@ impl Inner
 				// never dropped.
 				std::mem::forget(shared_inner);
 			}
-			Err(ErrorKind::from_code(rv).into())
+			Err(Error::from_code(rv))
 		}
 		else {
 			assert!(

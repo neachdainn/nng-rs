@@ -8,7 +8,7 @@ use log::error;
 use nng_sys::protocol::*;
 
 use crate::aio::Aio;
-use crate::error::{ErrorKind, Result, SendResult};
+use crate::error::{Error, Result, SendResult};
 use crate::message::Message;
 use crate::pipe::{Pipe, PipeEvent};
 use crate::protocol::Protocol;
@@ -96,7 +96,7 @@ impl Socket
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
 	pub fn dial(&mut self, url: &str) -> Result<()>
 	{
-		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv =
@@ -128,7 +128,7 @@ impl Socket
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
 	pub fn listen(&mut self, url: &str) -> Result<()>
 	{
-		let addr = CString::new(url).map_err(|_| ErrorKind::AddressInvalid)?;
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
@@ -192,7 +192,7 @@ impl Socket
 			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp, flags);
 
 			if rv != 0 {
-				Err((Message::from_ptr(msgp), ErrorKind::from_code(rv).into()))
+				Err((Message::from_ptr(msgp), Error::from_code(rv)))
 			}
 			else {
 				Ok(())
@@ -207,7 +207,7 @@ impl Socket
 	/// fails, the message can be retrieved using the `Aio::get_msg` function.
 	///
 	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `ErrorKind::TryAgain`
+	/// operation in progress, this function will return `Error::TryAgain`
 	/// and return the message to the caller.
 	pub fn send_async(&mut self, aio: &Aio, msg: Message) -> SendResult<()>
 	{
@@ -222,7 +222,7 @@ impl Socket
 	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
-	/// will return `ErrorKind::TryAgain`.
+	/// will return `Error::TryAgain`.
 	pub fn recv_async(&mut self, aio: &Aio) -> Result<()>
 	{
 		aio.recv_socket(self)
