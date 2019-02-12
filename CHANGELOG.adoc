@@ -8,7 +8,9 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
-* The `IPC_SECURITY_DESCRIPTOR` option has been added. This is *unstable* and *unsafe*, so use with caution.
+* A new "unsafe options" set of traits have been added in order to expose options that are currently not safely handled.
+	** Any of these options should be considered *unstable* as they will ideally be replaced with safe versions.
+* The `IPC_SECURITY_DESCRIPTOR` has been added as the first "unsafe option".
 * The `PAIR1_POLY` option has been added.
 * The following traits are now implemented:
 	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
