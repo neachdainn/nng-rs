@@ -11,12 +11,14 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * The `IPC_SECURITY_DESCRIPTOR` option has been added. This is *unstable* and *unsafe*, so use with caution.
 * The `PAIR1_POLY` option has been added.
 * The following traits are now implemented:
-	** `ErrorKind`: `Hash`
 	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
 	** `Protocol`: `Eq`, `PartialEq`, `Hash`
 	** `SocketAddr`: `Display`, `Eq`, `PartialEq`, `Hash`
 
 === Changed ===
+
+* The `ErrorKind` type has been renamed to `Error` and the old `Error` type has been deleted.
+	** Additionally, the `Hash` trait has been derived for the new `Error` type.
 
 === Deprecated ===
 
