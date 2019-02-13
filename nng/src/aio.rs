@@ -212,6 +212,29 @@ impl Aio
 	///
 	/// If this method is called from within the callback function, it will
 	/// return immediately.
+	///
+	/// ## Example
+	///
+	/// ```
+	/// use nng::*;
+	///
+	/// let address = "inproc://nng/aio.rs::wait";
+	/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
+	/// let aio = Aio::new().unwrap();
+	///
+	/// // Asynchronously wait for a message on the socket.
+	/// socket.recv_async(&aio).unwrap();
+	/// #
+	/// # // Cancel the receive, otherwise the test will block.
+	/// # aio.cancel();
+	///
+	/// // Wait for the asynchronous receive to complete.
+	/// aio.wait();
+	///
+	/// // Make sure that everything went well and then retrieve the message.
+	/// let _ = aio.result();
+	/// let msg = aio.get_msg();
+	/// ```
 	pub fn wait(&self)
 	{
 		// Nng does not define what happens if you try to wait from within the

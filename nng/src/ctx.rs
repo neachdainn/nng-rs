@@ -13,6 +13,10 @@ use crate::socket::Socket;
 /// protocol-specific advanced processing.
 ///
 /// Note that not all protocols allow for the creation of contexts.
+///
+/// ## Examples
+///
+/// See the documentation of the `Aio` type for examples on how to use Socket Contexts.
 #[derive(Clone)]
 pub struct Context
 {
