@@ -24,6 +24,70 @@ type UncallableFn = crate::util::BlackBox<Box<Fn() + Send + Sync + RefUnwindSafe
 /// It is possible to wait synchronously for an otherwise asynchronous
 /// operation by using the function `Aio::wait`. In that case, it is
 /// permissible for there to be no callback function.
+///
+/// ## Example
+///
+/// A simple server that will sleep for the requested number of milliseconds before responding.
+///
+/// ```
+/// use std::time::Duration;
+/// use byteorder::*;
+/// use nng::*;
+///
+/// let address = "inproc://nng/aio.rs";
+/// let num_contexts = 10;
+///
+/// // Create the new socket and all of the socket contexts
+/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
+/// let workers = (0..num_contexts).map(|_| create_worker(&socket)).collect::<Vec<_>>();
+///
+/// // Start listening only after the contexts are available.
+/// socket.listen(address).unwrap();
+///
+/// // Have the workers start responding to replies.
+/// for (a, c) in &workers {
+///     c.recv(a).unwrap();
+/// }
+///
+/// // Set up the asynchronous I/O callback
+/// enum State { Recv, Wait, Send }
+/// fn create_worker(s: &Socket) -> (Aio, Context) {
+///     let ctx = Context::new(s).unwrap();
+///     let ctx_clone = ctx.clone();
+///     let mut state = State::Recv;
+///
+///     let aio = Aio::with_callback(move |aio| callback(aio, &ctx, &mut state)).unwrap();
+///     (aio, ctx_clone)
+/// }
+///
+/// fn callback(aio: &Aio, ctx: &Context, state: &mut State) {
+///     let new_state = match *state {
+///         State::Recv => {
+///             // Most applications should do something better than just panic.
+///             let _ = aio.result().unwrap();
+///             let msg = aio.get_msg().unwrap();
+///             let ms = LittleEndian::read_u64(&msg);
+///
+///             aio.sleep(Duration::from_millis(ms)).unwrap();
+///             State::Wait
+///         },
+///         State::Wait => {
+///             let msg = Message::new().unwrap();
+///             ctx.send(aio, msg).unwrap();
+///
+///             State::Send
+///         },
+///         State::Send => {
+///             let _ = aio.result().unwrap();
+///             ctx.recv(aio).unwrap();
+///
+///             State::Recv
+///         }
+///     };
+///
+///     *state = new_state
+/// }
+/// ```
 pub struct Aio
 {
 	/// The inner `nng_aio` bits shared by Aio objects.
