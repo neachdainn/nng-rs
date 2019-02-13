@@ -54,6 +54,8 @@
 //! assert_eq!(reply, "Hello, Ferris!");
 //! ```
 //!
+//! Additional examples are in the `examples` directory.
+//!
 //! [1]: https://github.com/nanomsg/nng
 //! [2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
 //! [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7

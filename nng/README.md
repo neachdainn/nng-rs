@@ -1,4 +1,4 @@
-# Rust Wrapper for nanomsg-next-generation (nng)
+# A safe Rust wrapper for NNG
 
 [![docs.rs](https://docs.rs/nng/badge.svg)](https://docs.rs/nng)
 [![crates.io](http://img.shields.io/crates/v/nng.svg)](http://crates.io/crates/nng)
@@ -6,49 +6,63 @@
 ![Rustc 1.31+](https://img.shields.io/badge/rustc-1.31+-lightgray.svg)
 ![Pipeline](https://gitlab.com/neachdainn/nng-rs/badges/master/pipeline.svg)
 
-This crate provides a safe wrapper around the [nng][1] library, seeking to maintain an API that is similar to the original library.
-Most features are complete and the library is usable in its current state.
+## What Is NNG
 
-The `nng` library is compiled and linked by default.
-If this is not the desired functionality (i.e., linking to the system installed `nng` is preferred), it can be disabled by setting `default-features` to `false`.
+From the [NNG Github Repository][1]:
 
-## Example
+> NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a lightweight, broker-less
+library, offering a simple API to solve common recurring messaging problems, such as
+publish/subscribe, RPC-style request/reply, or service discovery. The API frees the programmer
+from worrying about details like connection management, retries, and other common
+considerations, so that they can focus on the application instead of the plumbing.
+
+## Nng-rs
+
+This crate provides a safe wrapper around the NNG library, seeking to maintain an API that is
+similar to the original library. As such, the majority of examples available online should be
+easy to apply to this crate.
+
+### Examples
+
+The following example uses the [intra-process][2] transport to set up a [request][3]/[reply][4]
+socket pair. The "client" sends a String to the "server" which responds with a nice phrase.
 
 ```rust
-use nng::{Message, Protocol, Socket};
+use nng::*;
 
-fn client() -> Result<(), nng::Error>
-{
-	let mut s = Socket::new(Protocol::Req0)?;
-	s.dial("tcp://127.0.0.1")?;
+// Set up the server and listen for connections on the specified address.
+let address = "inproc://nng/lib.rs";
+let mut server = Socket::new(Protocol::Rep0).unwrap();
+server.listen(address).unwrap();
 
-	// Send the request to the response server
-	let mut req = Message::from(&[0xDE, 0xAD, 0xBE, 0xEF])?;
-	s.send(req)?;
+// Set up the client and connect to the specified address
+let mut client = Socket::new(Protocol::Req0).unwrap();
+client.dial(address).unwrap();
 
-	// Wait for the response
-	let res = s.recv()?;
-	println!("Response: {:?}", res);
+// Send the request from the client to the server.
+let request = b"Ferris"[..].into();
+client.send(request).unwrap();
 
-	Ok(())
-}
+// Receive the message on the server and send back the reply
+let request = {
+    let req = server.recv().unwrap();
+    String::from_utf8(req.to_vec()).unwrap()
+};
+assert_eq!(request, "Ferris");
+let reply = format!("Hello, {}!", request).as_bytes().into();
+server.send(reply).unwrap();
 
-fn server() -> Result<(), nng::Error>
-{
-	let mut s = Socket::new(Protocol::Rep0)?;
-	s.listen("tcp://127.0.0.1")?;
-
-	loop {
-		// Wait for a request from the client
-		let mut msg = s.recv()?;
-
-		// Respond to the client
-		msg[1] += 1;
-		s.send(msg)?;
-	}
-}
+// Get the response on the client side.
+let reply = {
+    let rep = client.recv().unwrap();
+    String::from_utf8(rep.to_vec()).unwrap()
+};
+assert_eq!(reply, "Hello, Ferris!");
 ```
 
 Additional examples are in the `examples` directory.
 
-[1]: https://nanomsg.github.io/nng/
+[1]: https://github.com/nanomsg/nng
+[2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
+[3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
+[4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
