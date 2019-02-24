@@ -5,7 +5,6 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 
 use log::error;
-use nng_sys::protocol::*;
 
 use crate::aio::Aio;
 use crate::error::{Error, Result, SendResult};
@@ -43,22 +42,22 @@ impl Socket
 	pub fn new(t: Protocol) -> Result<Socket>
 	{
 		// Create the uninitialized nng_socket
-		let mut socket = nng_sys::NNG_SOCKET_INITIALIZER;
+		let mut socket = nng_sys::nng_socket::NNG_SOCKET_INITIALIZER;
 
 		// Try to open a socket of the specified type
 		let rv = unsafe {
 			match t {
-				Protocol::Bus0 => bus0::nng_bus0_open(&mut socket as *mut _),
-				Protocol::Pair0 => pair0::nng_pair0_open(&mut socket as *mut _),
-				Protocol::Pair1 => pair1::nng_pair1_open(&mut socket as *mut _),
-				Protocol::Pub0 => pubsub0::nng_pub0_open(&mut socket as *mut _),
-				Protocol::Pull0 => pipeline0::nng_pull0_open(&mut socket as *mut _),
-				Protocol::Push0 => pipeline0::nng_push0_open(&mut socket as *mut _),
-				Protocol::Rep0 => reqrep0::nng_rep0_open(&mut socket as *mut _),
-				Protocol::Req0 => reqrep0::nng_req0_open(&mut socket as *mut _),
-				Protocol::Respondent0 => survey0::nng_respondent0_open(&mut socket as *mut _),
-				Protocol::Sub0 => pubsub0::nng_sub0_open(&mut socket as *mut _),
-				Protocol::Surveyor0 => survey0::nng_surveyor0_open(&mut socket as *mut _),
+				Protocol::Bus0 => nng_sys::nng_bus0_open(&mut socket as *mut _),
+				Protocol::Pair0 => nng_sys::nng_pair0_open(&mut socket as *mut _),
+				Protocol::Pair1 => nng_sys::nng_pair1_open(&mut socket as *mut _),
+				Protocol::Pub0 => nng_sys::nng_pub0_open(&mut socket as *mut _),
+				Protocol::Pull0 => nng_sys::nng_pull0_open(&mut socket as *mut _),
+				Protocol::Push0 => nng_sys::nng_push0_open(&mut socket as *mut _),
+				Protocol::Rep0 => nng_sys::nng_rep0_open(&mut socket as *mut _),
+				Protocol::Req0 => nng_sys::nng_req0_open(&mut socket as *mut _),
+				Protocol::Respondent0 => nng_sys::nng_respondent0_open(&mut socket as *mut _),
+				Protocol::Sub0 => nng_sys::nng_sub0_open(&mut socket as *mut _),
+				Protocol::Surveyor0 => nng_sys::nng_surveyor0_open(&mut socket as *mut _),
 			}
 		};
 
@@ -251,9 +250,9 @@ impl Socket
 		// and set the callback function for every single event. We cannot return
 		// early or we risk nng trying to call into a closure that has been freed.
 		let events = [
-			nng_sys::NNG_PIPE_EV_ADD_PRE,
-			nng_sys::NNG_PIPE_EV_ADD_POST,
-			nng_sys::NNG_PIPE_EV_REM_POST,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST,
 		];
 
 		events
