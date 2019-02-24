@@ -168,9 +168,9 @@ impl PipeEvent
 	pub(crate) fn from_code(event: std::os::raw::c_int) -> Self
 	{
 		match event {
-			nng_sys::NNG_PIPE_EV_ADD_PRE => PipeEvent::AddPre,
-			nng_sys::NNG_PIPE_EV_ADD_POST => PipeEvent::AddPost,
-			nng_sys::NNG_PIPE_EV_REM_POST => PipeEvent::RemovePost,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE => PipeEvent::AddPre,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST => PipeEvent::AddPost,
+			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST => PipeEvent::RemovePost,
 			n => PipeEvent::Unknown(n),
 		}
 	}

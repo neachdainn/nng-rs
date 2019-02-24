@@ -22,7 +22,7 @@ create_option! {
 	///     * WebSocket
 	///     * TLS
 	LocalAddr -> SocketAddr:
-	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_LOCADDR);
+	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_LOCADDR as *const _ as _);
 	Set _s _v = panic!("NNG_OPT_LOCADDR is a read-only option");
 }
 
@@ -41,7 +41,7 @@ create_option! {
 	///     * WebSocket
 	///     * TLS
 	RemAddr -> SocketAddr:
-	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_REMADDR);
+	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_REMADDR as *const _ as _);
 	Set _s _v = panic!("NNG_OPT_REMADDR is a read-only option");
 }
 
@@ -63,7 +63,7 @@ create_option! {
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng.7.html#raw_mode
 	Raw -> bool:
-	Get s = s.getopt_bool(nng_sys::NNG_OPT_RAW);
+	Get s = s.getopt_bool(nng_sys::NNG_OPT_RAW as *const _ as _);
 	Set _s _v = panic!("NNG_OPT_RAW is a read-only option");
 }
 
@@ -79,8 +79,8 @@ create_option! {
 	/// * Dialers can use this option.
 	/// * Sockets can use this option to create a new default value.
 	ReconnectMinTime -> Option<Duration>:
-	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECONNMINT);
-	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMINT, val);
+	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECONNMINT as *const _ as _);
+	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMINT as *const _ as _, val);
 }
 
 create_option! {
@@ -99,8 +99,8 @@ create_option! {
 	/// * Dialers can use this option.
 	/// * Sockets can use this option to create a new default value.
 	ReconnectMaxTime -> Option<Duration>:
-	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECONNMAXT);
-	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMAXT, val);
+	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECONNMAXT as *const _ as _);
+	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECONNMAXT as *const _ as _, val);
 }
 
 create_option! {
@@ -114,8 +114,8 @@ create_option! {
 	/// * Sockets can read and write this option.
 	/// * Dialers and Listeners can retrieve it from their owning Socket.
 	RecvBufferSize -> i32:
-	Get s = s.getopt_int(nng_sys::NNG_OPT_RECVBUF);
-	Set s val = s.setopt_int(nng_sys::NNG_OPT_RECVBUF, val);
+	Get s = s.getopt_int(nng_sys::NNG_OPT_RECVBUF as *const _ as _);
+	Set s val = s.setopt_int(nng_sys::NNG_OPT_RECVBUF as *const _ as _, val);
 }
 
 create_option! {
@@ -143,8 +143,8 @@ create_option! {
 	///     * ZeroTier
 	/// * Sockets can utilize this to set a new default value.
 	RecvMaxSize -> usize:
-	Get s = s.getopt_size(nng_sys::NNG_OPT_RECVMAXSZ);
-	Set s val = s.setopt_size(nng_sys::NNG_OPT_RECVMAXSZ, val);
+	Get s = s.getopt_size(nng_sys::NNG_OPT_RECVMAXSZ as *const _ as _);
+	Set s val = s.setopt_size(nng_sys::NNG_OPT_RECVMAXSZ as *const _ as _, val);
 }
 
 create_option! {
@@ -158,8 +158,8 @@ create_option! {
 	/// * Sockets can utilize this value.
 	/// * Dialers and Listeners can retrieve it from their owning Socket.
 	RecvTimeout -> Option<Duration>:
-	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECVTIMEO);
-	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECVTIMEO, val);
+	Get s = s.getopt_ms(nng_sys::NNG_OPT_RECVTIMEO as *const _ as _);
+	Set s val = s.setopt_ms(nng_sys::NNG_OPT_RECVTIMEO as *const _ as _, val);
 }
 
 create_option! {
@@ -174,8 +174,8 @@ create_option! {
 	/// * Sockets can utilize this value.
 	/// * Dialers and Listeners can retrieve it from their owning Socket.
 	SendBufferSize -> i32:
-	Get s = s.getopt_int(nng_sys::NNG_OPT_SENDBUF);
-	Set s val = s.setopt_int(nng_sys::NNG_OPT_SENDBUF, val);
+	Get s = s.getopt_int(nng_sys::NNG_OPT_SENDBUF as *const _ as _);
+	Set s val = s.setopt_int(nng_sys::NNG_OPT_SENDBUF as *const _ as _, val);
 }
 
 create_option! {
@@ -190,8 +190,8 @@ create_option! {
 	/// * Sockets can utilize this value.
 	/// * Dialers and Listeners can retrieve it from their owning Socket.
 	SendTimeout -> Option<Duration>:
-	Get s = s.getopt_ms(nng_sys::NNG_OPT_SENDTIMEO);
-	Set s val = s.setopt_ms(nng_sys::NNG_OPT_SENDTIMEO, val);
+	Get s = s.getopt_ms(nng_sys::NNG_OPT_SENDTIMEO as *const _ as _);
+	Set s val = s.setopt_ms(nng_sys::NNG_OPT_SENDTIMEO as *const _ as _, val);
 }
 
 create_option! {
@@ -206,8 +206,8 @@ create_option! {
 	/// * Sockets can utilize this value.
 	/// * Dialers and Listeners can retrieve it from their owning Socket.
 	SocketName -> String:
-	Get s = s.getopt_string(nng_sys::NNG_OPT_SOCKNAME);
-	Set s val = s.setopt_string(nng_sys::NNG_OPT_SOCKNAME, &val);
+	Get s = s.getopt_string(nng_sys::NNG_OPT_SOCKNAME as *const _ as _);
+	Set s val = s.setopt_string(nng_sys::NNG_OPT_SOCKNAME as *const _ as _, &val);
 }
 
 create_option! {
@@ -234,8 +234,8 @@ create_option! {
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3.html
 	MaxTtl -> u8:
-	Get s = s.getopt_int(nng_sys::NNG_OPT_MAXTTL).map(|v| v as u8);
-	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL, val.into());
+	Get s = s.getopt_int(nng_sys::NNG_OPT_MAXTTL as *const _ as _).map(|v| v as u8);
+	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL as *const _ as _, val.into());
 }
 
 create_option! {
@@ -248,7 +248,7 @@ create_option! {
 	///
 	/// * Dialers and Listeners can read this value.
 	Url -> String:
-	Get s = s.getopt_string(nng_sys::NNG_OPT_URL);
+	Get s = s.getopt_string(nng_sys::NNG_OPT_URL as *const _ as _);
 	Set _s _v = panic!("URL is a read-only option");
 }
 
@@ -281,8 +281,8 @@ pub mod protocol
 			/// * Sockets are able to read and write this value if they are using the `Pair1`
 			///   protocol.
 			Polyamorous -> bool:
-			Get s = s.getopt_bool(nng_sys::protocol::pair1::NNG_OPT_PAIR1_POLY);
-			Set s v = s.setopt_bool(nng_sys::protocol::pair1::NNG_OPT_PAIR1_POLY, v);
+			Get s = s.getopt_bool(nng_sys::NNG_OPT_PAIR1_POLY as *const _ as _);
+			Set s v = s.setopt_bool(nng_sys::NNG_OPT_PAIR1_POLY as *const _ as _, v);
 		}
 	}
 
@@ -307,7 +307,7 @@ pub mod protocol
 			/// * Sockets can set this option when using the Sub v0 protocol.
 			Subscribe -> Vec<u8>:
 			Get _s = panic!("Subscribe is a write-only option");
-			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_SUBSCRIBE, &val);
+			Set s val = s.setopt(nng_sys::NNG_OPT_SUB_SUBSCRIBE as *const _ as _, &val);
 		}
 
 		create_option! {
@@ -322,7 +322,7 @@ pub mod protocol
 			/// * Sockets can set this option when using the Sub v0 protocol.
 			Unsubscribe -> Vec<u8>:
 			Get _s = panic!("Subscribe is a write-only option");
-			Set s val = s.setopt(nng_sys::protocol::pubsub0::NNG_OPT_SUB_UNSUBSCRIBE, &val);
+			Set s val = s.setopt(nng_sys::NNG_OPT_SUB_UNSUBSCRIBE as *const _ as _, &val);
 		}
 	}
 
@@ -347,8 +347,8 @@ pub mod protocol
 			///     * Req v0
 			/// * Dialers and Listeners can retrieve it from their owning Socket, if applicable.
 			ResendTime -> Option<Duration>:
-			Get s = s.getopt_ms(nng_sys::protocol::reqrep0::NNG_OPT_REQ_RESENDTIME);
-			Set s val = s.setopt_ms(nng_sys::protocol::reqrep0::NNG_OPT_REQ_RESENDTIME, val);
+			Get s = s.getopt_ms(nng_sys::NNG_OPT_REQ_RESENDTIME as *const _ as _);
+			Set s val = s.setopt_ms(nng_sys::NNG_OPT_REQ_RESENDTIME as *const _ as _, val);
 		}
 	}
 
@@ -373,8 +373,8 @@ pub mod protocol
 			///     * Surveyor v0
 			/// * Dialers and Listeners can retrieve it from their owning Socket, if applicable.
 			SurveyTime -> Option<Duration>:
-			Get s = s.getopt_ms(nng_sys::protocol::survey0::NNG_OPT_SURVEYOR_SURVEYTIME);
-			Set s val = s.setopt_ms(nng_sys::protocol::survey0::NNG_OPT_SURVEYOR_SURVEYTIME, val);
+			Get s = s.getopt_ms(nng_sys::NNG_OPT_SURVEYOR_SURVEYTIME as *const _ as _);
+			Set s val = s.setopt_ms(nng_sys::NNG_OPT_SURVEYOR_SURVEYTIME as *const _ as _, val);
 		}
 	}
 }
@@ -420,7 +420,7 @@ pub mod transport
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
 			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
 			Get _s = panic!("IPC Security Descriptor is a write-only option");
-			Set s val = s.setopt_ptr(nng_sys::transport::ipc::NNG_OPT_IPC_SECURITY_DESCRIPTOR, val);
+			Set s val = s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val);
 		}
 	}
 
@@ -448,8 +448,8 @@ pub mod transport
 			///     * TLS
 			/// * Sockets can use this to set a default value.
 			NoDelay -> bool:
-			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_NODELAY);
-			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_NODELAY, val);
+			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_NODELAY as *const _ as _);
+			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_NODELAY as *const _ as _, val);
 		}
 
 		create_option! {
@@ -477,8 +477,8 @@ pub mod transport
 			///     * TLS
 			/// * Sockets can use this to set a default value.
 			KeepAlive -> bool:
-			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE);
-			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE, val);
+			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE as *const _ as _);
+			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE as *const _ as _, val);
 		}
 	}
 
@@ -501,7 +501,7 @@ pub mod transport
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CaFile -> String:
 			Get _s = panic!("CA File is a write-only option");
-			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE, &val);
+			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE as *const _ as _, &val);
 		}
 
 		create_option! {
@@ -521,7 +521,7 @@ pub mod transport
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CertKeyFile -> String:
 			Get _s = panic!("Cert Key File is a write-only option");
-			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE, &val);
+			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE as *const _ as _, &val);
 		}
 
 		create_option! {
@@ -538,7 +538,7 @@ pub mod transport
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			TlsVerified -> bool:
-			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED);
+			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED as *const _ as _);
 			Set _s _v = panic!("NNG_OPT_TLS_VERIFIED is a read-only option");
 		}
 	}
@@ -556,8 +556,8 @@ pub mod transport
 			/// * Pipes can read this value when using the WebSocket transport.
 			/// * Sockets can set this to set a default value.
 			RequestHeaders -> String:
-			Get s = s.getopt_string(nng_sys::transport::websocket::NNG_OPT_WS_REQUEST_HEADERS);
-			Set s val = s.setopt_string(nng_sys::transport::websocket::NNG_OPT_WS_REQUEST_HEADERS, &val);
+			Get s = s.getopt_string(nng_sys::NNG_OPT_WS_REQUEST_HEADERS as *const _ as _);
+			Set s val = s.setopt_string(nng_sys::NNG_OPT_WS_REQUEST_HEADERS as *const _ as _, &val);
 		}
 
 		create_option! {
@@ -570,8 +570,8 @@ pub mod transport
 			/// * Pipes can read this when using the WebSocket transport.
 			/// * Sockets can set this to set a default value.
 			ResponseHeaders -> String:
-			Get s = s.getopt_string(nng_sys::transport::websocket::NNG_OPT_WS_RESPONSE_HEADERS);
-			Set s val = s.setopt_string(nng_sys::transport::websocket::NNG_OPT_WS_RESPONSE_HEADERS, &val);
+			Get s = s.getopt_string(nng_sys::NNG_OPT_WS_RESPONSE_HEADERS as *const _ as _);
+			Set s val = s.setopt_string(nng_sys::NNG_OPT_WS_RESPONSE_HEADERS as *const _ as _, &val);
 		}
 	}
 }

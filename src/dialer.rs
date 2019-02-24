@@ -48,7 +48,7 @@ impl Dialer
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let mut handle = nng_sys::NNG_DIALER_INITIALIZER;
+		let mut handle = nng_sys::nng_dialer::NNG_DIALER_INITIALIZER;
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
@@ -154,7 +154,7 @@ impl DialerOptions
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let mut handle = nng_sys::NNG_DIALER_INITIALIZER;
+		let mut handle = nng_sys::nng_dialer::NNG_DIALER_INITIALIZER;
 		let rv = unsafe {
 			nng_sys::nng_dialer_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
 		};

@@ -50,7 +50,7 @@ impl Listener
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
+		let mut handle = nng_sys::nng_listener::NNG_LISTENER_INITIALIZER;
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
@@ -154,7 +154,7 @@ impl ListenerOptions
 		// single string. Having a full Rust interface will make it easier to
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let mut handle = nng_sys::NNG_LISTENER_INITIALIZER;
+		let mut handle = nng_sys::nng_listener::NNG_LISTENER_INITIALIZER;
 		let rv = unsafe {
 			nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
 		};

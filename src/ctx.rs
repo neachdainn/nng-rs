@@ -32,7 +32,7 @@ impl Context
 	/// Creates a new socket context.
 	pub fn new(socket: &Socket) -> Result<Context>
 	{
-		let mut ctx = nng_sys::NNG_CTX_INITIALIZER;
+		let mut ctx = nng_sys::nng_ctx::NNG_CTX_INITIALIZER;
 		let rv = unsafe { nng_sys::nng_ctx_open(&mut ctx as _, socket.handle()) };
 
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
