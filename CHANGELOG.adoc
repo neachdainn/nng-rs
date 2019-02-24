@@ -26,19 +26,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Removed ===
 
-=== Fixed ===
-
-=== Security ===
-
-== [nng-sys Unreleased] ==
-
-=== Added ===
-
-=== Changed ===
-
-=== Deprecated ===
-
-=== Removed ===
+* The `nng-sys` crate has been moved to a new repository (#17).
 
 === Fixed ===
 
