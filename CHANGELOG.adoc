@@ -12,7 +12,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** Any of these options should be considered *unstable* as they will ideally be replaced with safe versions.
 * The `IPC_SECURITY_DESCRIPTOR` has been added as the first "unsafe option".
 * The `PAIR1_POLY` option has been added.
-* The following traits are now implemented:
+* The following traits are now implemented: (#18, #23)
 	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
 	** `Protocol`: `Eq`, `PartialEq`, `Hash`
 	** `SocketAddr`: `Display`, `Eq`, `PartialEq`, `Hash`
