@@ -52,7 +52,7 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 	fn from(addr: nng_sys::nng_sockaddr) -> SocketAddr
 	{
 		unsafe {
-			match nng_sys::nng_sockaddr_family::try_from(addr.s_family as i32) {
+			match nng_sys::nng_sockaddr_family::try_from(i32::from(addr.s_family)) {
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INPROC) => {
 					SocketAddr::InProc(buf_to_string(&addr.s_inproc.sa_name[..]))
 				},
