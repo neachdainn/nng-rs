@@ -17,6 +17,7 @@
 //! See the [nng documentation][1] for more information.
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
+use std::cmp;
 use std::ffi::CString;
 
 use crate::error::{Error, Result};
@@ -30,7 +31,7 @@ use crate::options::transport::ipc::IpcSecurityDescriptor;
 /// This listener has already been started on the socket and will continue
 /// serving the connection until either it is explicitly close or the owning
 /// socket is closed.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Listener
 {
 	/// The handle to the underlying
@@ -54,7 +55,7 @@ impl Listener
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags)
+			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags as i32)
 		};
 
 		rv2res!(rv, Listener { handle })
@@ -76,7 +77,7 @@ impl Listener
 		// and both of those mean that the drop was successful.
 		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing listener ({})",
 			rv
 		);
@@ -96,10 +97,25 @@ impl Listener
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_listener) -> Self
 	{
-		assert!(handle.id > 0, "Listener handle is not initialized");
+		assert!(
+			unsafe { nng_sys::nng_listener_id(handle) > 0},
+			"Listener handle is not initialized"
+		);
 		Listener { handle }
 	}
 }
+
+impl cmp::PartialEq for Listener
+{
+	fn eq(&self, other: &Listener) -> bool
+	{
+		unsafe {
+			nng_sys::nng_listener_id(self.handle) == nng_sys::nng_listener_id(other.handle)
+		}
+	}
+}
+
+impl cmp::Eq for Listener {}
 
 #[rustfmt::skip]
 expose_options!{
@@ -182,7 +198,7 @@ impl ListenerOptions
 		// If there is an error starting the listener, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe { nng_sys::nng_listener_start(self.handle, flags) };
+		let rv = unsafe { nng_sys::nng_listener_start(self.handle, flags as i32) };
 
 		match rv {
 			0 => {
@@ -190,7 +206,7 @@ impl ListenerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e))),
+			e => Err((self, Error::from_code(e as u32))),
 		}
 	}
 }
@@ -239,7 +255,7 @@ impl Drop for ListenerOptions
 		// and both of those mean that the drop was successful.
 		let rv = unsafe { nng_sys::nng_listener_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing listener ({})",
 			rv
 		);

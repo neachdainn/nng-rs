@@ -8,7 +8,7 @@ macro_rules! rv2res {
 	($rv:expr, $ok:expr) => {
 		match $rv {
 			0 => Ok($ok),
-			e => Err($crate::error::Error::from_code(e)),
+			e => Err($crate::error::Error::from_code(e as u32)),
 			}
 	};
 
@@ -26,7 +26,7 @@ macro_rules! validate_ptr {
 	($rv:ident, $ptr:ident, $before:tt) => {
 		if $rv != 0 {
 			$before;
-			return Err($crate::error::Error::from_code($rv));
+			return Err($crate::error::Error::from_code($rv as u32));
 			}
 		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	};

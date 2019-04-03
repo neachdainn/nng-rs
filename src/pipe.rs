@@ -1,3 +1,5 @@
+use std::cmp;
+
 use crate::dialer::Dialer;
 use crate::listener::Listener;
 
@@ -15,7 +17,7 @@ use crate::listener::Listener;
 /// See the [nng documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Pipe
 {
 	/// The underlying nng pipe.
@@ -26,9 +28,13 @@ impl Pipe
 	/// Returns the dialer associated with this pipe, if any.
 	pub fn dialer(&self) -> Option<Dialer>
 	{
-		let dialer = unsafe { nng_sys::nng_pipe_dialer(self.handle) };
+		let (dialer, id) = unsafe {
+			let dialer = nng_sys::nng_pipe_dialer(self.handle);
+			let id = nng_sys::nng_dialer_id(dialer);
+			(dialer, id)
+		};
 
-		if dialer.id > 0 {
+		if id > 0 {
 			Some(Dialer::from_nng_sys(dialer))
 		}
 		else {
@@ -39,9 +45,13 @@ impl Pipe
 	/// Returns the listener associated with this pipe, if any.
 	pub fn listener(&self) -> Option<Listener>
 	{
-		let listener = unsafe { nng_sys::nng_pipe_listener(self.handle) };
+		let (listener, id) = unsafe {
+			let listener = nng_sys::nng_pipe_listener(self.handle);
+			let id = nng_sys::nng_listener_id(listener);
+			(listener, id)
+		};
 
-		if listener.id > 0 {
+		if id > 0 {
 			Some(Listener::from_nng_sys(listener))
 		}
 		else {
@@ -55,10 +65,12 @@ impl Pipe
 	/// possible to get the socket itself, rather than just the ID.
 	pub fn socket_id(&self) -> i32
 	{
-		let socket = unsafe { nng_sys::nng_pipe_socket(self.handle) };
-		assert!(socket.id > 0, "Invalid socket associated with valid pipe");
-
-		unsafe { nng_sys::nng_socket_id(socket) }
+		unsafe {
+			let socket = nng_sys::nng_pipe_socket(self.handle);
+			let id = nng_sys::nng_socket_id(socket);
+			assert!(id > 0, "Invalid socket associated with valid pipe");
+			id
+		}
 	}
 
 	/// Closes the pipe.
@@ -74,7 +86,7 @@ impl Pipe
 		// care about the return value.
 		let rv = unsafe { nng_sys::nng_pipe_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing pipe ({})",
 			rv
 		);
@@ -100,8 +112,18 @@ impl Pipe
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_pipe) -> Self
 	{
-		assert!(handle.id > 0, "Pipe handle is not initialized");
+		assert!(unsafe { nng_sys::nng_pipe_id(handle) > 0 }, "Pipe handle is not initialized");
 		Pipe { handle }
+	}
+}
+
+impl cmp::PartialEq for Pipe
+{
+	fn eq(&self, other: &Pipe) -> bool
+	{
+		unsafe {
+			nng_sys::nng_pipe_id(self.handle) == nng_sys::nng_pipe_id(other.handle)
+		}
 	}
 }
 
@@ -167,11 +189,11 @@ impl PipeEvent
 	/// Converts the nng code into a PipeEvent.
 	pub(crate) fn from_code(event: std::os::raw::c_int) -> Self
 	{
-		match event {
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE => PipeEvent::AddPre,
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST => PipeEvent::AddPost,
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST => PipeEvent::RemovePost,
-			n => PipeEvent::Unknown(n),
+		match nng_sys::nng_pipe_ev::try_from(event) {
+			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE) => PipeEvent::AddPre,
+			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST) => PipeEvent::AddPost,
+			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST) => PipeEvent::RemovePost,
+			Err(_) => PipeEvent::Unknown(event),
 		}
 	}
 }

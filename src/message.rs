@@ -161,9 +161,13 @@ impl Message
 	/// authentication for peers located on an untrusted network.
 	pub fn pipe(&mut self) -> Option<Pipe>
 	{
-		let pipe = unsafe { nng_sys::nng_msg_get_pipe(self.msgp) };
+		let (pipe, id) = unsafe {
+			let pipe = nng_sys::nng_msg_get_pipe(self.msgp);
+			let id = nng_sys::nng_pipe_id(pipe);
+			(pipe, id)
+		};
 
-		if pipe.id > 0 {
+		if id > 0 {
 			Some(Pipe::from_nng_sys(pipe))
 		}
 		else {

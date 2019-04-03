@@ -19,6 +19,7 @@
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
 use std::ffi::CString;
+use std::cmp;
 
 use crate::error::{Error, Result};
 use crate::socket::Socket;
@@ -28,7 +29,7 @@ use crate::socket::Socket;
 /// This dialer has already been started on the socket and will continue
 /// serving the connection until either it is explicitly closed or the owning
 /// socket is closed.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct Dialer
 {
 	/// The handle to the underlying
@@ -52,7 +53,7 @@ impl Dialer
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_dial(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags)
+			nng_sys::nng_dial(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags as i32)
 		};
 
 		rv2res!(rv, Dialer { handle })
@@ -74,7 +75,7 @@ impl Dialer
 		// both of those mean that the drop was successful.
 		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing dialer ({})",
 			rv
 		);
@@ -94,10 +95,22 @@ impl Dialer
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_dialer) -> Self
 	{
-		assert!(handle.id > 0, "Dialer handle is not initialized");
+		assert!(unsafe { nng_sys::nng_dialer_id(handle) > 0 }, "Dialer handle is not initialized");
 		Dialer { handle }
 	}
 }
+
+impl cmp::PartialEq for Dialer
+{
+	fn eq(&self, other: &Dialer) -> bool
+	{
+		unsafe {
+			nng_sys::nng_dialer_id(self.handle) == nng_sys::nng_dialer_id(other.handle)
+		}
+	}
+}
+
+impl cmp::Eq for Dialer {}
 
 #[rustfmt::skip]
 expose_options!{
@@ -185,7 +198,7 @@ impl DialerOptions
 		// If there is an error starting the dialer, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe { nng_sys::nng_dialer_start(self.handle, flags) };
+		let rv = unsafe { nng_sys::nng_dialer_start(self.handle, flags as i32) };
 
 		match rv {
 			0 => {
@@ -193,7 +206,7 @@ impl DialerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e))),
+			e => Err((self, Error::from_code(e as u32))),
 		}
 	}
 }
@@ -242,7 +255,7 @@ impl Drop for DialerOptions
 		// both of those mean that the drop was successful.
 		let rv = unsafe { nng_sys::nng_dialer_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing dialer ({})",
 			rv
 		);
