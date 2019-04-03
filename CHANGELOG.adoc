@@ -21,6 +21,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `ErrorKind` type has been renamed to `Error` and the old `Error` type has been deleted.
 	** Additionally, the `Hash` trait has been derived for the new `Error` type.
+* Instead of silently eating the panic, the AIO callback will now abort the program if a panic is caught. (#6)
 
 === Deprecated ===
 
