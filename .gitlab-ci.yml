@@ -1,6 +1,6 @@
 # Test at a specific version in order to prevent accidentally requiring a new
 # Rust version. Image tags are at: https://hub.docker.com/r/library/rust/tags/
-image: "rust:1.31-slim"
+image: "rust:latest"
 
 # If we run the test before the docs, we can cache the build and not waste time
 # building it again.
@@ -20,24 +20,9 @@ before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
 
-# Make sure that the style is correct. Since we use unstable formatting
-# features, we use the nightly toolchain for this.
-format:
-  image: "rustlang/rust:nightly-slim"
-  stage: analysis
-  script:
-    - rustup component add rustfmt
-    - cargo fmt --version
-    - cargo fmt --package nng -- --check
-  only:
-    - tags
-    - master
-    - merge_requests
-
 # Make sure that we're listening to Clippy. Use nightly so we get the latest
 # lints even if we're not updating the test version.
 clippy:
-  image: "rust:latest"
   stage: analysis
   script:
     - rustup component add clippy
@@ -48,8 +33,9 @@ clippy:
     - master
     - merge_requests
 
-# Use cargo to test the project
-test:
+# Test the project against the minimum Rust version to make sure we don't raise it
+minimum-rust-version:
+  image: "rust:1.31-slim"
   stage: test
   script:
     - rustc --version
@@ -60,8 +46,20 @@ test:
     - master
     - merge_requests
 
-# Check the project against nightly, just to see if anything regresses.
-test-nightly:
+# Check against the current stable for regressions
+stable:
+  stage: test
+  script:
+    - rustc --version
+    - cargo --version
+    - cargo test --all --verbose
+  only:
+    - tags
+    - master
+    - merge_requests
+
+# Also check against nightly for regressions
+nightly:
   image: "rustlang/rust:nightly-slim"
   stage: test
   script:

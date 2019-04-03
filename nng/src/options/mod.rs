@@ -21,14 +21,23 @@ pub(crate) mod private;
 /// read-only option that is available exclusively to sockets. So the following
 /// code will work:
 ///
-/// ```ignore
-/// let raw = socket.get_opt::<Raw>()?;
+/// ```
+/// use nng::*;
+/// use nng::options::{Options, Raw};
+///
+/// let socket = Socket::new(Protocol::Pub0).unwrap();
+/// let raw = socket.get_opt::<Raw>().unwrap();
+/// assert!(!raw);
 /// ```
 ///
 /// But all this is a compile error:
 ///
-/// ```ignore
-/// socket.set_opt::<Raw>(true)?;
+/// ```compile_fail
+/// use nng::*;
+/// use nng::options::{Options, Raw};
+///
+/// let socket = Socket::new(Protocol::Pub0).unwrap();
+/// socket.set_opt::<Raw>(true).unwrap(); // Won't compile
 /// ```
 pub trait Options: private::HasOpts
 {
