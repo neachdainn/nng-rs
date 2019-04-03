@@ -589,7 +589,7 @@ impl Inner
 			// As of Rustc 1.33, any panics crossing an `extern "C"` function will abort the
 			// program. Because I couldn't come up with a good alternative, it seems reasonable to
 			// emulate that behavior here. See #6 for more information.
-			std::process::abort(113); // Seems unlikely to be meaningful to any binary?
+			std::process::abort();
 		}
 	}
 }
