@@ -136,6 +136,15 @@ impl Aio
 	/// `Aio::result` can be used to determine the result of the operation.
 	/// With a callback provided, using `Aio::wait` is generally recommended
 	/// against.
+	///
+	/// ## Panicking
+	///
+	/// If the callback function panics, the program will abort. This is to match the behavior
+	/// specified in Rust 1.33 where the program will abort when panics cross an `extern "C"`
+	/// boundary, regardless of the version that compiles this library.
+	///
+	/// The user is responsible for either having a callback that never panics or catching and
+	/// handling the panic on their own.
 	pub fn with_callback<F>(callback: F) -> Result<Aio>
 	where
 		F: FnMut(&Aio) + Send + RefUnwindSafe + 'static,
@@ -576,6 +585,11 @@ impl Inner
 
 		if let Err(e) = res {
 			error!("Panic in AIO callback function: {:?}", e);
+
+			// As of Rustc 1.33, any panics crossing an `extern "C"` function will abort the
+			// program. Because I couldn't come up with a good alternative, it seems reasonable to
+			// emulate that behavior here. See #6 for more information.
+			std::process::abort(113); // Seems unlikely to be meaningful to any binary?
 		}
 	}
 }
