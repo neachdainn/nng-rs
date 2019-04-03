@@ -133,7 +133,7 @@ impl Inner
 		// was never open. Neither of those are an issue for us.
 		let rv = unsafe { nng_sys::nng_ctx_close(self.ctx) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing context ({})",
 			rv
 		);

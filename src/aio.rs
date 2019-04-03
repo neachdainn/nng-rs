@@ -523,7 +523,7 @@ impl Inner
 				// never dropped.
 				std::mem::forget(shared_inner);
 			}
-			Err(Error::from_code(rv))
+			Err(Error::from_code(rv as u32))
 		}
 		else {
 			assert!(

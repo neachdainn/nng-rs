@@ -98,8 +98,9 @@ impl Socket
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
-		let rv =
-			unsafe { nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags) };
+		let rv = unsafe {
+			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as i32)
+		};
 
 		rv2res!(rv)
 	}
@@ -131,7 +132,7 @@ impl Socket
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
+			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as i32)
 		};
 
 		rv2res!(rv)
@@ -163,7 +164,7 @@ impl Socket
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
-		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags) };
+		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags as i32) };
 
 		validate_ptr!(rv, msgp);
 		Ok(unsafe { Message::from_ptr(msgp) })
@@ -188,10 +189,10 @@ impl Socket
 
 		unsafe {
 			let msgp = data.into_ptr();
-			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp, flags);
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp, flags as i32);
 
 			if rv != 0 {
-				Err((Message::from_ptr(msgp), Error::from_code(rv)))
+				Err((Message::from_ptr(msgp), Error::from_code(rv as u32)))
 			}
 			else {
 				Ok(())
@@ -260,7 +261,7 @@ impl Socket
 			.map(|&ev| unsafe {
 				nng_sys::nng_pipe_notify(
 					self.inner.handle,
-					ev,
+					ev as i32,
 					Some(Self::trampoline),
 					&*self.inner as *const _ as _,
 				)
@@ -335,7 +336,9 @@ impl std::cmp::PartialEq for Socket
 {
 	fn eq(&self, other: &Socket) -> bool
 	{
-		self.inner.handle == other.inner.handle
+		unsafe {
+			nng_sys::nng_socket_id(self.inner.handle) == nng_sys::nng_socket_id(other.inner.handle)
+		}
 	}
 }
 impl std::cmp::Eq for Socket {}
@@ -407,7 +410,7 @@ impl Inner
 		// ever happens, hopefully it will make its way to a bug report.
 		let rv = unsafe { nng_sys::nng_close(self.handle) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing socket ({})",
 			rv
 		);

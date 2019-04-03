@@ -52,24 +52,24 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 	fn from(addr: nng_sys::nng_sockaddr) -> SocketAddr
 	{
 		unsafe {
-			match addr.s_family {
-				nng_sys::nng_sockaddr_family::NNG_AF_INPROC => {
+			match nng_sys::nng_sockaddr_family::try_from(addr.s_family as i32) {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INPROC) => {
 					SocketAddr::InProc(buf_to_string(&addr.s_inproc.sa_name[..]))
 				},
-				nng_sys::nng_sockaddr_family::NNG_AF_IPC => {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_IPC) => {
 					SocketAddr::Ipc(buf_to_string(&addr.s_ipc.sa_path[..]).into())
 				},
-				nng_sys::nng_sockaddr_family::NNG_AF_INET => {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET) => {
 					SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port))
 				},
-				nng_sys::nng_sockaddr_family::NNG_AF_INET6 => SocketAddr::Inet6(SocketAddrV6::new(
-					addr.s_in6.sa_addr.into(),
-					addr.s_in6.sa_port,
-					0,
-					0,
-				)),
-				nng_sys::nng_sockaddr_family::NNG_AF_ZT => SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
-				_ => SocketAddr::Unspecified,
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET6) => {
+					let raddr = addr.s_in6.sa_addr.into();
+					let port = addr.s_in6.sa_port;
+					SocketAddr::Inet6(SocketAddrV6::new(raddr, port, 0, 0))
+				},
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_ZT) =>
+					SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_UNSPEC) | Err(_) => SocketAddr::Unspecified,
 			}
 		}
 	}
