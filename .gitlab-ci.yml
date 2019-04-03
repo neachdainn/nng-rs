@@ -47,7 +47,7 @@ minimum-rust-version:
     - merge_requests
 
 # Check against the current stable for regressions
-minimum-rust-version:
+stable:
   stage: test
   script:
     - rustc --version
