@@ -163,17 +163,3 @@ pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 		panic!("Unexpected value for `nng_duration` ({})", ms)
 	}
 }
-
-/// Wraps around an object to prevent any interaction with it.
-pub struct BlackBox<T>
-{
-	_data: T,
-}
-impl<T> BlackBox<T>
-{
-	/// Creates a new wrapper the object.
-	pub fn new(_data: T) -> Self
-	{
-		BlackBox { _data }
-	}
-}
