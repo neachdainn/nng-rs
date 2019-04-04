@@ -203,13 +203,12 @@ impl Socket
 	/// Send a message using the socket asynchronously.
 	///
 	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	/// `Aio::wait` or inside of the callback function.
 	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `Error::TryAgain`
 	/// and return the message to the caller.
-	pub fn send_async(&mut self, aio: &Aio, msg: Message) -> SendResult<()>
+	pub fn send_async<A: Aio>(&mut self, aio: &A, msg: Message) -> SendResult<()>
 	{
 		aio.send_socket(self, msg)
 	}
@@ -217,13 +216,12 @@ impl Socket
 	/// Receive a message using the socket asynchronously.
 	///
 	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
+	/// `Aio::wait` or inside of the callback function.
 	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `Error::TryAgain`.
-	pub fn recv_async(&mut self, aio: &Aio) -> Result<()>
+	pub fn recv_async<A: Aio>(&mut self, aio: &A) -> Result<()>
 	{
 		aio.recv_socket(self)
 	}
