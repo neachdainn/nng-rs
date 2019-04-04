@@ -10,7 +10,54 @@ use crate::socket::Socket;
 /// A structure used for asynchronous I/O operation.
 pub trait Aio: self::private::Sealed { }
 
+/// The result of an AIO operation.
+#[derive(Clone, Debug)]
+#[must_use]
+pub enum AioResult
+{
+	/// No AIO operations were in progress.
+	InactiveOk,
+
+	/// The send operation was successful.
+	SendOk,
+
+	/// The send operation failed.
+	///
+	/// This contains the message that was being sent.
+	SendErr(Message, Error),
+
+	/// The receive operation was successful.
+	RecvOk(Message),
+
+	/// The receive operation failed.
+	RecvErr(Error),
+
+	/// The sleep operation was successful.
+	SleepOk,
+
+	/// The sleep operation failed.
+	///
+	/// This is almost always because the sleep was canceled and the error will usually be
+	/// `Error::Canceled`.
+	SleepErr(Error),
+}
+
+impl From<AioResult> for Result<Option<Message>>
+{
+	fn from(aio_res: AioResult) -> Result<Option<Message>>
+	{
+		use AioResult::*;
+
+		match aio_res {
+			InactiveOk | SendOk | SleepOk => Ok(None),
+			SendErr(_, e) | RecvErr(e) | SleepErr(e) => Err(e),
+			RecvOk(m) => Ok(Some(m)),
+		}
+	}
+}
+
 /// An AIO type that requires the user to call a blocking `wait` function.
+#[derive(Debug)]
 pub struct WaitingAio
 {
 	/// The handle to the NNG AIO object.
@@ -35,6 +82,8 @@ impl WaitingAio
 	/// Cancel the currently running I/O operation.
 	pub fn cancel(&mut self)
 	{
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
 		unsafe { nng_sys::nng_aio_cancel(self.handle); }
 	}
 
@@ -48,8 +97,9 @@ impl WaitingAio
 	/// allow the operation to properly begin before giving up!
 	pub fn set_timeout(&mut self, dur: Option<Duration>)
 	{
-		let ms = crate::util::duration_to_nng(dur);
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
 
+		let ms = crate::util::duration_to_nng(dur);
 		unsafe { nng_sys::nng_aio_set_timeout(self.handle, ms); }
 	}
 
@@ -75,14 +125,39 @@ impl WaitingAio
 	/// # aio.cancel();
 	///
 	/// // Wait for the asynchronous receive to complete.
-	/// let msg = aio.wait();
+	/// let res = aio.wait();
 	/// ```
-	pub fn wait(&mut self) -> Result<Option<Message>>
+	pub fn wait(&mut self) -> AioResult
 	{
-		// TODO: What should the return type be? `Result<Option<Message>>` needlessly throws away
-		// the message of a failed send but `Result<Option<Message>, (Option<Message>, Error)>` is
-		// pretty damn verbose.
-		unimplemented!();
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		// The wait function will return immediately if there is no AIO operation started.
+		let rv = unsafe {
+			nng_sys::nng_aio_wait(self.handle);
+			nng_sys::nng_aio_result(self.handle) as u32
+		};
+
+		let res = match (self.state, rv) {
+			(State::Inactive, _) => AioResult::InactiveOk,
+
+			(State::Sending, 0) => AioResult::SendOk,
+			(State::Sending, e) => unsafe {
+				let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(self.handle));
+				AioResult::SendErr(msg, Error::from_code(e))
+			},
+
+			(State::Receiving, 0) => unsafe {
+				let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(self.handle));
+				AioResult::RecvOk(msg)
+			},
+			(State::Receiving, e) => AioResult::RecvErr(Error::from_code(e)),
+
+			(State::Sleeping, 0) => AioResult::SleepOk,
+			(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
+		};
+
+		self.state = State::Inactive;
+		res
 	}
 
 	/// Performs and asynchronous sleep operation.
@@ -96,7 +171,9 @@ impl WaitingAio
 	/// operation in progress, this function will return `Error::TryAgain`.
 	pub fn sleep(&mut self, dur: Duration) -> Result<()>
 	{
-		if let State::Inactive = self.state {
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
 			let ms = crate::util::duration_to_nng(Some(dur));
 			unsafe { nng_sys::nng_sleep_aio(ms, self.handle); }
 			self.state = State::Sleeping;
@@ -112,7 +189,9 @@ impl self::private::Sealed for WaitingAio
 {
 	fn send_socket(&mut self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
-		if let State::Inactive = self.state {
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
 			unsafe {
 				nng_sys::nng_aio_set_msg(self.handle, msg.into_ptr());
 				nng_sys::nng_send_aio(socket.handle(), self.handle);
@@ -127,7 +206,9 @@ impl self::private::Sealed for WaitingAio
 
 	fn recv_socket(&mut self, socket: &Socket) -> Result<()>
 	{
-		if let State::Inactive = self.state {
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
 			unsafe { nng_sys::nng_recv_aio(socket.handle(), self.handle); }
 
 			self.state = State::Receiving;
@@ -139,7 +220,9 @@ impl self::private::Sealed for WaitingAio
 
 	fn send_ctx(&mut self, ctx: &Context, msg: Message) -> SendResult<()>
 	{
-		if let State::Inactive = self.state {
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
 			unsafe {
 				nng_sys::nng_aio_set_msg(self.handle, msg.into_ptr());
 				nng_sys::nng_ctx_send(ctx.handle(), self.handle);
@@ -154,7 +237,9 @@ impl self::private::Sealed for WaitingAio
 
 	fn recv_ctx(&mut self, ctx: &Context) -> Result<()>
 	{
-		if let State::Inactive = self.state {
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
 			unsafe { nng_sys::nng_ctx_recv(ctx.handle(), self.handle); }
 
 			self.state = State::Receiving;
@@ -166,7 +251,24 @@ impl self::private::Sealed for WaitingAio
 }
 impl Aio for WaitingAio { }
 
+impl Drop for WaitingAio
+{
+	fn drop(&mut self)
+	{
+		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
+
+		// The AIO object may contain a message that we want to free. We could either try to do some
+		// crazy logic around an immediate call to `nng_aio_free`, or we could just cancel, wait,
+		// and then free.
+		self.cancel();
+		let _ = self.wait();
+
+		unsafe { nng_sys::nng_aio_free(self.handle) };
+	}
+}
+
 /// Represents the state of the AIO object.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State
 {
 	/// There is currently nothing happening on the AIO.
