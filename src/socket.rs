@@ -208,7 +208,7 @@ impl Socket
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `Error::TryAgain`
 	/// and return the message to the caller.
-	pub fn send_async<A: Aio>(&mut self, aio: &A, msg: Message) -> SendResult<()>
+	pub fn send_async<A: Aio>(&mut self, aio: &mut A, msg: Message) -> SendResult<()>
 	{
 		aio.send_socket(self, msg)
 	}
@@ -221,7 +221,7 @@ impl Socket
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `Error::TryAgain`.
-	pub fn recv_async<A: Aio>(&mut self, aio: &A) -> Result<()>
+	pub fn recv_async<A: Aio>(&mut self, aio: &mut A) -> Result<()>
 	{
 		aio.recv_socket(self)
 	}
