@@ -600,7 +600,7 @@ impl Drop for CallbackAio
 		// only issues will be non-responsive AIO operations.
 		if let Some(ref mut a) = self.callback {
 			// We share ownership of the callback, so we might need to shut things down.
-			if let Some(_) = Arc::get_mut(a) {
+			if Arc::get_mut(a).is_some() {
 				// We are the only owner so we need to shut down the AIO. One thing we need to watch
 				// out for is making sure we aren't holding on to the lock when we do the shutdown.
 				// The stop function will block until the callback happens and the callback will
