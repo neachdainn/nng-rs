@@ -372,6 +372,39 @@ impl CallbackAio
 		}
 	}
 
+	/// Cancel the currently running I/O operation.
+	pub fn cancel(&mut self)
+	{
+		self.inner.lock().unwrap().cancel();
+	}
+
+	/// Set the timeout of asynchronous operations.
+	///
+	/// This causes a timer to be started when the operation is actually started. If the timer
+	/// expires before the operation is completed, then it is aborted with `Error::TimedOut`.
+	///
+	/// As most operations involve some context switching, it is usually a good idea to allow a
+	/// least a few tens of milliseconds before timing them out - a too small timeout might not
+	/// allow the operation to properly begin before giving up!
+	pub fn set_timeout(&mut self, dur: Option<Duration>)
+	{
+		self.inner.lock().unwrap().set_timeout(dur);
+	}
+
+	/// Performs and asynchronous sleep operation.
+	///
+	/// If the sleep finishes completely, it will never return an error. If a
+	/// timeout has been set and it is shorter than the duration of the sleep
+	/// operation, the sleep operation will end early with
+	/// `Error::TimedOut`.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress, this function will return `Error::TryAgain`.
+	pub fn sleep(&mut self, dur: Duration) -> Result<()>
+	{
+		self.inner.lock().unwrap().sleep(dur)
+	}
+
 	/// Clones the closure CallbackAio.
 	///
 	/// The users must *never* have access to this function or much of what we're assuming in the
@@ -536,6 +569,36 @@ pub struct Inner
 
 impl Inner
 {
+	pub fn cancel(&mut self)
+	{
+		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
+
+		unsafe { nng_sys::nng_aio_cancel(self.handle.ptr()); }
+	}
+
+	pub fn set_timeout(&mut self, dur: Option<Duration>)
+	{
+		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
+
+		let ms = crate::util::duration_to_nng(dur);
+		unsafe { nng_sys::nng_aio_set_timeout(self.handle.ptr(), ms); }
+	}
+
+	pub fn sleep(&mut self, dur: Duration) -> Result<()>
+	{
+		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
+
+		if self.state == State::Inactive {
+			let ms = crate::util::duration_to_nng(Some(dur));
+			unsafe { nng_sys::nng_sleep_aio(ms, self.handle.ptr()); }
+			self.state = State::Sleeping;
+
+			Ok(())
+		} else {
+			Err(Error::TryAgain)
+		}
+	}
+
 	fn send_socket(&mut self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
 		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
