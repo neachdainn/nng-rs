@@ -61,6 +61,25 @@ impl From<AioResult> for Result<Option<Message>>
 }
 
 /// An AIO type that requires the user to call a blocking `wait` function.
+///
+/// ## Example
+///
+/// ```
+/// use nng::{Socket, Protocol};
+/// use nng::aio::WaitingAio;
+///
+/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
+/// let mut aio = WaitingAio::new().unwrap();
+///
+/// // Asynchronously wait for a message on the socket.
+/// socket.recv_async(&mut aio).unwrap();
+/// #
+/// # // Cancel the receive, otherwise the test will block.
+/// # aio.cancel();
+///
+/// // Wait for the asynchronous receive to complete.
+/// let res = aio.wait();
+/// ```
 #[derive(Debug)]
 pub struct WaitingAio
 {
@@ -111,26 +130,6 @@ impl WaitingAio
 	///
 	/// If there is not currently active operation, this will return
 	/// immediately.
-	///
-	/// ## Example
-	///
-	/// ```
-	/// use nng::{Socket, Protocol};
-	/// use nng::aio::WaitingAio;
-	///
-	/// let address = "inproc://nng/aio.rs::wait";
-	/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
-	/// let mut aio = WaitingAio::new().unwrap();
-	///
-	/// // Asynchronously wait for a message on the socket.
-	/// socket.recv_async(&mut aio).unwrap();
-	/// #
-	/// # // Cancel the receive, otherwise the test will block.
-	/// # aio.cancel();
-	///
-	/// // Wait for the asynchronous receive to complete.
-	/// let res = aio.wait();
-	/// ```
 	pub fn wait(&mut self) -> AioResult
 	{
 		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
@@ -272,6 +271,69 @@ impl Drop for WaitingAio
 }
 
 /// An AIO object that utilizes a callback function in order to respond to events.
+///
+/// The handle is initialized with a completion callback which will be executed when an associated
+/// asynchronous operation finishes. The callback must not perform any blocking operations and must
+/// complete its execution quickly. If the callback does block, this can lead ultimately to an
+/// apparent "hang" or deadlock in the application.
+///
+/// ## Example
+///
+/// A simple server that will sleep for the requested number of milliseconds before responding.
+///
+/// ```
+/// use std::time::Duration;
+/// use byteorder::{ByteOrder, LittleEndian};
+/// use nng::{Socket, Protocol, Context, Message};
+/// use nng::aio::{AioResult, CallbackAio};
+///
+/// let address = "inproc://nng/aio.rs#callbacks";
+/// let num_contexts = 10;
+///
+/// // Create the new socket and all of the socket contexts.
+/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
+/// let mut workers: Vec<_> = (0..num_contexts)
+///     .map(|_| {
+///         let ctx = Context::new(&socket).unwrap();
+///         let ctx_clone = ctx.clone();
+///         let aio = CallbackAio::new(move |aio, res| callback(aio, &ctx_clone, res)).unwrap();
+///         (aio, ctx)
+///     })
+///     .collect();
+///
+/// // Start listening only after the contexts are available.
+/// socket.listen(address).unwrap();
+///
+/// // Have the workers start responding to replies.
+/// for (a, c) in &mut workers {
+///     c.recv(a).unwrap();
+/// }
+///
+/// fn callback(aio: &mut CallbackAio, ctx: &Context, res: AioResult) {
+///     match res {
+///         // We successfully did nothing.
+///         AioResult::InactiveOk => {},
+///
+///         // We successfully sent the message, wait for a new one.
+///         AioResult::SendOk => ctx.recv(aio).unwrap(),
+///
+///         // We successfully received a message.
+///         AioResult::RecvOk(m) => {
+///             let ms = LittleEndian::read_u64(&m);
+///             aio.sleep(Duration::from_millis(ms)).unwrap();
+///         },
+///
+///         // We successfully slept.
+///         AioResult::SleepOk => {
+///             let msg = Message::new().unwrap();
+///             ctx.send(aio, msg).unwrap();
+///         },
+///
+///         // Anything else is an error that will just be ignored.
+///         _ => {},
+///     }
+/// }
+/// ```
 pub struct CallbackAio
 {
 	/// The inner AIO bits shared by all instances of this AIO.
@@ -539,9 +601,18 @@ impl Drop for CallbackAio
 		if let Some(ref mut a) = self.callback {
 			// We share ownership of the callback, so we might need to shut things down.
 			if let Some(_) = Arc::get_mut(a) {
-				// We are the only owner so we need to shut down the AIO.
-				let l = self.inner.lock().unwrap();
-				unsafe { nng_sys::nng_aio_stop(l.handle.ptr()) }
+				// We are the only owner so we need to shut down the AIO. One thing we need to watch
+				// out for is making sure we aren't holding on to the lock when we do the shutdown.
+				// The stop function will block until the callback happens and the callback will
+				// block until the lock is released: deadlock.
+				//
+				// Now, we could try to avoid this by not putting the pointer behind a mutex, but
+				// that would potentially cause issues with keeping the state synchronized and we
+				// would just end up using the state's lock for the pointer anyway. Instead, let's
+				// take advantage of the fact that the pointer will never change, the pointed-to
+				// object is behind its own lock, and we're not touching the state.
+				let ptr = self.inner.lock().unwrap().handle.ptr();
+				unsafe { nng_sys::nng_aio_stop(ptr) }
 			}
 			else {
 				// Just a sanity check. We need to never take a weak reference to the callback. I
