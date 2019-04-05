@@ -115,15 +115,15 @@ impl WaitingAio
 	/// ## Example
 	///
 	/// ```
-	/// use nng::{Aio, Socket, Protocol};
+	/// use nng::{Socket, Protocol};
 	/// use nng::aio::WaitingAio;
 	///
 	/// let address = "inproc://nng/aio.rs::wait";
 	/// let mut socket = Socket::new(Protocol::Rep0).unwrap();
-	/// let aio = WaitingAio::new().unwrap();
+	/// let mut aio = WaitingAio::new().unwrap();
 	///
 	/// // Asynchronously wait for a message on the socket.
-	/// socket.recv_async(&aio).unwrap();
+	/// socket.recv_async(&mut aio).unwrap();
 	/// #
 	/// # // Cancel the receive, otherwise the test will block.
 	/// # aio.cancel();
