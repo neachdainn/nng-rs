@@ -50,7 +50,7 @@ impl From<AioResult> for Result<Option<Message>>
 {
 	fn from(aio_res: AioResult) -> Result<Option<Message>>
 	{
-		use AioResult::*;
+		use self::AioResult::*;
 
 		match aio_res {
 			InactiveOk | SendOk | SleepOk => Ok(None),
