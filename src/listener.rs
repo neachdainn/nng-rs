@@ -152,6 +152,7 @@ expose_options!{
 /// started. If it is not necessary to change listener settings or to close the
 /// listener without closing the socket, then `Socket::listen` provides a
 /// simpler interface and does not require tracking an object.
+#[derive(Debug)]
 pub struct ListenerOptions
 {
 	/// The underlying listener object that we are configuring

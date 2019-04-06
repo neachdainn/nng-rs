@@ -63,9 +63,9 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 					SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port))
 				},
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET6) => {
-					let raddr = addr.s_in6.sa_addr.into();
+					let v6_addr = addr.s_in6.sa_addr.into();
 					let port = addr.s_in6.sa_port;
-					SocketAddr::Inet6(SocketAddrV6::new(raddr, port, 0, 0))
+					SocketAddr::Inet6(SocketAddrV6::new(v6_addr, port, 0, 0))
 				},
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_ZT) =>
 					SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),

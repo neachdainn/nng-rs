@@ -149,6 +149,7 @@ expose_options!{
 /// started. If it is not necessary to change dialer settings or to close the
 /// dialer without closing the socket, then `Socket::dial` provides a simpler
 /// interface and does not require tracking an object.
+#[derive(Debug)]
 pub struct DialerOptions
 {
 	/// The underlying dialer object that we are configuring

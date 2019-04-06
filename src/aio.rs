@@ -348,7 +348,7 @@ pub struct CallbackAio
 	///
 	/// We can assert that is is unwind safe because we literally never call this function. I don't
 	/// think we could if we wanted to, which is the entire point of the black box.
-	callback: Option<AssertUnwindSafe<Arc<FnOnce() + Sync + Send>>>,
+	callback: Option<AssertUnwindSafe<Arc<dyn FnOnce() + Sync + Send>>>,
 }
 
 impl CallbackAio
@@ -377,7 +377,7 @@ impl CallbackAio
 		}));
 
 		// Now, create the CallbackAio that will be stored within the callback itself.
-		let cb_aio = CallbackAio { inner: inner.clone(), callback: None };
+		let cb_aio = CallbackAio { inner: Arc::clone(&inner), callback: None };
 
 		// We can avoid double boxing by taking the address of a generic function. Unfortunately, we
 		// have no way to get the type of a closure other than calling a generic function, so we do
@@ -428,7 +428,7 @@ impl CallbackAio
 		// implementation for more details.
 		if let Some(a) = &self.callback {
 			let callback = Some(AssertUnwindSafe((*a).clone()));
-			Some(Self { inner: self.inner.clone(), callback })
+			Some(Self { inner: Arc::clone(&self.inner), callback })
 		} else {
 			None
 		}
@@ -475,7 +475,7 @@ impl CallbackAio
 	{
 		assert!(self.callback.is_none(), "Secret Clone called on non-closure AIO");
 
-		Self { inner: self.inner.clone(), callback: None }
+		Self { inner: Arc::clone(&self.inner), callback: None }
 	}
 
 	/// Utility function for allocating an `nng_aio`.
@@ -485,7 +485,7 @@ impl CallbackAio
 	fn alloc_trampoline<F>(
 		inner: &Arc<Mutex<Inner>>,
 		bounce: F
-	) -> Result<Arc<FnOnce() + Sync + Send>>
+	) -> Result<Arc<dyn FnOnce() + Sync + Send>>
 		where F: Fn() + Sync + Send + UnwindSafe + 'static
 	{
 		let mut boxed = Box::new(bounce);
@@ -566,6 +566,7 @@ impl private::Sealed for CallbackAio
 }
 impl Aio for CallbackAio { }
 
+#[allow(clippy::use_debug)]
 impl fmt::Debug for CallbackAio
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
@@ -640,6 +641,7 @@ pub struct Inner
 
 impl Inner
 {
+	/// Cancels the currently running operation.
 	pub fn cancel(&mut self)
 	{
 		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
@@ -647,6 +649,7 @@ impl Inner
 		unsafe { nng_sys::nng_aio_cancel(self.handle.ptr()); }
 	}
 
+	/// Sets a timeout to all AIO operations.
 	pub fn set_timeout(&mut self, dur: Option<Duration>)
 	{
 		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");
@@ -655,6 +658,7 @@ impl Inner
 		unsafe { nng_sys::nng_aio_set_timeout(self.handle.ptr(), ms); }
 	}
 
+	/// Has the AIO sleep for the specified duration.
 	pub fn sleep(&mut self, dur: Duration) -> Result<()>
 	{
 		debug_assert!(!self.handle.ptr().is_null(), "Null AIO pointer");

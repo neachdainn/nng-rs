@@ -53,6 +53,7 @@ macro_rules! create_option
 		{
 			type OptType = $ot;
 		}
+		#[allow(clippy::cast_possible_truncation)]
 		impl $crate::options::private::OptOps for $opt
 		{
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
@@ -137,17 +138,17 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub unsafe extern "C" fn fake_opt<H, T>(
+pub(crate) unsafe extern "C" fn fake_opt<H, T>(
 	_: H,
 	_: *const std::os::raw::c_char,
 	_: T,
 ) -> std::os::raw::c_int
 {
-	panic!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
+	unimplemented!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
 
 /// A catch-all function for unsupported generic options operations.
-pub unsafe extern "C" fn fake_genopt<H>(
+pub(crate) unsafe extern "C" fn fake_genopt<H>(
 	_: H,
 	_: *const std::os::raw::c_char,
 	_: *const std::os::raw::c_void,
@@ -158,7 +159,8 @@ pub unsafe extern "C" fn fake_genopt<H>(
 }
 
 /// Converts a Rust Duration into an `nng_duration`.
-pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 {
 	// The subsecond milliseconds is guaranteed to be less than 1000, which
 	// means converting from `u32` to `i32` is safe. The only other
@@ -177,7 +179,7 @@ pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 }
 
 /// Converts an `nng_duration` into a Rust Duration.
-pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
+pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 {
 	if ms == nng_sys::NNG_DURATION_INFINITE {
 		None

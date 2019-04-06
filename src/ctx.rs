@@ -17,7 +17,7 @@ use crate::socket::Socket;
 /// ## Examples
 ///
 /// See the documentation of the `Aio` type for examples on how to use Socket Contexts.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context
 {
 	/// The inner context.
@@ -119,6 +119,7 @@ expose_options!{
 }
 
 /// A wrapper around an `nng_ctx`.
+#[derive(Debug)]
 struct Inner
 {
 	ctx: nng_sys::nng_ctx,

@@ -53,7 +53,7 @@ pub enum Error
 	EntryNotFound,
 
 	/// A protocol error occurred
-	ProtocolError,
+	Protocol,
 
 	/// Remote address is unreachable
 	DestUnreachable,
@@ -147,7 +147,7 @@ impl Error
 			nng_sys::NNG_EADDRINUSE   => Error::AddressInUse,
 			nng_sys::NNG_ESTATE       => Error::IncorrectState,
 			nng_sys::NNG_ENOENT       => Error::EntryNotFound,
-			nng_sys::NNG_EPROTO       => Error::ProtocolError,
+			nng_sys::NNG_EPROTO       => Error::Protocol,
 			nng_sys::NNG_EUNREACHABLE => Error::DestUnreachable,
 			nng_sys::NNG_EADDRINVAL   => Error::AddressInvalid,
 			nng_sys::NNG_EPERM        => Error::PermissionDenied,
@@ -190,6 +190,7 @@ impl From<Error> for io::Error
 		}
 		else {
 			#[rustfmt::skip]
+			#[allow(clippy::match_same_arms)]
 			let new_kind = match e {
 				Error::Interrupted => io::ErrorKind::Interrupted,
 				Error::InvalidInput | Error::NoArgument => io::ErrorKind::InvalidInput,
@@ -239,7 +240,7 @@ impl fmt::Display for Error
 			Error::AddressInUse      => write!(f, "Address in use"),
 			Error::IncorrectState    => write!(f, "Incorrect state"),
 			Error::EntryNotFound     => write!(f, "Entry not found"),
-			Error::ProtocolError     => write!(f, "Protocol error"),
+			Error::Protocol          => write!(f, "Protocol error"),
 			Error::DestUnreachable   => write!(f, "Destination unreachable"),
 			Error::AddressInvalid    => write!(f, "Address invalid"),
 			Error::PermissionDenied  => write!(f, "Permission denied"),

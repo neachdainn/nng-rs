@@ -61,8 +61,43 @@
 //! [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
 //! [4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
 
+// The following lints are of critical importance.
+#![forbid(improper_ctypes)]
+
+// Utilize Clippy to try and keep this crate clean. At some point (cargo#5034, I think?) this
+// specification should be possible in either the Clippy TOML file or in the Cargo TOML file. These
+// should be moved there once possible.
+#![deny(bare_trait_objects)]
+#![deny(missing_debug_implementations)]
+#![deny(missing_docs)]
+#![deny(unreachable_pub)]
 #![deny(clippy::all)]
-#![allow(clippy::new_ret_no_self)]
+#![deny(clippy::wrong_pub_self_convention)]
+
+// Clippy doesn't enable these with "all". Best to keep them warnings.
+#![warn(clippy::nursery)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::cargo)]
+#![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::decimal_literal_representation)]
+#![warn(clippy::print_stdout)]
+#![warn(clippy::unimplemented)]
+#![warn(clippy::use_debug)]
+
+// I would like to be able to keep these on, but due to the nature of the crate it just isn't
+// feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
+// would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
+// library, which means the types are a little bit up-in-the-air.
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::empty_enum)] // Revisit after RFC1861 and RFC1216.
+#![allow(clippy::cargo_common_metadata)] // Can't control this.
+#![allow(clippy::module_name_repetitions)] // Doesn't recognize public re-exports.
+
+// In these cases, I just don't like what Clippy suggests.
+#![allow(clippy::use_self)]
+#![allow(clippy::replace_consts)]
+#![allow(clippy::if_not_else)]
 
 #[macro_use]
 mod util;

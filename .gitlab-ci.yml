@@ -27,7 +27,7 @@ clippy:
   script:
     - rustup component add clippy
     - cargo clippy --version
-    - cargo clippy
+    - cargo clippy --all-targets
   only:
     - tags
     - master

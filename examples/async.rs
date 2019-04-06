@@ -57,7 +57,8 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 	s.recv()?;
 
 	let dur = Instant::now().duration_since(start);
-	println!("Request took {} milliseconds", dur.as_secs() * 1000 + dur.subsec_millis() as u64);
+	let subsecs: u64 = dur.subsec_millis().into();
+	println!("Request took {} milliseconds", dur.as_secs() * 1000 + subsecs);
 
 	Ok(())
 }

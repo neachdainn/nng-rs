@@ -48,9 +48,9 @@ create_option! {
 	///
 	/// Raw mode sockets generally do not have any protocol-specific semantics
 	/// applied to them; instead the application is expected to perform such
-	/// semantics itself. (For example, in “cooked” mode a _rep_ socket would
+	/// semantics itself. (For example, in "cooked" mode a _rep_ socket would
 	/// automatically copy message headers from a received message to the
-	/// corresponding reply, whereas in “raw” mode this is not done.)
+	/// corresponding reply, whereas in "raw" mode this is not done.)
 	///
 	/// See [raw mode][1] for more details.
 	///

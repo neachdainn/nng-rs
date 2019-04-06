@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::os::raw::{c_int, c_void};
 use std::panic::{catch_unwind, RefUnwindSafe};
-use std::ptr;
+use std::{fmt, ptr};
 use std::sync::{Arc, Mutex};
 
 use log::error;
@@ -13,7 +13,7 @@ use crate::pipe::{Pipe, PipeEvent};
 use crate::protocol::Protocol;
 
 // Using a type alias like this makes Clippy happy.
-type PipeNotifyFn = FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
+type PipeNotifyFn = dyn FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -27,7 +27,7 @@ type PipeNotifyFn = FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
 /// See the [nng documenatation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Socket
 {
 	/// The shared reference to the underlying nng socket.
@@ -412,6 +412,15 @@ impl Inner
 			"Unexpected error code while closing socket ({})",
 			rv
 		);
+	}
+}
+
+#[allow(clippy::use_debug)]
+impl fmt::Debug for Inner
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "Inner {{ handle: {:?}, pipe_notify: -- }}", self.handle)
 	}
 }
 
