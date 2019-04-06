@@ -23,7 +23,6 @@ create_option! {
 	///     * TLS
 	LocalAddr -> SocketAddr:
 	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_LOCADDR as *const _ as _);
-	Set _s _v = panic!("NNG_OPT_LOCADDR is a read-only option");
 }
 
 create_option! {
@@ -42,7 +41,6 @@ create_option! {
 	///     * TLS
 	RemAddr -> SocketAddr:
 	Get s = s.getopt_sockaddr(nng_sys::NNG_OPT_REMADDR as *const _ as _);
-	Set _s _v = panic!("NNG_OPT_REMADDR is a read-only option");
 }
 
 create_option! {
@@ -64,7 +62,6 @@ create_option! {
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng.7.html#raw_mode
 	Raw -> bool:
 	Get s = s.getopt_bool(nng_sys::NNG_OPT_RAW as *const _ as _);
-	Set _s _v = panic!("NNG_OPT_RAW is a read-only option");
 }
 
 create_option! {
@@ -249,7 +246,6 @@ create_option! {
 	/// * Dialers and Listeners can read this value.
 	Url -> String:
 	Get s = s.getopt_string(nng_sys::NNG_OPT_URL as *const _ as _);
-	Set _s _v = panic!("URL is a read-only option");
 }
 
 /// Options relating to the socket protocol.
@@ -306,7 +302,6 @@ pub mod protocol
 			///
 			/// * Sockets can set this option when using the Sub v0 protocol.
 			Subscribe -> Vec<u8>:
-			Get _s = panic!("Subscribe is a write-only option");
 			Set s val = s.setopt(nng_sys::NNG_OPT_SUB_SUBSCRIBE as *const _ as _, &val);
 		}
 
@@ -321,7 +316,6 @@ pub mod protocol
 			///
 			/// * Sockets can set this option when using the Sub v0 protocol.
 			Unsubscribe -> Vec<u8>:
-			Get _s = panic!("Subscribe is a write-only option");
 			Set s val = s.setopt(nng_sys::NNG_OPT_SUB_UNSUBSCRIBE as *const _ as _, &val);
 		}
 	}
@@ -419,7 +413,6 @@ pub mod transport
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
 			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
-			Get _s = panic!("IPC Security Descriptor is a write-only option");
 			Set s val = s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val);
 		}
 	}
@@ -500,7 +493,6 @@ pub mod transport
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CaFile -> String:
-			Get _s = panic!("CA File is a write-only option");
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE as *const _ as _, &val);
 		}
 
@@ -520,7 +512,6 @@ pub mod transport
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			CertKeyFile -> String:
-			Get _s = panic!("Cert Key File is a write-only option");
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE as *const _ as _, &val);
 		}
 
@@ -539,7 +530,6 @@ pub mod transport
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
 			TlsVerified -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED as *const _ as _);
-			Set _s _v = panic!("NNG_OPT_TLS_VERIFIED is a read-only option");
 		}
 	}
 

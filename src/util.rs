@@ -58,7 +58,33 @@ macro_rules! create_option
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
 			fn set<T: $crate::options::private::HasOpts>($s: &T, $v: Self::OptType) -> $crate::error::Result<()> { $sexpr }
 		}
-	}
+	};
+
+	(
+		$(#[$attr:meta])*
+		$opt:ident -> $ot:ty:
+		Set $s:ident $v:ident = $sexpr:stmt;
+	) => {
+		create_option!(
+		$(#[$attr])*
+		$opt -> $ot:
+		Get _g = unreachable!("should not have been implemented - option is write-only");
+		Set $s $v = $sexpr;
+		);
+	};
+
+	(
+		$(#[$attr:meta])*
+		$opt:ident -> $ot:ty:
+		Get $g:ident = $gexpr:stmt;
+	) => {
+		create_option!(
+		$(#[$attr])*
+		$opt -> $ot:
+		Get $g = $gexpr;
+		Set _s _v = unreachable!("should not have been implemented - option is read-only");
+		);
+	};
 }
 
 /// Implements the specified options for the type.
