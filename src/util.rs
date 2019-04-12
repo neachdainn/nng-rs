@@ -1,7 +1,13 @@
 //! Utility code.
 //!
 //! Things that make developing this crate slightly easier.
-use std::time::Duration;
+use std::{
+	ptr::NonNull,
+	os::raw::{c_char, c_int, c_void},
+	time::Duration,
+};
+
+use crate::error::{Error, Result};
 
 /// Converts a `nng` return code into a Rust `Result`.
 macro_rules! rv2res {
@@ -9,26 +15,11 @@ macro_rules! rv2res {
 		match $rv {
 			0 => Ok($ok),
 			e => Err($crate::error::Error::from_code(e as u32)),
-			}
+		}
 	};
 
 	($rv:expr) => {
 		rv2res!($rv, ())
-	};
-}
-
-/// Checks an `nng` return code and validates the pointer.
-macro_rules! validate_ptr {
-	($rv:ident, $ptr:ident) => {
-		validate_ptr!($rv, $ptr, {})
-	};
-
-	($rv:ident, $ptr:ident, $before:tt) => {
-		if $rv != 0 {
-			$before;
-			return Err($crate::error::Error::from_code($rv as u32));
-			}
-		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	};
 }
 
@@ -138,11 +129,7 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub(crate) unsafe extern "C" fn fake_opt<H, T>(
-	_: H,
-	_: *const std::os::raw::c_char,
-	_: T,
-) -> std::os::raw::c_int
+pub(crate) unsafe extern "C" fn fake_opt<H, T>( _: H, _: *const c_char, _: T) -> c_int
 {
 	unimplemented!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
@@ -150,12 +137,12 @@ pub(crate) unsafe extern "C" fn fake_opt<H, T>(
 /// A catch-all function for unsupported generic options operations.
 pub(crate) unsafe extern "C" fn fake_genopt<H>(
 	_: H,
-	_: *const std::os::raw::c_char,
-	_: *const std::os::raw::c_void,
+	_: *const c_char,
+	_: *const c_void,
 	_: usize,
-) -> std::os::raw::c_int
+) -> c_int
 {
-	panic!("{} does not support the generic option operation", stringify!(H))
+	unimplemented!("{} does not support the generic option operation", stringify!(H))
 }
 
 /// Converts a Rust Duration into an `nng_duration`.
@@ -189,5 +176,16 @@ pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 	}
 	else {
 		panic!("Unexpected value for `nng_duration` ({})", ms)
+	}
+}
+
+/// Checks an `nng` return code and validates the pointer, returning a `NonNull`.
+#[inline]
+pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
+{
+	if rv != 0 {
+		Err(Error::from_code(rv as u32))
+	} else {
+		Ok(NonNull::new(ptr).expect("NNG returned a null pointer from a successful function"))
 	}
 }

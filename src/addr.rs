@@ -1,7 +1,4 @@
-use std::fmt;
-use std::net::{SocketAddrV4, SocketAddrV6};
-use std::os::raw::c_char;
-use std::path::PathBuf;
+use std::{fmt, net::{SocketAddrV4, SocketAddrV6}, os::raw::c_char, path::PathBuf};
 
 /// Represents the addresses used by the underlying transports.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

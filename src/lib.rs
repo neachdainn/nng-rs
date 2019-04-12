@@ -114,12 +114,14 @@ mod socket;
 pub mod aio;
 pub mod options;
 
-pub use crate::addr::SocketAddr;
-pub use crate::ctx::Context;
-pub use crate::dialer::{Dialer, DialerOptions};
-pub use crate::error::{Error, Result};
-pub use crate::listener::{Listener, ListenerOptions};
-pub use crate::message::{Body, Header, Message};
-pub use crate::pipe::{Pipe, PipeEvent};
-pub use crate::protocol::Protocol;
-pub use crate::socket::Socket;
+pub use crate::{
+	addr::SocketAddr,
+	ctx::Context,
+	dialer::{Dialer, DialerOptions},
+	error::{Error, Result},
+	listener::{Listener, ListenerOptions},
+	message::{Body, Header, Message},
+	pipe::{Pipe, PipeEvent},
+	protocol::Protocol,
+	socket::Socket,
+};

@@ -18,11 +18,9 @@
 //! See the [nng documentation][1] for more information.
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
-use std::ffi::CString;
-use std::cmp;
+use std::{cmp, ffi::CString};
 
-use crate::error::{Error, Result};
-use crate::socket::Socket;
+use crate::{error::{Error, Result}, socket::Socket};
 
 /// A constructed and running dialer.
 ///

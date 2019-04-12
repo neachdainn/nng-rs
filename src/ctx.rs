@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::aio::Aio;
-use crate::error::{Result, SendResult};
-use crate::message::Message;
-use crate::socket::Socket;
+use crate::{aio::Aio, error::{Result, SendResult}, message::Message, socket::Socket};
 
 /// A socket context.
 ///

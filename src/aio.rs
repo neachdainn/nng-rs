@@ -1,14 +1,20 @@
 //! Asynchonous I/O operaions.
-use std::{ptr, fmt};
-use std::panic::{AssertUnwindSafe, catch_unwind, UnwindSafe};
-use std::os::raw::c_void;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+	fmt,
+	os::raw::c_void,
+	panic::{AssertUnwindSafe, catch_unwind, UnwindSafe},
+	ptr::{self, NonNull},
+	sync::{Arc, Mutex},
+	time::Duration,
+};
 
-use crate::ctx::Context;
-use crate::error::{Error, Result, SendResult};
-use crate::message::Message;
-use crate::socket::Socket;
+use crate::{
+	ctx::Context,
+	error::{Error, Result, SendResult},
+	message::Message,
+	socket::Socket,
+	util::{duration_to_nng, validate_ptr},
+};
 use log::error;
 
 /// A structure used for asynchronous I/O operation.
@@ -84,7 +90,8 @@ impl From<AioResult> for Result<Option<Message>>
 pub struct WaitingAio
 {
 	/// The handle to the NNG AIO object.
-	handle: *mut nng_sys::nng_aio,
+	// I am not 100% certain about the covariant status of this pointer but I think this is right.
+	handle: NonNull<nng_sys::nng_aio>,
 
 	/// The current state of the AIO object.
 	state: State,
@@ -97,17 +104,15 @@ impl WaitingAio
 	{
 		let mut aio = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_aio_alloc(&mut aio, None, ptr::null_mut()) };
-		validate_ptr!(rv, aio);
+		let handle = validate_ptr(rv, aio)?;
 
-		Ok(Self { handle: aio, state: State::Inactive })
+		Ok(Self { handle, state: State::Inactive })
 	}
 
 	/// Cancel the currently running I/O operation.
 	pub fn cancel(&mut self)
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
-		unsafe { nng_sys::nng_aio_cancel(self.handle); }
+		unsafe { nng_sys::nng_aio_cancel(self.handle()); }
 	}
 
 	/// Set the timeout of asynchronous operations.
@@ -120,10 +125,8 @@ impl WaitingAio
 	/// allow the operation to properly begin before giving up!
 	pub fn set_timeout(&mut self, dur: Option<Duration>)
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
-		let ms = crate::util::duration_to_nng(dur);
-		unsafe { nng_sys::nng_aio_set_timeout(self.handle, ms); }
+		let ms = duration_to_nng(dur);
+		unsafe { nng_sys::nng_aio_set_timeout(self.handle(), ms); }
 	}
 
 	/// Waits for an I/O operation to complete.
@@ -132,12 +135,10 @@ impl WaitingAio
 	/// immediately.
 	pub fn wait(&mut self) -> AioResult
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		// The wait function will return immediately if there is no AIO operation started.
 		let rv = unsafe {
-			nng_sys::nng_aio_wait(self.handle);
-			nng_sys::nng_aio_result(self.handle) as u32
+			nng_sys::nng_aio_wait(self.handle());
+			nng_sys::nng_aio_result(self.handle()) as u32
 		};
 
 		let res = match (self.state, rv) {
@@ -145,18 +146,22 @@ impl WaitingAio
 
 			(State::Sending, 0) => AioResult::SendOk,
 			(State::Sending, e) => unsafe {
-				let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(self.handle));
+				let msgp = nng_sys::nng_aio_get_msg(self.handle());
+				let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 				AioResult::SendErr(msg, Error::from_code(e))
 			},
 
 			(State::Receiving, 0) => unsafe {
-				let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(self.handle));
+				let msgp = nng_sys::nng_aio_get_msg(self.handle());
+				let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 				AioResult::RecvOk(msg)
 			},
 			(State::Receiving, e) => AioResult::RecvErr(Error::from_code(e)),
 
 			(State::Sleeping, 0) => AioResult::SleepOk,
 			(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
+
+			(State::Building, _) => unreachable!(),
 		};
 
 		self.state = State::Inactive;
@@ -174,11 +179,9 @@ impl WaitingAio
 	/// operation in progress, this function will return `Error::TryAgain`.
 	pub fn sleep(&mut self, dur: Duration) -> Result<()>
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		if self.state == State::Inactive {
-			let ms = crate::util::duration_to_nng(Some(dur));
-			unsafe { nng_sys::nng_sleep_aio(ms, self.handle); }
+			let ms = duration_to_nng(Some(dur));
+			unsafe { nng_sys::nng_sleep_aio(ms, self.handle()); }
 			self.state = State::Sleeping;
 
 			Ok(())
@@ -186,18 +189,25 @@ impl WaitingAio
 			Err(Error::TryAgain)
 		}
 	}
+
+	/// Return the pointer to the underlying AIO object.
+	///
+	/// This function exists because I don't the extra verbosity caused by using `NonNull`.
+	#[inline]
+	fn handle(&self) -> *mut nng_sys::nng_aio
+	{
+		self.handle.as_ptr()
+	}
 }
 
 impl self::private::Sealed for WaitingAio
 {
 	fn send_socket(&mut self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		if self.state == State::Inactive {
 			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle, msg.into_ptr());
-				nng_sys::nng_send_aio(socket.handle(), self.handle);
+				nng_sys::nng_aio_set_msg(self.handle(), msg.into_ptr().as_ptr());
+				nng_sys::nng_send_aio(socket.handle(), self.handle());
 			}
 
 			self.state = State::Sending;
@@ -209,10 +219,8 @@ impl self::private::Sealed for WaitingAio
 
 	fn recv_socket(&mut self, socket: &Socket) -> Result<()>
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		if self.state == State::Inactive {
-			unsafe { nng_sys::nng_recv_aio(socket.handle(), self.handle); }
+			unsafe { nng_sys::nng_recv_aio(socket.handle(), self.handle()); }
 
 			self.state = State::Receiving;
 			Ok(())
@@ -223,12 +231,10 @@ impl self::private::Sealed for WaitingAio
 
 	fn send_ctx(&mut self, ctx: &Context, msg: Message) -> SendResult<()>
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		if self.state == State::Inactive {
 			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle, msg.into_ptr());
-				nng_sys::nng_ctx_send(ctx.handle(), self.handle);
+				nng_sys::nng_aio_set_msg(self.handle(), msg.into_ptr().as_ptr());
+				nng_sys::nng_ctx_send(ctx.handle(), self.handle());
 			}
 
 			self.state = State::Sending;
@@ -240,10 +246,8 @@ impl self::private::Sealed for WaitingAio
 
 	fn recv_ctx(&mut self, ctx: &Context) -> Result<()>
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		if self.state == State::Inactive {
-			unsafe { nng_sys::nng_ctx_recv(ctx.handle(), self.handle); }
+			unsafe { nng_sys::nng_ctx_recv(ctx.handle(), self.handle()); }
 
 			self.state = State::Receiving;
 			Ok(())
@@ -258,15 +262,13 @@ impl Drop for WaitingAio
 {
 	fn drop(&mut self)
 	{
-		debug_assert!(!self.handle.is_null(), "Null AIO pointer");
-
 		// The AIO object may contain a message that we want to free. We could either try to do some
 		// crazy logic around an immediate call to `nng_aio_free`, or we could just cancel, wait,
 		// and then free.
 		self.cancel();
 		let _ = self.wait();
 
-		unsafe { nng_sys::nng_aio_free(self.handle) };
+		unsafe { nng_sys::nng_aio_free(self.handle()) };
 	}
 }
 
@@ -370,10 +372,11 @@ impl CallbackAio
 	pub fn new<F>(callback: F) -> Result<Self>
 		where F: Fn(&mut CallbackAio, AioResult) + Sync + Send + UnwindSafe + 'static
 	{
-		// The shared inner needs to have a fixed location before we can do anything else.
+		// The shared inner needs to have a fixed location before we can do anything else. Make sure
+		// to mark the AIO as "Building" so we don't try to free a dangling pointer.
 		let inner = Arc::new(Mutex::new(Inner {
-			handle: AioPtr(ptr::null_mut()),
-			state: State::Inactive,
+			handle: AioPtr(NonNull::dangling()),
+			state: State::Building,
 		}));
 
 		// Now, create the CallbackAio that will be stored within the callback itself.
@@ -393,18 +396,22 @@ impl CallbackAio
 
 					(State::Sending, 0) => AioResult::SendOk,
 					(State::Sending, e) => {
-						let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(l.handle.ptr()));
+						let msgp = nng_sys::nng_aio_get_msg(l.handle.ptr());
+						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::SendErr(msg, Error::from_code(e))
 					},
 
 					(State::Receiving, 0) => {
-						let msg = Message::from_ptr(nng_sys::nng_aio_get_msg(l.handle.ptr()));
+						let msgp = nng_sys::nng_aio_get_msg(l.handle.ptr());
+						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::RecvOk(msg)
 					},
 					(State::Receiving, e) => AioResult::RecvErr(Error::from_code(e)),
 
 					(State::Sleeping, 0) => AioResult::SleepOk,
 					(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
+
+					(State::Building, _) => unreachable!(),
 				};
 
 				l.state = State::Inactive;
@@ -414,6 +421,9 @@ impl CallbackAio
 			callback(&mut aio, res)
 		};
 		let callback = Some(AssertUnwindSafe(CallbackAio::alloc_trampoline(&inner, bounce)?));
+
+		// If we made it here, the type is officially done building and we can mark is as such.
+		inner.lock().unwrap().state = State::Inactive;
 		Ok(Self { inner, callback })
 	}
 
@@ -489,10 +499,11 @@ impl CallbackAio
 		where F: Fn() + Sync + Send + UnwindSafe + 'static
 	{
 		let mut boxed = Box::new(bounce);
-		let mut l = inner.lock().unwrap();
-		let aio: *mut *mut nng_sys::nng_aio = &mut *l.handle.ptr_ref() as _;
+
+		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
+		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
 		let rv = unsafe { nng_sys::nng_aio_alloc(
-				aio,
+				aiop,
 				Some(CallbackAio::trampoline::<F>),
 				&mut *boxed as *mut _ as _
 		)};
@@ -504,13 +515,13 @@ impl CallbackAio
 		//
 		// This might leak memory (I'm not sure, depends on what NNG did), but a small amount of
 		// lost memory is better than a segfaulting Rust library.
-		if rv != 0 && !l.handle.ptr().is_null() {
+		if rv != 0 && !aio.is_null() {
 			error!("NNG returned a non-null pointer from a failed function");
-			l.handle = AioPtr(ptr::null_mut());
+			return Err(Error::Unknown(0));
 		}
+		inner.lock().unwrap().handle = AioPtr(validate_ptr(rv, aio)?);
 
-		let ptr = l.handle.ptr();
-		validate_ptr!(rv, ptr);
+		// Put the callback in the blackbox.
 		Ok(Arc::new(move || { let _ = boxed; }))
 	}
 
@@ -680,7 +691,7 @@ impl Inner
 
 		if self.state == State::Inactive {
 			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr());
+				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr().as_ptr());
 				nng_sys::nng_send_aio(socket.handle(), self.handle.ptr());
 			}
 
@@ -711,7 +722,7 @@ impl Inner
 
 		if self.state == State::Inactive {
 			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr());
+				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr().as_ptr());
 				nng_sys::nng_ctx_send(ctx.handle(), self.handle.ptr());
 			}
 
@@ -741,14 +752,15 @@ impl Drop for Inner
 {
 	fn drop(&mut self)
 	{
-		// It is possible for this to be dropping while the pointer is null. The Inner struct is
-		// created before the pointer is allocated and it will be dropped with a null pointer if the
-		// NNG allocation fails.
-		if !self.handle.ptr().is_null() {
+		// It is possible for this to be dropping while the pointer is dangling. The Inner struct is
+		// created before the pointer is allocated and it will be dropped with a dangling pointer if
+		// the NNG allocation fails.
+		if self.state != State::Building {
 			// If we are being dropped, then the callback is being dropped. If the callback is being
-			// dropped, then an instance of `CallbackAio` shut down the AIO. This will either run the
-			// callback and clean up the Message memory or the AIO didn't have an operation running and
-			// there is nothing to clean up. As such, we don't need to do anything except free the AIO.
+			// dropped, then an instance of `CallbackAio` shut down the AIO. This will either run
+			// the callback and clean up the Message memory or the AIO didn't have an operation
+			// running and there is nothing to clean up. As such, we don't need to do anything
+			// except free the AIO.
 			unsafe { nng_sys::nng_aio_free(self.handle.ptr()); }
 		}
 	}
@@ -758,6 +770,13 @@ impl Drop for Inner
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State
 {
+	/// The AIO is in the process of being constructed.
+	///
+	/// This exists purely so that the callback forms of the AIO (which need a non-moving pointer)
+	/// can signal that they failed to fully construct. This should never be seen outside of that
+	/// context.
+	Building,
+
 	/// There is currently nothing happening on the AIO.
 	Inactive,
 
@@ -774,19 +793,13 @@ enum State
 /// Newtype to make the `*mut nng_aio` implement `Send`.
 #[repr(transparent)]
 #[derive(Debug)]
-struct AioPtr(*mut nng_sys::nng_aio);
+struct AioPtr(NonNull<nng_sys::nng_aio>);
 impl AioPtr
 {
 	/// Returns the wrapped pointer.
 	fn ptr(&self) -> *mut nng_sys::nng_aio
 	{
-		self.0
-	}
-
-	/// Returns a reference to the wrapped pointer.
-	fn ptr_ref(&mut self) -> &mut *mut nng_sys::nng_aio
-	{
-		&mut self.0
+		self.0.as_ptr()
 	}
 }
 unsafe impl Send for AioPtr { }

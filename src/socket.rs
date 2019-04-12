@@ -1,16 +1,21 @@
-use std::ffi::CString;
-use std::os::raw::c_void;
-use std::panic::{catch_unwind, RefUnwindSafe};
-use std::{fmt, ptr};
-use std::sync::{Arc, Mutex};
+use std::{
+	ffi::CString,
+	fmt,
+	os::raw::c_void,
+	panic::{catch_unwind, RefUnwindSafe},
+	ptr,
+	sync::{Arc, Mutex},
+};
 
+use crate::{
+	aio::Aio,
+	error::{Error, Result, SendResult},
+	message::Message,
+	pipe::{Pipe, PipeEvent},
+	protocol::Protocol,
+	util::validate_ptr,
+};
 use log::error;
-
-use crate::aio::Aio;
-use crate::error::{Error, Result, SendResult};
-use crate::message::Message;
-use crate::pipe::{Pipe, PipeEvent};
-use crate::protocol::Protocol;
 
 // Using a type alias like this makes Clippy happy.
 type PipeNotifyFn = dyn FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
@@ -166,8 +171,8 @@ impl Socket
 
 		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags as i32) };
 
-		validate_ptr!(rv, msgp);
-		Ok(unsafe { Message::from_ptr(msgp) })
+		let msgp = validate_ptr(rv, msgp)?;
+		Ok(Message::from_ptr(msgp))
 	}
 
 	/// Sends a message on the socket.
@@ -189,7 +194,7 @@ impl Socket
 
 		unsafe {
 			let msgp = data.into_ptr();
-			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp, flags as i32);
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as i32);
 
 			if rv != 0 {
 				Err((Message::from_ptr(msgp), Error::from_code(rv as u32)))
@@ -265,7 +270,7 @@ impl Socket
 				)
 			})
 			.map(|rv| rv2res!(rv))
-			.fold(Ok(()), |acc, res| acc.and(res))
+			.fold(Ok(()), std::result::Result::and)
 	}
 
 	/// Close the underlying socket.

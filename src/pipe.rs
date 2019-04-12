@@ -1,7 +1,6 @@
 use std::cmp;
 
-use crate::dialer::Dialer;
-use crate::listener::Listener;
+use crate::{dialer::Dialer, listener::Listener};
 
 /// A nanomsg-next-generation pipe.
 ///

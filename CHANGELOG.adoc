@@ -35,6 +35,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 		*** Several possible unsoundness issues were identified and fixed.
 	** This opens up the possibility of new types of `Aio` objects, such as one that returns a `Future` or utilizes MPSC channels.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
+* `Message::try_from` was renamed to `Message::from_slice`
 
 === Deprecated ===
 
