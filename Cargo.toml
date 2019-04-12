@@ -21,7 +21,7 @@ default = ["build-nng"]
 build-nng = ["nng-sys/build-nng"]
 
 [dependencies]
-nng-sys = { git = "https://github.com/jeikabu/nng-rust", default-features = false }
+nng-sys = { git = "https://github.com/jeikabu/nng-rust", branch = "feature/nng_1.2", default-features = false }
 log = "0.4"
 
 [target.'cfg(windows)'.dependencies]

@@ -1,5 +1,5 @@
 use std::ffi::CString;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::c_void;
 use std::panic::{catch_unwind, RefUnwindSafe};
 use std::{fmt, ptr};
 use std::sync::{Arc, Mutex};
@@ -259,7 +259,7 @@ impl Socket
 			.map(|&ev| unsafe {
 				nng_sys::nng_pipe_notify(
 					self.inner.handle,
-					ev as i32,
+					ev,
 					Some(Self::trampoline),
 					&*self.inner as *const _ as _,
 				)
@@ -307,7 +307,7 @@ impl Socket
 	///
 	/// This is unsafe because you have to be absolutely positive that you
 	/// really do have a pointer to an `Inner` type..
-	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: c_int, arg: *mut c_void)
+	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: nng_sys::nng_pipe_ev, arg: *mut c_void)
 	{
 		let res = catch_unwind(|| unsafe {
 			let pipe = Pipe::from_nng_sys(pipe);
