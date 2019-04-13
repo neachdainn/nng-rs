@@ -17,7 +17,12 @@ use crate::{
 };
 use log::error;
 
-// Using a type alias like this makes Clippy happy.
+// This is different from the AIO callback function in that it will be behind a mutex due to the
+// differences in how the callback function is set. The AIO callback is set exactly once, at object
+// creation, and can't ever be changed until the AIO is freed. It does not need to worry about the
+// function being changed while the callback is running. The pipe notify function, on the other
+// hand, can be set and unset as the user desires, so we need to keep it locked when the thing is
+// running and we may as well let the user take advantage of that lock.
 type PipeNotifyFn = dyn FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
 
 /// A nanomsg-next-generation socket.
@@ -236,8 +241,17 @@ impl Socket
 	///
 	/// Only a single callback function can be supplied at a time. Registering a
 	/// new callback implicitely unregisters any previously registered. If an
-	/// error is returned, then the callback may be registered for a subset of
-	/// the events.
+	/// error is returned, then the callback could have been registered for a subset of the events.
+	///
+	/// ## Panicking
+	///
+	/// If the callback function panics, the program will abort. This is to match the behavior
+	/// specified in Rust 1.33 where the program will abort when it panics across an `extern "C"`
+	/// boundary. This library will produce the abort regardless of which version of Rustc is being
+	/// used.
+	///
+	/// The user is responsible for either having a callback that never panics or catching and
+	/// handling the panic within the callback.
 	pub fn pipe_notify<F>(&mut self, callback: F) -> Result<()>
 	where
 		F: FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static,
@@ -311,7 +325,7 @@ impl Socket
 	/// Trampoline function for calling the pipe event closure from C.
 	///
 	/// This is unsafe because you have to be absolutely positive that you
-	/// really do have a pointer to an `Inner` type..
+	/// really do have a pointer to an `Inner` type.
 	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: nng_sys::nng_pipe_ev, arg: *mut c_void)
 	{
 		let res = catch_unwind(|| unsafe {
@@ -329,8 +343,10 @@ impl Socket
 			}
 		});
 
-		if let Err(e) = res {
-			error!("Panic in pipe notify callback function: {:?}", e);
+		// See #6 for a "discussion" about why we abort.
+		if res.is_err() {
+			error!("Panic in pipe notify callback function");
+			std::process::abort();
 		}
 	}
 }

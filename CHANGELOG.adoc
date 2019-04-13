@@ -23,8 +23,9 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** Additionally, the `Hash` trait has been derived for the new `Error` type.
 * The `Aio` type is now a trait that is implemented by two different types. (#24)
 	** This leads to a cleaner public API.
-		*** `Aio::wait` was nearly useless on an `Aio` with a callback
-		*** `Aio::result` was pointless on an `Aio` without a callback
+		*** `Aio::wait` was nearly useless on an `Aio` with a callback.
+		*** `Aio::result` was pointless on an `Aio` without a callback.
+		*** There is not longer a forced mutex locking on the callback.
 	** This leads to cleaner user code.
 		*** There is much less unwrapping to do in order to get the operation results.
 		*** In simple cases, the `AioResult` type will fill the role of user-written state types.
@@ -35,7 +36,9 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 		*** Several possible unsoundness issues were identified and fixed.
 	** This opens up the possibility of new types of `Aio` objects, such as one that returns a `Future` or utilizes MPSC channels.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
-* `Message::try_from` was renamed to `Message::from_slice`
+* `Message::try_from` was renamed to `Message::from_slice`.
+* The pipe notify callback changed from `FnMut + Send` to `Fn + Sync + Send` to avoid unneeded locking.
+* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33.
 
 === Deprecated ===
 
