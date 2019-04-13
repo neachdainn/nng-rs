@@ -38,11 +38,11 @@ use nng::*;
 
 // Set up the server and listen for connections on the specified address.
 let address = "inproc://nng/lib.rs";
-let mut server = Socket::new(Protocol::Rep0).unwrap();
+let server = Socket::new(Protocol::Rep0).unwrap();
 server.listen(address).unwrap();
 
 // Set up the client and connect to the specified address
-let mut client = Socket::new(Protocol::Req0).unwrap();
+let client = Socket::new(Protocol::Req0).unwrap();
 client.dial(address).unwrap();
 
 // Send the request from the client to the server.

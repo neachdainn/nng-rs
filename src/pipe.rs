@@ -9,7 +9,7 @@ use crate::{dialer::Dialer, listener::Listener};
 /// automatically associated with a single socket.
 ///
 /// Most applications should never concern themselves with individual pipes.
-/// However, it is possible to access a piope when more information about the
+/// However, it is possible to access a pipe when more information about the
 /// source of the message is needed or when more control is required over
 /// message delivery.
 ///

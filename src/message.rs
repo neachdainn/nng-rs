@@ -263,7 +263,7 @@ impl Body
 		};
 
 		// We are guarding against this, so this should never happen
-		assert!(rv == 0, "Message was too short to truncate");
+		debug_assert!(rv == 0, "Message was too short to truncate");
 	}
 
 	/// Clears the message body.
@@ -365,7 +365,7 @@ impl Header
 		};
 
 		// We are guarding against this, so this should never happen
-		assert!(rv == 0, "Message was too short to truncate");
+		debug_assert!(rv == 0, "Message was too short to truncate");
 	}
 
 	/// Clears the message header.
