@@ -26,7 +26,7 @@
 //!
 //! // Set up the server and listen for connections on the specified address.
 //! let address = "inproc://nng/lib.rs";
-//! let mut server = Socket::new(Protocol::Rep0).unwrap();
+//! let server = Socket::new(Protocol::Rep0).unwrap();
 //! server.listen(address).unwrap();
 //!
 //! // Set up the client and connect to the specified address

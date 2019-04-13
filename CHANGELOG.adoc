@@ -37,8 +37,10 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** This opens up the possibility of new types of `Aio` objects, such as one that returns a `Future` or utilizes MPSC channels.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
 * `Message::try_from` was renamed to `Message::from_slice`.
-* The pipe notify callback changed from `FnMut + Send` to `Fn + Sync + Send` to avoid unneeded locking.
 * Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33.
+* The following functions now take `&self` instead of `&mut self` (#27):
+	** `Socket::{dial, listen, recv, send, recv_async, send_async, pipe_notify}`.
+	** `Context::{send, recv}`.
 
 === Deprecated ===
 

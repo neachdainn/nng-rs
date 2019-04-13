@@ -46,7 +46,7 @@ fn main() -> Result<(), nng::Error>
 /// Run the client portion of the program.
 fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Req0)?;
+	let s = Socket::new(Protocol::Req0)?;
 	s.dial(url)?;
 
 	let mut req = Message::zeros(mem::size_of::<u64>())?;
@@ -67,7 +67,7 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 fn server(url: &str) -> Result<(), nng::Error>
 {
 	// Create the socket
-	let mut s = Socket::new(Protocol::Rep0)?;
+	let s = Socket::new(Protocol::Rep0)?;
 
 	// Create all of the worker contexts
 	let mut workers: Vec<_> = (0..PARALLEL)
@@ -93,7 +93,7 @@ fn server(url: &str) -> Result<(), nng::Error>
 }
 
 /// Callback function for workers.
-fn worker_callback(aio: &mut CallbackAio, ctx: &Context, res: AioResult)
+fn worker_callback(aio: &CallbackAio, ctx: &Context, res: AioResult)
 {
 	match res {
 		// We successfully did nothing.

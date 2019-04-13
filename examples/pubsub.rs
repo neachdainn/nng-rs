@@ -35,7 +35,7 @@ fn main() -> Result<(), nng::Error>
 /// Run the publisher portion of the program.
 fn publisher(url: &str) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Pub0)?;
+	let s = Socket::new(Protocol::Pub0)?;
 	let count = Arc::new(AtomicUsize::new(0));
 	let count_clone = count.clone();
 
@@ -66,7 +66,7 @@ fn publisher(url: &str) -> Result<(), nng::Error>
 /// Run the subscriber portion of the program.
 fn subscriber(url: &str) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Sub0)?;
+	let s = Socket::new(Protocol::Sub0)?;
 	s.dial(url)?;
 
 	println!("SUBSCRIBER: SUBSCRIBING TO ALL TOPICS");

@@ -1,7 +1,7 @@
 use std::{
 	ffi::CString,
 	fmt,
-	os::raw::c_void,
+	os::raw::{c_int, c_void},
 	panic::{catch_unwind, RefUnwindSafe},
 	ptr,
 	sync::{Arc, Mutex},
@@ -103,13 +103,13 @@ impl Socket
 	/// See the [nng documentation][1] for more information.
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
-	pub fn dial(&mut self, url: &str) -> Result<()>
+	pub fn dial(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as i32)
+			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as c_int)
 		};
 
 		rv2res!(rv)
@@ -136,13 +136,13 @@ impl Socket
 	/// See the [nng documentation][1] for more information.
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
-	pub fn listen(&mut self, url: &str) -> Result<()>
+	pub fn listen(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as i32)
+			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as c_int)
 		};
 
 		rv2res!(rv)
@@ -169,12 +169,12 @@ impl Socket
 	/// For example, with a _req_ socket a message may only be received after a
 	/// request has been sent. Furthermore, some protocols may not support
 	/// receiving data at all, such as _pub_.
-	pub fn recv(&mut self) -> Result<Message>
+	pub fn recv(&self) -> Result<Message>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
-		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags as i32) };
+		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags as c_int) };
 
 		let msgp = validate_ptr(rv, msgp)?;
 		Ok(Message::from_ptr(msgp))
@@ -193,13 +193,13 @@ impl Socket
 	///
 	/// If the message cannot be sent, then it is returned to the caller as a
 	/// part of the `Error`.
-	pub fn send(&mut self, data: Message) -> SendResult<()>
+	pub fn send(&self, data: Message) -> SendResult<()>
 	{
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		unsafe {
 			let msgp = data.into_ptr();
-			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as i32);
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
 
 			if rv != 0 {
 				Err((Message::from_ptr(msgp), Error::from_code(rv as u32)))
@@ -210,19 +210,6 @@ impl Socket
 		}
 	}
 
-	/// Send a message using the socket asynchronously.
-	///
-	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function.
-	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`
-	/// and return the message to the caller.
-	pub fn send_async<A: Aio>(&mut self, aio: &mut A, msg: Message) -> SendResult<()>
-	{
-		aio.send_socket(self, msg)
-	}
-
 	/// Receive a message using the socket asynchronously.
 	///
 	/// The result of this operation will be available either after calling
@@ -231,9 +218,22 @@ impl Socket
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `Error::TryAgain`.
-	pub fn recv_async<A: Aio>(&mut self, aio: &mut A) -> Result<()>
+	pub fn recv_async<A: Aio>(&self, aio: &A) -> Result<()>
 	{
 		aio.recv_socket(self)
+	}
+
+	/// Send a message using the socket asynchronously.
+	///
+	/// The result of this operation will be available either after calling
+	/// `Aio::wait` or inside of the callback function.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress, this function will return `Error::TryAgain`
+	/// and return the message to the caller.
+	pub fn send_async<A: Aio>(&self, aio: &A, msg: Message) -> SendResult<()>
+	{
+		aio.send_socket(self, msg)
 	}
 
 	/// Register a callback function to be called whenever a pipe event occurs
@@ -252,7 +252,7 @@ impl Socket
 	///
 	/// The user is responsible for either having a callback that never panics or catching and
 	/// handling the panic within the callback.
-	pub fn pipe_notify<F>(&mut self, callback: F) -> Result<()>
+	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
 		F: FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static,
 	{
