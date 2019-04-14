@@ -4,22 +4,25 @@
 //!
 //! From the [NNG Github Repository][1]:
 //!
-//! > NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a lightweight, broker-less
-//! library, offering a simple API to solve common recurring messaging problems, such as
-//! publish/subscribe, RPC-style request/reply, or service discovery. The API frees the programmer
-//! from worrying about details like connection management, retries, and other common
-//! considerations, so that they can focus on the application instead of the plumbing.
+//! > NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a
+//! lightweight, broker-less library, offering a simple API to solve common
+//! recurring messaging problems, such as publish/subscribe, RPC-style
+//! request/reply, or service discovery. The API frees the programmer
+//! from worrying about details like connection management, retries, and other
+//! common considerations, so that they can focus on the application instead of
+//! the plumbing.
 //!
 //! ## Nng-rs
 //!
-//! This crate provides a safe wrapper around the NNG library, seeking to maintain an API that is
-//! similar to the original library. As such, the majority of examples available online should be
-//! easy to apply to this crate.
+//! This crate provides a safe wrapper around the NNG library, seeking to
+//! maintain an API that is similar to the original library. As such, the
+//! majority of examples available online should be easy to apply to this crate.
 //!
 //! ### Examples
 //!
-//! The following example uses the [intra-process][2] transport to set up a [request][3]/[reply][4]
-//! socket pair. The "client" sends a String to the "server" which responds with a nice phrase.
+//! The following example uses the [intra-process][2] transport to set up a
+//! [request][3]/[reply][4] socket pair. The "client" sends a String to the
+//! "server" which responds with a nice phrase.
 //!
 //! ```
 //! use nng::*;
@@ -39,18 +42,18 @@
 //!
 //! // Receive the message on the server and send back the reply
 //! let request = {
-//!     let req = server.recv().unwrap();
-//!     String::from_utf8(req.to_vec()).unwrap()
-//! };
+//! 	let req = server.recv().unwrap();
+//! 	String::from_utf8(req.to_vec()).unwrap()
+//! 	};
 //! assert_eq!(request, "Ferris");
 //! let reply = format!("Hello, {}!", request).as_bytes().into();
 //! server.send(reply).unwrap();
 //!
 //! // Get the response on the client side.
 //! let reply = {
-//!     let rep = client.recv().unwrap();
-//!     String::from_utf8(rep.to_vec()).unwrap()
-//! };
+//! 	let rep = client.recv().unwrap();
+//! 	String::from_utf8(rep.to_vec()).unwrap()
+//! 	};
 //! assert_eq!(reply, "Hello, Ferris!");
 //! ```
 //!
@@ -63,7 +66,6 @@
 
 // The following lints are of critical importance.
 #![forbid(improper_ctypes)]
-
 // Utilize Clippy to try and keep this crate clean. At some point (cargo#5034, I think?) this
 // specification should be possible in either the Clippy TOML file or in the Cargo TOML file. These
 // should be moved there once possible.
@@ -73,7 +75,6 @@
 #![deny(unreachable_pub)]
 #![deny(clippy::all)]
 #![deny(clippy::wrong_pub_self_convention)]
-
 // Clippy doesn't enable these with "all". Best to keep them warnings.
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
@@ -83,7 +84,6 @@
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unimplemented)]
 #![warn(clippy::use_debug)]
-
 // I would like to be able to keep these on, but due to the nature of the crate it just isn't
 // feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C

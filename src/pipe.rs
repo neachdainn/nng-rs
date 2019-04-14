@@ -33,12 +33,7 @@ impl Pipe
 			(dialer, id)
 		};
 
-		if id > 0 {
-			Some(Dialer::from_nng_sys(dialer))
-		}
-		else {
-			None
-		}
+		if id > 0 { Some(Dialer::from_nng_sys(dialer)) } else { None }
 	}
 
 	/// Returns the listener associated with this pipe, if any.
@@ -50,12 +45,7 @@ impl Pipe
 			(listener, id)
 		};
 
-		if id > 0 {
-			Some(Listener::from_nng_sys(listener))
-		}
-		else {
-			None
-		}
+		if id > 0 { Some(Listener::from_nng_sys(listener)) } else { None }
 	}
 
 	/// Returns the ID of the owning socket.
@@ -101,10 +91,7 @@ impl Pipe
 	}
 
 	/// Returns the underlying nng handle for the pipe.
-	pub(crate) fn handle(&self) -> nng_sys::nng_pipe
-	{
-		self.handle
-	}
+	pub(crate) fn handle(&self) -> nng_sys::nng_pipe { self.handle }
 
 	/// Create a new Pipe handle from a libnng handle.
 	///
@@ -120,9 +107,7 @@ impl cmp::PartialEq for Pipe
 {
 	fn eq(&self, other: &Pipe) -> bool
 	{
-		unsafe {
-			nng_sys::nng_pipe_id(self.handle) == nng_sys::nng_pipe_id(other.handle)
-		}
+		unsafe { nng_sys::nng_pipe_id(self.handle) == nng_sys::nng_pipe_id(other.handle) }
 	}
 }
 

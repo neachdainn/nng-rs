@@ -19,7 +19,10 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::{cmp, ffi::CString};
 
-use crate::{error::{Error, Result}, socket::Socket};
+use crate::{
+	error::{Error, Result},
+	socket::Socket,
+};
 
 #[cfg(windows)]
 use crate::options::transport::ipc::IpcSecurityDescriptor;
@@ -96,7 +99,7 @@ impl Listener
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_listener) -> Self
 	{
 		assert!(
-			unsafe { nng_sys::nng_listener_id(handle) > 0},
+			unsafe { nng_sys::nng_listener_id(handle) > 0 },
 			"Listener handle is not initialized"
 		);
 		Listener { handle }
@@ -107,9 +110,7 @@ impl cmp::PartialEq for Listener
 {
 	fn eq(&self, other: &Listener) -> bool
 	{
-		unsafe {
-			nng_sys::nng_listener_id(self.handle) == nng_sys::nng_listener_id(other.handle)
-		}
+		unsafe { nng_sys::nng_listener_id(self.handle) == nng_sys::nng_listener_id(other.handle) }
 	}
 }
 

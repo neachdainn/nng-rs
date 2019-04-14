@@ -1,4 +1,9 @@
-use std::{fmt, net::{SocketAddrV4, SocketAddrV6}, os::raw::c_char, path::PathBuf};
+use std::{
+	fmt,
+	net::{SocketAddrV4, SocketAddrV6},
+	os::raw::c_char,
+	path::PathBuf,
+};
 
 /// Represents the addresses used by the underlying transports.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -64,8 +69,9 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 					let port = addr.s_in6.sa_port;
 					SocketAddr::Inet6(SocketAddrV6::new(v6_addr, port, 0, 0))
 				},
-				Ok(nng_sys::nng_sockaddr_family::NNG_AF_ZT) =>
-					SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_ZT) => {
+					SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt))
+				},
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_UNSPEC) | Err(_) => SocketAddr::Unspecified,
 			}
 		}

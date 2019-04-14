@@ -20,7 +20,10 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
 use std::{cmp, ffi::CString};
 
-use crate::{error::{Error, Result}, socket::Socket};
+use crate::{
+	error::{Error, Result},
+	socket::Socket,
+};
 
 /// A constructed and running dialer.
 ///
@@ -102,9 +105,7 @@ impl cmp::PartialEq for Dialer
 {
 	fn eq(&self, other: &Dialer) -> bool
 	{
-		unsafe {
-			nng_sys::nng_dialer_id(self.handle) == nng_sys::nng_dialer_id(other.handle)
-		}
+		unsafe { nng_sys::nng_dialer_id(self.handle) == nng_sys::nng_dialer_id(other.handle) }
 	}
 }
 

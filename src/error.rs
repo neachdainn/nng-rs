@@ -175,10 +175,7 @@ impl Error
 
 impl From<SendError> for Error
 {
-	fn from((_, e): SendError) -> Error
-	{
-		e
-	}
+	fn from((_, e): SendError) -> Error { e }
 }
 
 impl From<Error> for io::Error

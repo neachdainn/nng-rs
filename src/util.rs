@@ -2,8 +2,8 @@
 //!
 //! Things that make developing this crate slightly easier.
 use std::{
-	ptr::NonNull,
 	os::raw::{c_char, c_int, c_void},
+	ptr::NonNull,
 	time::Duration,
 };
 
@@ -15,7 +15,7 @@ macro_rules! rv2res {
 		match $rv {
 			0 => Ok($ok),
 			e => Err($crate::error::Error::from_code(e as u32)),
-		}
+			}
 	};
 
 	($rv:expr) => {
@@ -129,7 +129,7 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub(crate) unsafe extern "C" fn fake_opt<H, T>( _: H, _: *const c_char, _: T) -> c_int
+pub(crate) unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const c_char, _: T) -> c_int
 {
 	unimplemented!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
@@ -179,13 +179,15 @@ pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 	}
 }
 
-/// Checks an `nng` return code and validates the pointer, returning a `NonNull`.
+/// Checks an `nng` return code and validates the pointer, returning a
+/// `NonNull`.
 #[inline]
 pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
 {
 	if rv != 0 {
 		Err(Error::from_code(rv as u32))
-	} else {
+	}
+	else {
 		Ok(NonNull::new(ptr).expect("NNG returned a null pointer from a successful function"))
 	}
 }

@@ -17,12 +17,14 @@ use crate::{
 };
 use log::error;
 
-// This is different from the AIO callback function in that it will be behind a mutex due to the
-// differences in how the callback function is set. The AIO callback is set exactly once, at object
-// creation, and can't ever be changed until the AIO is freed. It does not need to worry about the
-// function being changed while the callback is running. The pipe notify function, on the other
-// hand, can be set and unset as the user desires, so we need to keep it locked when the thing is
-// running and we may as well let the user take advantage of that lock.
+// This is different from the AIO callback function in that it will be behind a
+// mutex due to the differences in how the callback function is set. The AIO
+// callback is set exactly once, at object creation, and can't ever be changed
+// until the AIO is freed. It does not need to worry about the function being
+// changed while the callback is running. The pipe notify function, on the other
+// hand, can be set and unset as the user desires, so we need to keep it locked
+// when the thing is running and we may as well let the user take advantage of
+// that lock.
 type PipeNotifyFn = dyn FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
 
 /// A nanomsg-next-generation socket.
@@ -157,10 +159,7 @@ impl Socket
 	///
 	/// The default is blocking operations. This setting is _not_ propagated to
 	/// other handles cloned from this one.
-	pub fn set_nonblocking(&mut self, nonblocking: bool)
-	{
-		self.nonblocking = nonblocking;
-	}
+	pub fn set_nonblocking(&mut self, nonblocking: bool) { self.nonblocking = nonblocking; }
 
 	/// Receives a message from the socket.
 	///
@@ -215,10 +214,7 @@ impl Socket
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `Error::TryAgain`.
-	pub fn recv_async(&self, aio: &Aio) -> Result<()>
-	{
-		aio.recv_socket(self)
-	}
+	pub fn recv_async(&self, aio: &Aio) -> Result<()> { aio.recv_socket(self) }
 
 	/// Send a message using the socket asynchronously.
 	///
@@ -235,17 +231,18 @@ impl Socket
 	///
 	/// Only a single callback function can be supplied at a time. Registering a
 	/// new callback implicitely unregisters any previously registered. If an
-	/// error is returned, then the callback could have been registered for a subset of the events.
+	/// error is returned, then the callback could have been registered for a
+	/// subset of the events.
 	///
 	/// ## Panicking
 	///
-	/// If the callback function panics, the program will abort. This is to match the behavior
-	/// specified in Rust 1.33 where the program will abort when it panics across an `extern "C"`
-	/// boundary. This library will produce the abort regardless of which version of Rustc is being
-	/// used.
+	/// If the callback function panics, the program will abort. This is to
+	/// match the behavior specified in Rust 1.33 where the program will abort
+	/// when it panics across an `extern "C"` boundary. This library will
+	/// produce the abort regardless of which version of Rustc is being used.
 	///
-	/// The user is responsible for either having a callback that never panics or catching and
-	/// handling the panic within the callback.
+	/// The user is responsible for either having a callback that never panics
+	/// or catching and handling the panic within the callback.
 	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
 		F: FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static,
@@ -296,10 +293,7 @@ impl Socket
 	///
 	/// This function will be called automatically when all handles have been
 	/// dropped.
-	pub fn close(self)
-	{
-		self.inner.close()
-	}
+	pub fn close(self) { self.inner.close() }
 
 	/// Get the positive identifier for the socket.
 	pub fn id(&self) -> i32
@@ -311,10 +305,7 @@ impl Socket
 	}
 
 	/// Returns the underlying `nng_socket`.
-	pub(crate) fn handle(&self) -> nng_sys::nng_socket
-	{
-		self.inner.handle
-	}
+	pub(crate) fn handle(&self) -> nng_sys::nng_socket { self.inner.handle }
 
 	/// Trampoline function for calling the pipe event closure from C.
 	///
@@ -441,8 +432,5 @@ impl fmt::Debug for Inner
 
 impl Drop for Inner
 {
-	fn drop(&mut self)
-	{
-		self.close()
-	}
+	fn drop(&mut self) { self.close() }
 }

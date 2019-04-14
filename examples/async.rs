@@ -111,7 +111,8 @@ fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult)
 		},
 
 		// Anything else is an error and we will just panic.
-		AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) =>
-			panic!("Error: {}", e),
+		AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) => {
+			panic!("Error: {}", e)
+		},
 	}
 }

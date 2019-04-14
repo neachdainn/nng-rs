@@ -6,7 +6,11 @@ use std::{
 	time::Duration,
 };
 
-use crate::{addr::SocketAddr, error::{Error, Result}, util::validate_ptr};
+use crate::{
+	addr::SocketAddr,
+	error::{Error, Result},
+	util::validate_ptr,
+};
 
 /// Exposes the ability to get and set the option.
 ///

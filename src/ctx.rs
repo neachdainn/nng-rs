@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use crate::{aio::Aio, error::{Result, SendResult}, message::Message, socket::Socket};
+use crate::{
+	aio::Aio,
+	error::{Result, SendResult},
+	message::Message,
+	socket::Socket,
+};
 
 /// A socket context.
 ///
@@ -13,7 +18,8 @@ use crate::{aio::Aio, error::{Result, SendResult}, message::Message, socket::Soc
 ///
 /// ## Examples
 ///
-/// See the documentation of the `Aio` type for examples on how to use Socket Contexts.
+/// See the documentation of the `Aio` type for examples on how to use Socket
+/// Contexts.
 #[derive(Clone, Debug)]
 pub struct Context
 {
@@ -49,20 +55,14 @@ impl Context
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `ErrorKind::TryAgain`
 	/// and return the message to the caller.
-	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()>
-	{
-		aio.send_ctx(self, msg)
-	}
+	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()> { aio.send_ctx(self, msg) }
 
 	/// Receive a message using the context asynchronously.
 	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `ErrorKind::TryAgain`.
-	pub fn recv(&self, aio: &Aio) -> Result<()>
-	{
-		aio.recv_ctx(self)
-	}
+	pub fn recv(&self, aio: &Aio) -> Result<()> { aio.recv_ctx(self) }
 
 	/// Closes the context.
 	///
@@ -74,16 +74,10 @@ impl Context
 	///
 	/// Closing the owning socket also closes this context. Additionally, the
 	/// context is closed once all handles have been dropped.
-	pub fn close(self)
-	{
-		self.inner.close()
-	}
+	pub fn close(self) { self.inner.close() }
 
 	/// Returns the inner `nng_ctx` object.
-	pub(crate) fn handle(&self) -> nng_sys::nng_ctx
-	{
-		self.inner.ctx
-	}
+	pub(crate) fn handle(&self) -> nng_sys::nng_ctx { self.inner.ctx }
 }
 
 #[rustfmt::skip]
@@ -132,8 +126,5 @@ impl Inner
 
 impl Drop for Inner
 {
-	fn drop(&mut self)
-	{
-		self.close()
-	}
+	fn drop(&mut self) { self.close() }
 }

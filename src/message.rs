@@ -7,7 +7,11 @@
 //! Messages are divided into a header and a body, where the body generally
 //! carries user-payload and the header carries protocol specific header
 //! information. Most applications will only interact with the body.
-use std::{ops::{Deref, DerefMut}, ptr::{self, NonNull}, slice};
+use std::{
+	ops::{Deref, DerefMut},
+	ptr::{self, NonNull},
+	slice,
+};
 
 use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 
@@ -54,7 +58,9 @@ impl Message
 
 		// When nng allocates a message, it fills the body and sets the size to
 		// whatever you requested. It makes sense in a C context, less so here.
-		unsafe { nng_sys::nng_msg_clear(msgp.as_ptr()); }
+		unsafe {
+			nng_sys::nng_msg_clear(msgp.as_ptr());
+		}
 
 		Ok(Message::from_ptr(msgp))
 	}
@@ -104,28 +110,16 @@ impl Message
 	}
 
 	/// Returns a reference to the message body.
-	pub fn body(&self) -> &Body
-	{
-		&self.body
-	}
+	pub fn body(&self) -> &Body { &self.body }
 
 	/// Returns a mutable reference to the message body.
-	pub fn body_mut(&mut self) -> &mut Body
-	{
-		&mut self.body
-	}
+	pub fn body_mut(&mut self) -> &mut Body { &mut self.body }
 
 	/// Returns a reference to the message header.
-	pub fn header(&self) -> &Header
-	{
-		&self.header
-	}
+	pub fn header(&self) -> &Header { &self.header }
 
 	/// Returns a mutable reference to the message header.
-	pub fn header_mut(&mut self) -> &mut Header
-	{
-		&mut self.header
-	}
+	pub fn header_mut(&mut self) -> &mut Header { &mut self.header }
 
 	/// Returns the pipe object associated with the message.
 	///
@@ -146,12 +140,7 @@ impl Message
 			(pipe, id)
 		};
 
-		if id > 0 {
-			Some(Pipe::from_nng_sys(pipe))
-		}
-		else {
-			None
-		}
+		if id > 0 { Some(Pipe::from_nng_sys(pipe)) } else { None }
 	}
 
 	/// Sets the pipe associated with the message.
@@ -220,17 +209,11 @@ impl Deref for Message
 {
 	type Target = Body;
 
-	fn deref(&self) -> &Body
-	{
-		&self.body
-	}
+	fn deref(&self) -> &Body { &self.body }
 }
 impl DerefMut for Message
 {
-	fn deref_mut(&mut self) -> &mut Body
-	{
-		&mut self.body
-	}
+	fn deref_mut(&mut self) -> &mut Body { &mut self.body }
 }
 
 /// The body of a `Message`.
@@ -244,9 +227,8 @@ impl Body
 	/// Appends the data to the back of the message body.
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
-		};
+		let rv =
+			unsafe { nng_sys::nng_msg_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -277,9 +259,8 @@ impl Body
 	/// Prepends the data to the message body.
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe {
-			nng_sys::nng_msg_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
-		};
+		let rv =
+			unsafe { nng_sys::nng_msg_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
