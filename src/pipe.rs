@@ -186,13 +186,13 @@ pub enum PipeEvent
 impl PipeEvent
 {
 	/// Converts the nng code into a PipeEvent.
-	pub(crate) fn from_code(event: nng_sys::nng_pipe_ev) -> Self
+	pub(crate) fn from_code(event: i32) -> Self
 	{
-		match nng_sys::nng_pipe_ev::try_from(event as i32) {
+		match nng_sys::nng_pipe_ev::try_from(event) {
 			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE) => PipeEvent::AddPre,
 			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST) => PipeEvent::AddPost,
 			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST) => PipeEvent::RemovePost,
-			Err(_) => PipeEvent::Unknown(event as i32),
+			Err(_) => PipeEvent::Unknown(event),
 		}
 	}
 }

@@ -272,7 +272,7 @@ impl Socket
 			.map(|&ev| unsafe {
 				nng_sys::nng_pipe_notify(
 					self.inner.handle,
-					ev,
+					ev as i32,
 					Some(Self::trampoline),
 					&*self.inner as *const _ as _,
 				)
@@ -320,7 +320,7 @@ impl Socket
 	///
 	/// This is unsafe because you have to be absolutely positive that you
 	/// really do have a pointer to an `Inner` type.
-	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: nng_sys::nng_pipe_ev, arg: *mut c_void)
+	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: i32, arg: *mut c_void)
 	{
 		let res = catch_unwind(|| unsafe {
 			let pipe = Pipe::from_nng_sys(pipe);
