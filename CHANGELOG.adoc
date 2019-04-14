@@ -8,6 +8,24 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+=== Changed ===
+
+=== Deprecated ===
+
+=== Removed ===
+
+=== Fixed ===
+
+=== Security ===
+
+//------------------------------------------------------------------------------
+// Past Releases
+//------------------------------------------------------------------------------
+
+== [nng-rs v0.5.0-rc.1] ==
+
+=== Added ===
+
 * A new "unsafe options" set of traits have been added in order to expose options that are currently not safely handled.
 	** Any of these options should be considered *unstable* as they will ideally be replaced with safe versions.
 * The `IPC_SECURITY_DESCRIPTOR` has been added as the first "unsafe option".
@@ -23,26 +41,16 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** Additionally, the `Hash` trait has been derived for the new `Error` type.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
 * `Message::try_from` was renamed to `Message::from_slice`.
-* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33.
+* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33. (#6)
 * The following functions now take `&self` instead of `&mut self` (#27):
 	** `Socket::{dial, listen, recv, send, recv_async, send_async, pipe_notify}`.
 	** `Context::{send, recv}`.
-
-=== Deprecated ===
 
 === Removed ===
 
 * The `nng-sys` crate has been moved to a new repository (#17).
 * The `Aio::new` function now requires a callback and the non-callback version has been removed. (#24)
 * The `Aio::result` function has been removed in favor of providing the result directly to the completion callback. (#24)
-
-=== Fixed ===
-
-=== Security ===
-
-//------------------------------------------------------------------------------
-// Past Releases
-//------------------------------------------------------------------------------
 
 == [nng-rs v0.4.0] - 2019-01-27 ==
 
