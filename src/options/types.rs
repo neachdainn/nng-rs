@@ -404,8 +404,6 @@ pub mod transport
 			/// 2. This option is not safe from a Rust point-of-view. Passing in bad data can cause
 			///    bad things to happen.
 			///
-			/// TODO(#22): Make `SECURITY_DESCRIPTOR` API safe
-			///
 			/// ## Supports
 			///
 			/// * This option can be set on `ListenerOption` while using the IPC transport on a
@@ -413,7 +411,9 @@ pub mod transport
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
 			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
-			Set s val = s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val);
+			Set s val = unsafe {
+				s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val)
+			};
 		}
 	}
 

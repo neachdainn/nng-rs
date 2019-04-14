@@ -171,11 +171,9 @@ pub trait HasOpts: Sized
 	}
 
 	/// Set the value of the pointer to the option.
-	///
-	/// TODO(#22): This is not a safe interface.
-	fn setopt_ptr(&self, opt: *const c_char, val: *mut c_void) -> Result<()>
+	unsafe fn setopt_ptr(&self, opt: *const c_char, val: *mut c_void) -> Result<()>
 	{
-		let rv = unsafe { (Self::SETOPT_PTR)(self.handle(), opt, val) };
+		let rv = (Self::SETOPT_PTR)(self.handle(), opt, val);
 		rv2res!(rv)
 	}
 

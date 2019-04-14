@@ -21,20 +21,6 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `ErrorKind` type has been renamed to `Error` and the old `Error` type has been deleted.
 	** Additionally, the `Hash` trait has been derived for the new `Error` type.
-* The `Aio` type is now a trait that is implemented by two different types. (#24)
-	** This leads to a cleaner public API.
-		*** `Aio::wait` was nearly useless on an `Aio` with a callback.
-		*** `Aio::result` was pointless on an `Aio` without a callback.
-		*** There is not longer a forced mutex locking on the callback.
-	** This leads to cleaner user code.
-		*** There is much less unwrapping to do in order to get the operation results.
-		*** In simple cases, the `AioResult` type will fill the role of user-written state types.
-	** This leads to a cleaner implementation.
-		*** The logic surrounding when to shut down an AIO object is much cleaner.
-		*** The ownership of messages and callback closures is much clearer.
-		*** Things just look better in general.
-		*** Several possible unsoundness issues were identified and fixed.
-	** This opens up the possibility of new types of `Aio` objects, such as one that returns a `Future` or utilizes MPSC channels.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
 * `Message::try_from` was renamed to `Message::from_slice`.
 * Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33.
@@ -47,6 +33,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Removed ===
 
 * The `nng-sys` crate has been moved to a new repository (#17).
+* The `Aio::new` function now requires a callback and the non-callback version has been removed. (#24)
+* The `Aio::result` function has been removed in favor of providing the result directly to the completion callback. (#24)
 
 === Fixed ===
 

@@ -17,219 +17,24 @@ use crate::{
 };
 use log::error;
 
-/// A structure used for asynchronous I/O operation.
-pub trait Aio: self::private::Sealed { }
-
-/// The result of an AIO operation.
-#[derive(Clone, Debug)]
-#[must_use]
-pub enum AioResult
-{
-	/// No AIO operations were in progress.
-	InactiveOk,
-
-	/// The send operation was successful.
-	SendOk,
-
-	/// The send operation failed.
-	///
-	/// This contains the message that was being sent.
-	SendErr(Message, Error),
-
-	/// The receive operation was successful.
-	RecvOk(Message),
-
-	/// The receive operation failed.
-	RecvErr(Error),
-
-	/// The sleep operation was successful.
-	SleepOk,
-
-	/// The sleep operation failed.
-	///
-	/// This is almost always because the sleep was canceled and the error will usually be
-	/// `Error::Canceled`.
-	SleepErr(Error),
-}
-
-impl From<AioResult> for Result<Option<Message>>
-{
-	fn from(aio_res: AioResult) -> Result<Option<Message>>
-	{
-		use self::AioResult::*;
-
-		match aio_res {
-			InactiveOk | SendOk | SleepOk => Ok(None),
-			SendErr(_, e) | RecvErr(e) | SleepErr(e) => Err(e),
-			RecvOk(m) => Ok(Some(m)),
-		}
-	}
-}
-
-/// An AIO type that requires the user to call a blocking `wait` function.
+/// An asynchronous I/O context.
+///
+/// Asynchronous operations are performed without blocking calling application threads. Instead the
+/// application registers a “callback” function to be executed when the operation is complete
+/// (whether successfully or not). This callback will be executed exactly once.
+///
+/// The callback must not perform any blocking operations and must complete it’s execution quickly.
+/// If the callback does block, this can lead ultimately to an apparent "hang" or deadlock in the
+/// application.
 ///
 /// ## Example
 ///
-/// ```
-/// use nng::{Socket, Protocol};
-/// use nng::aio::WaitingAio;
-///
-/// let socket = Socket::new(Protocol::Rep0).unwrap();
-/// let aio = WaitingAio::new().unwrap();
-///
-/// // Asynchronously wait for a message on the socket.
-/// socket.recv_async(&aio).unwrap();
-/// #
-/// # // Cancel the receive, otherwise the test will block.
-/// # aio.cancel();
-///
-/// // Wait for the asynchronous receive to complete.
-/// let res = aio.wait();
-/// ```
-#[derive(Debug, Clone)]
-pub struct WaitingAio
-{
-	/// The inner AIO bits.
-	///
-	/// Unfortunately, several AIO operations are non-atomic (e.g., setting the message) and a
-	/// set+send transation is definitely not atomic. Any thread-safe AIO operation is going to lock
-	/// a mutex anyway, so this extra one doesn't hurt too much.
-	inner: Arc<Mutex<Inner>>,
-}
-
-impl WaitingAio
-{
-	/// Create a new asynchronous I/O handle.
-	pub fn new() -> Result<Self>
-	{
-		let mut aio = ptr::null_mut();
-		let rv = unsafe { nng_sys::nng_aio_alloc(&mut aio, None, ptr::null_mut()) };
-		let handle = validate_ptr(rv, aio)?;
-
-		let inner = Arc::new(Mutex::new(Inner {
-			handle: AioPtr(handle),
-			state: State::Inactive,
-		}));
-
-		Ok(Self { inner })
-	}
-
-	/// Cancel the currently running I/O operation.
-	pub fn cancel(&self)
-	{
-		self.inner.lock().unwrap().cancel();
-	}
-
-	/// Set the timeout of asynchronous operations.
-	///
-	/// This causes a timer to be started when the operation is actually started. If the timer
-	/// expires before the operation is completed, then it is aborted with `Error::TimedOut`.
-	///
-	/// As most operations involve some context switching, it is usually a good idea to allow a
-	/// least a few tens of milliseconds before timing them out - a too small timeout might not
-	/// allow the operation to properly begin before giving up!
-	pub fn set_timeout(&self, dur: Option<Duration>)
-	{
-		self.inner.lock().unwrap().set_timeout(dur);
-	}
-
-	/// Waits for an I/O operation to complete.
-	///
-	/// If there is not currently active operation, this will return
-	/// immediately.
-	pub fn wait(&self) -> AioResult
-	{
-		let mut l = self.inner.lock().unwrap();
-		let aiop = l.handle.ptr();
-
-		// The wait function will return immediately if there is no AIO operation started.
-		let rv = unsafe {
-			nng_sys::nng_aio_wait(aiop);
-			nng_sys::nng_aio_result(aiop) as u32
-		};
-
-		let res = match (l.state, rv) {
-			(State::Inactive, _) => AioResult::InactiveOk,
-
-			(State::Sending, 0) => AioResult::SendOk,
-			(State::Sending, e) => unsafe {
-				let msgp = nng_sys::nng_aio_get_msg(aiop);
-				let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-				AioResult::SendErr(msg, Error::from_code(e))
-			},
-
-			(State::Receiving, 0) => unsafe {
-				let msgp = nng_sys::nng_aio_get_msg(aiop);
-				let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-				AioResult::RecvOk(msg)
-			},
-			(State::Receiving, e) => AioResult::RecvErr(Error::from_code(e)),
-
-			(State::Sleeping, 0) => AioResult::SleepOk,
-			(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
-
-			(State::Building, _) => unreachable!(),
-		};
-
-		l.state = State::Inactive;
-		res
-	}
-
-	/// Performs and asynchronous sleep operation.
-	///
-	/// If the sleep finishes completely, it will never return an error. If a
-	/// timeout has been set and it is shorter than the duration of the sleep
-	/// operation, the sleep operation will end early with
-	/// `Error::TimedOut`.
-	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`.
-	pub fn sleep(&self, dur: Duration) -> Result<()>
-	{
-		self.inner.lock().unwrap().sleep(dur)
-	}
-}
-
-impl self::private::Sealed for WaitingAio
-{
-	fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
-	{
-		self.inner.lock().unwrap().send_socket(socket, msg)
-	}
-
-	fn recv_socket(&self, socket: &Socket) -> Result<()>
-	{
-		self.inner.lock().unwrap().recv_socket(socket)
-	}
-
-	fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>
-	{
-		self.inner.lock().unwrap().send_ctx(ctx, msg)
-	}
-
-	fn recv_ctx(&self, ctx: &Context) -> Result<()>
-	{
-		self.inner.lock().unwrap().recv_ctx(ctx)
-	}
-}
-impl Aio for WaitingAio { }
-
-/// An AIO object that utilizes a callback function in order to respond to events.
-///
-/// The handle is initialized with a completion callback which will be executed when an associated
-/// asynchronous operation finishes. The callback must not perform any blocking operations and must
-/// complete its execution quickly. If the callback does block, this can lead ultimately to an
-/// apparent "hang" or deadlock in the application.
-///
-/// ## Example
-///
-/// A simple server that will sleep for the requested number of milliseconds before responding.
+/// A simple server that will sleep for the requested number of milliseconds before responding:
 ///
 /// ```
 /// use std::time::Duration;
 /// use byteorder::{ByteOrder, LittleEndian};
-/// use nng::{Socket, Protocol, Context, Message};
-/// use nng::aio::{AioResult, CallbackAio};
+/// use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 ///
 /// let address = "inproc://nng/aio.rs#callbacks";
 /// let num_contexts = 10;
@@ -240,7 +45,7 @@ impl Aio for WaitingAio { }
 ///     .map(|_| {
 ///         let ctx = Context::new(&socket).unwrap();
 ///         let ctx_clone = ctx.clone();
-///         let aio = CallbackAio::new(move |aio, res| callback(aio, &ctx_clone, res)).unwrap();
+///         let aio = Aio::new(move |aio, res| callback(aio, &ctx_clone, res)).unwrap();
 ///         (aio, ctx)
 ///     })
 ///     .collect();
@@ -253,11 +58,8 @@ impl Aio for WaitingAio { }
 ///     c.recv(a).unwrap();
 /// }
 ///
-/// fn callback(aio: &CallbackAio, ctx: &Context, res: AioResult) {
+/// fn callback(aio: &Aio, ctx: &Context, res: AioResult) {
 ///     match res {
-///         // We successfully did nothing.
-///         AioResult::InactiveOk => {},
-///
 ///         // We successfully sent the message, wait for a new one.
 ///         AioResult::SendOk => ctx.recv(aio).unwrap(),
 ///
@@ -278,24 +80,28 @@ impl Aio for WaitingAio { }
 ///     }
 /// }
 /// ```
-pub struct CallbackAio
+pub struct Aio
 {
 	/// The inner AIO bits shared by all instances of this AIO.
+	///
+	/// Even though there are a select number of operations that don't require any Rust locking
+	/// (e.g., `nng_aio_cancel`), the process of constructing the AIO is much easier if everything
+	/// is behind a mutex.
 	inner: Arc<Mutex<Inner>>,
 
 	/// The callback function.
 	///
-	/// This is an `Option` because we do not want the `CallbackAio` that is inside the callback to
-	/// have any sort of ownership over the callback. If it did, then there would a circlar `Arc`
-	/// reference and the AIO would never be dropped. We are never going to manually call this
-	/// function, so the fact that it is an option is not an issue.
+	/// This is an `Option` because we do not want the `Aio` that is inside the callback to have any
+	/// sort of ownership over the callback. If it did, then there would a circlar `Arc` reference
+	/// and the AIO would never be dropped. We are never going to manually call this function, so
+	/// the fact that it is an option is not an issue.
 	///
 	/// We can assert that is is unwind safe because we literally never call this function. I don't
 	/// think we could if we wanted to, which is the entire point of the black box.
 	callback: Option<AssertUnwindSafe<Arc<dyn FnOnce() + Sync + Send>>>,
 }
 
-impl CallbackAio
+impl Aio
 {
 	/// Creates a new asynchronous I/O handle.
 	///
@@ -312,7 +118,7 @@ impl CallbackAio
 	/// The user is responsible for either having a callback that never panics or catching and
 	/// handling the panic within the callback.
 	pub fn new<F>(callback: F) -> Result<Self>
-		where F: Fn(&CallbackAio, AioResult) + Sync + Send + UnwindSafe + 'static
+		where F: Fn(&Aio, AioResult) + Sync + Send + UnwindSafe + 'static
 	{
 		// The shared inner needs to have a fixed location before we can do anything else. Make sure
 		// to mark the AIO as "Building" so we don't try to free a dangling pointer.
@@ -321,12 +127,10 @@ impl CallbackAio
 			state: State::Building,
 		}));
 
-		// Now, create the CallbackAio that will be stored within the callback itself.
-		let cb_aio = CallbackAio { inner: Arc::clone(&inner), callback: None };
+		// Now, create the Aio that will be stored within the callback itself.
+		let cb_aio = Aio { inner: Arc::clone(&inner), callback: None };
 
-		// We can avoid double boxing by taking the address of a generic function. Unfortunately, we
-		// have no way to get the type of a closure other than calling a generic function, so we do
-		// have to call another function to actually allocate the AIO.
+		// Wrap the user's callback in our own state-keeping logic
 		let bounce = move || {
 			let res = unsafe {
 				// Don't hold the lock during the callback, hence the extra frame.
@@ -334,8 +138,6 @@ impl CallbackAio
 				let rv = nng_sys::nng_aio_result(l.handle.ptr()) as u32;
 
 				let res = match (l.state, rv) {
-					(State::Inactive, _) => AioResult::InactiveOk,
-
 					(State::Sending, 0) => AioResult::SendOk,
 					(State::Sending, e) => {
 						let msgp = nng_sys::nng_aio_get_msg(l.handle.ptr());
@@ -353,7 +155,10 @@ impl CallbackAio
 					(State::Sleeping, 0) => AioResult::SleepOk,
 					(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
 
-					(State::Building, _) => unreachable!(),
+					// The code guarantees that we can't be in the `Building` state after
+					// construction and I am 99% sure we can't get any events when the AIO has no
+					// running operations.
+					(State::Building, _) | (State::Inactive, _) => unreachable!(),
 				};
 
 				l.state = State::Inactive;
@@ -361,7 +166,11 @@ impl CallbackAio
 			};
 			callback(&cb_aio, res)
 		};
-		let callback = Some(AssertUnwindSafe(CallbackAio::alloc_trampoline(&inner, bounce)?));
+
+		// We can avoid double boxing by taking the address of a generic function. Unfortunately, we
+		// have no way to get the type of a closure other than calling a generic function, so we do
+		// have to call another function to actually allocate the AIO.
+		let callback = Some(AssertUnwindSafe(Aio::alloc_trampoline(&inner, bounce)?));
 
 		// If we made it here, the type is officially done building and we can mark is as such.
 		inner.lock().unwrap().state = State::Inactive;
@@ -385,10 +194,24 @@ impl CallbackAio
 		}
 	}
 
+	/// Blocks the current thread until the current asynchronous operation completes.
+	///
+	/// If there are no operations running then this function returns immediately. This function
+	/// should **not** be called from within the completion callback.
+	pub fn wait(&self)
+	{
+		// We can't hold the lock while we wait. Lucky for us, the pointer will literally never
+		// change.
+		let ptr = self.inner.lock().unwrap().handle.ptr();
+		unsafe { nng_sys::nng_aio_wait(ptr); }
+	}
+
 	/// Cancel the currently running I/O operation.
 	pub fn cancel(&self)
 	{
-		self.inner.lock().unwrap().cancel();
+		// Technically we don't need to lock but it makes the construction code cleaner.
+		let inner = self.inner.lock().unwrap();
+		unsafe { nng_sys::nng_aio_cancel(inner.handle.ptr()); }
 	}
 
 	/// Set the timeout of asynchronous operations.
@@ -401,7 +224,11 @@ impl CallbackAio
 	/// allow the operation to properly begin before giving up!
 	pub fn set_timeout(&self, dur: Option<Duration>)
 	{
-		self.inner.lock().unwrap().set_timeout(dur);
+		// The `nng_aio_set_timeout` function is very much not thread-safe, so we do need to lock.
+		let ms = duration_to_nng(dur);
+
+		let inner = self.inner.lock().unwrap();
+		unsafe { nng_sys::nng_aio_set_timeout(inner.handle.ptr(), ms); }
 	}
 
 	/// Performs and asynchronous sleep operation.
@@ -415,7 +242,83 @@ impl CallbackAio
 	/// operation in progress, this function will return `Error::TryAgain`.
 	pub fn sleep(&self, dur: Duration) -> Result<()>
 	{
-		self.inner.lock().unwrap().sleep(dur)
+		let mut inner = self.inner.lock().unwrap();
+
+		if inner.state == State::Inactive {
+			let ms = duration_to_nng(Some(dur));
+			unsafe { nng_sys::nng_sleep_aio(ms, inner.handle.ptr()); }
+			inner.state = State::Sleeping;
+
+			Ok(())
+		} else {
+			Err(Error::TryAgain)
+		}
+	}
+
+	/// Send a message on the provided socket.
+	pub(crate) fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
+	{
+		let mut inner = self.inner.lock().unwrap();
+
+		if inner.state == State::Inactive {
+			unsafe {
+				nng_sys::nng_aio_set_msg(inner.handle.ptr(), msg.into_ptr().as_ptr());
+				nng_sys::nng_send_aio(socket.handle(), inner.handle.ptr());
+			}
+
+			inner.state = State::Sending;
+			Ok(())
+		} else {
+			Err((msg, Error::TryAgain))
+		}
+	}
+
+	/// Receive a message on the provided socket.
+	pub(crate) fn recv_socket(&self, socket: &Socket) -> Result<()>
+	{
+		let mut inner = self.inner.lock().unwrap();
+
+		if inner.state == State::Inactive {
+			unsafe { nng_sys::nng_recv_aio(socket.handle(), inner.handle.ptr()); }
+
+			inner.state = State::Receiving;
+			Ok(())
+		} else {
+			Err(Error::TryAgain)
+		}
+	}
+
+	/// Send a message on the provided context.
+	pub(crate) fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>
+	{
+		let mut inner = self.inner.lock().unwrap();
+
+		if inner.state == State::Inactive {
+			unsafe {
+				nng_sys::nng_aio_set_msg(inner.handle.ptr(), msg.into_ptr().as_ptr());
+				nng_sys::nng_ctx_send(ctx.handle(), inner.handle.ptr());
+			}
+
+			inner.state = State::Sending;
+			Ok(())
+		} else {
+			Err((msg, Error::TryAgain))
+		}
+	}
+
+	/// Receive a message on the provided context.
+	pub(crate) fn recv_ctx(&self, ctx: &Context) -> Result<()>
+	{
+		let mut inner = self.inner.lock().unwrap();
+
+		if inner.state == State::Inactive {
+			unsafe { nng_sys::nng_ctx_recv(ctx.handle(), inner.handle.ptr()); }
+
+			inner.state = State::Receiving;
+			Ok(())
+		} else {
+			Err(Error::TryAgain)
+		}
 	}
 
 	/// Utility function for allocating an `nng_aio`.
@@ -434,7 +337,7 @@ impl CallbackAio
 		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
 		let rv = unsafe { nng_sys::nng_aio_alloc(
 				aiop,
-				Some(CallbackAio::trampoline::<F>),
+				Some(Aio::trampoline::<F>),
 				&mut *boxed as *mut _ as _
 		)};
 
@@ -483,32 +386,8 @@ impl CallbackAio
 	}
 }
 
-impl private::Sealed for CallbackAio
-{
-	fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
-	{
-		self.inner.lock().unwrap().send_socket(socket, msg)
-	}
-
-	fn recv_socket(&self, socket: &Socket) -> Result<()>
-	{
-		self.inner.lock().unwrap().recv_socket(socket)
-	}
-
-	fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>
-	{
-		self.inner.lock().unwrap().send_ctx(ctx, msg)
-	}
-
-	fn recv_ctx(&self, ctx: &Context) -> Result<()>
-	{
-		self.inner.lock().unwrap().recv_ctx(ctx)
-	}
-}
-impl Aio for CallbackAio { }
-
 #[allow(clippy::use_debug)]
-impl fmt::Debug for CallbackAio
+impl fmt::Debug for Aio
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
@@ -520,15 +399,15 @@ impl fmt::Debug for CallbackAio
 	}
 }
 
-impl Drop for CallbackAio
+impl Drop for Aio
 {
 	fn drop(&mut self)
 	{
 		// This is actually a vastly critical point in the correctness of this type. The inner data
-		// won't be dropped until all of the CallbackAio objects are dropped, meaning that the
-		// callback function is in the process of being shut down and may already be freed by the
-		// time we get to the drop method of the Inner. This means that we can't depend on the inner
-		// object to shut down the NNG AIO object and we have to do that instead.
+		// won't be dropped until all of the Aio objects are dropped, meaning that the callback
+		// function is in the process of being shut down and may already be freed by the time we get
+		// to the drop method of the Inner. This means that we can't depend on the inner object to
+		// shut down the NNG AIO object and we have to do that instead.
 		//
 		// Therefore, if we are the unique owner of the callback closure, we need to put the AIO in
 		// a state where we know the callback isn't running. I *think* the `nng_aio_free` function
@@ -536,10 +415,10 @@ impl Drop for CallbackAio
 		// Fortunately, the documentation for `nng_aio_stop` is much clearer, will definitely do
 		// what we want and will also allow us to leave the actual freeing to the Inner object.
 		//
-		// Of course, all of this depends on the user not being able to move a closure CallbackAio
-		// out of the closure. For that, all we need to do is provide it to them as a borrow and do
-		// not allow it to be cloned (by them). Fortunately, if we get this wrong, I _think_ the
-		// only issues will be non-responsive AIO operations.
+		// Of course, all of this depends on the user not being able to move a closure Aio out of
+		// the closure. For that, all we need to do is provide it to them as a borrow and do not
+		// allow it to be cloned (by them). Fortunately, if we get this wrong, I _think_ the only
+		// issues will be non-responsive AIO operations.
 		if let Some(ref mut a) = self.callback {
 			// We share ownership of the callback, so we might need to shut things down.
 			if Arc::get_mut(a).is_some() {
@@ -569,7 +448,7 @@ impl Drop for CallbackAio
 	}
 }
 
-/// The shared inner items of a `CallbackAio`.
+/// The shared inner items of a `Aio`.
 #[derive(Debug)]
 struct Inner
 {
@@ -578,90 +457,6 @@ struct Inner
 
 	/// The current state of the AIO object.
 	state: State,
-}
-
-impl Inner
-{
-	/// Cancels the currently running operation.
-	fn cancel(&mut self)
-	{
-		unsafe { nng_sys::nng_aio_cancel(self.handle.ptr()); }
-	}
-
-	/// Sets a timeout to all AIO operations.
-	fn set_timeout(&mut self, dur: Option<Duration>)
-	{
-		let ms = duration_to_nng(dur);
-		unsafe { nng_sys::nng_aio_set_timeout(self.handle.ptr(), ms); }
-	}
-
-	/// Has the AIO sleep for the specified duration.
-	fn sleep(&mut self, dur: Duration) -> Result<()>
-	{
-		if self.state == State::Inactive {
-			let ms = duration_to_nng(Some(dur));
-			unsafe { nng_sys::nng_sleep_aio(ms, self.handle.ptr()); }
-			self.state = State::Sleeping;
-
-			Ok(())
-		} else {
-			Err(Error::TryAgain)
-		}
-	}
-
-	fn send_socket(&mut self, socket: &Socket, msg: Message) -> SendResult<()>
-	{
-		if self.state == State::Inactive {
-			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr().as_ptr());
-				nng_sys::nng_send_aio(socket.handle(), self.handle.ptr());
-			}
-
-			self.state = State::Sending;
-			Ok(())
-		} else {
-			Err((msg, Error::TryAgain))
-		}
-	}
-
-	fn recv_socket(&mut self, socket: &Socket) -> Result<()>
-	{
-		if self.state == State::Inactive {
-			unsafe { nng_sys::nng_recv_aio(socket.handle(), self.handle.ptr()); }
-
-			self.state = State::Receiving;
-			Ok(())
-		} else {
-			Err(Error::TryAgain)
-		}
-	}
-
-	fn send_ctx(&mut self, ctx: &Context, msg: Message) -> SendResult<()>
-	{
-		if self.state == State::Inactive {
-			unsafe {
-				nng_sys::nng_aio_set_msg(self.handle.ptr(), msg.into_ptr().as_ptr());
-				nng_sys::nng_ctx_send(ctx.handle(), self.handle.ptr());
-			}
-
-			self.state = State::Sending;
-			Ok(())
-		} else {
-			Err((msg, Error::TryAgain))
-		}
-	}
-
-	fn recv_ctx(&mut self, ctx: &Context) -> Result<()>
-	{
-		if self.state == State::Inactive {
-			unsafe { nng_sys::nng_ctx_recv(ctx.handle(), self.handle.ptr()); }
-
-			self.state = State::Receiving;
-			Ok(())
-		} else {
-			Err(Error::TryAgain)
-		}
-	}
 }
 
 impl Drop for Inner
@@ -673,15 +468,58 @@ impl Drop for Inner
 		// the NNG allocation fails.
 		if self.state != State::Building {
 			// If we are being dropped, then the callback is being dropped. If the callback is being
-			// dropped, then an instance of `CallbackAio` shut down the AIO. This will either run
-			// the callback and clean up the Message memory or the AIO didn't have an operation
-			// running and there is nothing to clean up. As such, we don't need to do anything
-			// except free the AIO.
-			//
-			// If there is no callback, like with the WaitingAio, then we don't have to worry about
-			// stopping all AIO functions before freeing the closure, so we can just go ahead and
-			// free the AIO.
+			// dropped, then an instance of `Aio` shut down the AIO. This will either run the
+			// callback and clean up the Message memory or the AIO didn't have an operation running
+			// and there is nothing to clean up. As such, we don't need to do anything except free
+			// the AIO.
 			unsafe { nng_sys::nng_aio_free(self.handle.ptr()); }
+		}
+	}
+}
+
+/// The result of an AIO operation.
+// There are no "Inactive" results as I don't think there is a valid way to get any type of callback
+// trigger when there are no operations running. All of the "user forced" errors, such as
+// cancellation or timeouts, don't happen if there are no running operations. If there are no
+// running operations, then no non-"user forced" errors can happen.
+#[derive(Clone, Debug)]
+#[must_use]
+pub enum AioResult
+{
+	/// The send operation was successful.
+	SendOk,
+
+	/// The send operation failed.
+	///
+	/// This contains the message that was being sent.
+	SendErr(Message, Error),
+
+	/// The receive operation was successful.
+	RecvOk(Message),
+
+	/// The receive operation failed.
+	RecvErr(Error),
+
+	/// The sleep operation was successful.
+	SleepOk,
+
+	/// The sleep operation failed.
+	///
+	/// This is almost always because the sleep was canceled and the error will usually be
+	/// `Error::Canceled`.
+	SleepErr(Error),
+}
+
+impl From<AioResult> for Result<Option<Message>>
+{
+	fn from(aio_res: AioResult) -> Result<Option<Message>>
+	{
+		use self::AioResult::*;
+
+		match aio_res {
+			SendOk | SleepOk => Ok(None),
+			SendErr(_, e) | RecvErr(e) | SleepErr(e) => Err(e),
+			RecvOk(m) => Ok(Some(m)),
 		}
 	}
 }
@@ -723,28 +561,3 @@ impl AioPtr
 	}
 }
 unsafe impl Send for AioPtr { }
-
-/// All non-public AIO related items.
-pub(crate) mod private
-{
-	use super::*;
-
-	/// A type used to seal the `Aio` trait to prevent users from implementing it for foreign types.
-	///
-	/// This trait manages most, if not all, of the bookkeeping for the AIO objects, which is why
-	/// the functions are just the transpose of the functions on Sockets and Contexts.
-	pub trait Sealed
-	{
-		/// Sends the message on the provided socket.
-		fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>;
-
-		/// Receives a message on the provided socket.
-		fn recv_socket(&self, socket: &Socket) -> Result<()>;
-
-		/// Sends the message on the provided context.
-		fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>;
-
-		/// Receives a message on the provided context.
-		fn recv_ctx(&self, ctx: &Context) -> Result<()>;
-	}
-}

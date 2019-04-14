@@ -101,7 +101,9 @@
 
 #[macro_use]
 mod util;
+
 mod addr;
+mod aio;
 mod ctx;
 mod dialer;
 mod error;
@@ -111,11 +113,11 @@ mod pipe;
 mod protocol;
 mod socket;
 
-pub mod aio;
 pub mod options;
 
 pub use crate::{
 	addr::SocketAddr,
+	aio::{Aio, AioResult},
 	ctx::Context,
 	dialer::{Dialer, DialerOptions},
 	error::{Error, Result},

@@ -13,8 +13,7 @@ use std::time::{Duration, Instant};
 use std::{env, mem, process, thread};
 
 use byteorder::{ByteOrder, LittleEndian};
-use nng::{Context, Message, Protocol, Socket};
-use nng::aio::{AioResult, CallbackAio};
+use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 
 /// Number of outstanding requests that we can handle at a given time.
 ///
@@ -70,11 +69,11 @@ fn server(url: &str) -> Result<(), nng::Error>
 	let s = Socket::new(Protocol::Rep0)?;
 
 	// Create all of the worker contexts
-	let mut workers: Vec<_> = (0..PARALLEL)
+	let workers: Vec<_> = (0..PARALLEL)
 		.map(|_| {
 			let ctx = Context::new(&s)?;
 			let ctx_clone = ctx.clone();
-			let aio = CallbackAio::new(move |aio, res| worker_callback(aio, &ctx_clone, res))?;
+			let aio = Aio::new(move |aio, res| worker_callback(aio, &ctx_clone, res))?;
 			Ok((aio, ctx))
 		})
 		.collect::<Result<_, nng::Error>>()?;
@@ -83,7 +82,7 @@ fn server(url: &str) -> Result<(), nng::Error>
 	s.listen(url)?;
 
 	// Now start all of the workers listening.
-	for (a, c) in &mut workers {
+	for (a, c) in &workers {
 		c.recv(a)?;
 	}
 
@@ -93,12 +92,9 @@ fn server(url: &str) -> Result<(), nng::Error>
 }
 
 /// Callback function for workers.
-fn worker_callback(aio: &CallbackAio, ctx: &Context, res: AioResult)
+fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult)
 {
 	match res {
-		// We successfully did nothing.
-		AioResult::InactiveOk => {},
-
 		// We successfully sent the message, wait for a new one.
 		AioResult::SendOk => ctx.recv(aio).unwrap(),
 
