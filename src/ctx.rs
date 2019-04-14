@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
-use crate::aio::Aio;
-use crate::error::{Result, SendResult};
-use crate::message::Message;
-use crate::socket::Socket;
+use crate::{
+	aio::Aio,
+	error::{Result, SendResult},
+	message::Message,
+	socket::Socket,
+};
 
 /// A socket context.
 ///
@@ -16,8 +18,9 @@ use crate::socket::Socket;
 ///
 /// ## Examples
 ///
-/// See the documentation of the `Aio` type for examples on how to use Socket Contexts.
-#[derive(Clone)]
+/// See the documentation of the `Aio` type for examples on how to use Socket
+/// Contexts.
+#[derive(Clone, Debug)]
 pub struct Context
 {
 	/// The inner context.
@@ -32,7 +35,7 @@ impl Context
 	/// Creates a new socket context.
 	pub fn new(socket: &Socket) -> Result<Context>
 	{
-		let mut ctx = nng_sys::NNG_CTX_INITIALIZER;
+		let mut ctx = nng_sys::nng_ctx::NNG_CTX_INITIALIZER;
 		let rv = unsafe { nng_sys::nng_ctx_open(&mut ctx as _, socket.handle()) };
 
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
@@ -49,31 +52,17 @@ impl Context
 
 	/// Send a message using the context asynchronously.
 	///
-	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
-	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `ErrorKind::TryAgain`
 	/// and return the message to the caller.
-	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()>
-	{
-		aio.send_ctx(self, msg)
-	}
+	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()> { aio.send_ctx(self, msg) }
 
 	/// Receive a message using the context asynchronously.
-	///
-	/// The result of this operation will be available either after calling
-	/// `Aio::wait` or inside of the callback function. If the send operation
-	/// fails, the message can be retrieved using the `Aio::get_msg` function.
 	///
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress that is _not_ a receive operation, this function
 	/// will return `ErrorKind::TryAgain`.
-	pub fn recv(&self, aio: &Aio) -> Result<()>
-	{
-		aio.recv_ctx(self)
-	}
+	pub fn recv(&self, aio: &Aio) -> Result<()> { aio.recv_ctx(self) }
 
 	/// Closes the context.
 	///
@@ -85,16 +74,10 @@ impl Context
 	///
 	/// Closing the owning socket also closes this context. Additionally, the
 	/// context is closed once all handles have been dropped.
-	pub fn close(self)
-	{
-		self.inner.close()
-	}
+	pub fn close(self) { self.inner.close() }
 
 	/// Returns the inner `nng_ctx` object.
-	pub(crate) fn handle(&self) -> nng_sys::nng_ctx
-	{
-		self.inner.ctx
-	}
+	pub(crate) fn handle(&self) -> nng_sys::nng_ctx { self.inner.ctx }
 }
 
 #[rustfmt::skip]
@@ -121,6 +104,7 @@ expose_options!{
 }
 
 /// A wrapper around an `nng_ctx`.
+#[derive(Debug)]
 struct Inner
 {
 	ctx: nng_sys::nng_ctx,
@@ -133,7 +117,7 @@ impl Inner
 		// was never open. Neither of those are an issue for us.
 		let rv = unsafe { nng_sys::nng_ctx_close(self.ctx) };
 		assert!(
-			rv == 0 || rv == nng_sys::NNG_ECLOSED,
+			rv == 0 || rv == nng_sys::NNG_ECLOSED as i32,
 			"Unexpected error code while closing context ({})",
 			rv
 		);
@@ -142,8 +126,5 @@ impl Inner
 
 impl Drop for Inner
 {
-	fn drop(&mut self)
-	{
-		self.close()
-	}
+	fn drop(&mut self) { self.close() }
 }

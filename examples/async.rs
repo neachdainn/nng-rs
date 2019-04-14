@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use std::{env, mem, process, thread};
 
 use byteorder::{ByteOrder, LittleEndian};
-use nng::{Aio, Context, Message, Protocol, Socket};
+use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 
 /// Number of outstanding requests that we can handle at a given time.
 ///
@@ -45,7 +45,7 @@ fn main() -> Result<(), nng::Error>
 /// Run the client portion of the program.
 fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Req0)?;
+	let s = Socket::new(Protocol::Req0)?;
 	s.dial(url)?;
 
 	let mut req = Message::zeros(mem::size_of::<u64>())?;
@@ -56,7 +56,8 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 	s.recv()?;
 
 	let dur = Instant::now().duration_since(start);
-	println!("Request took {} milliseconds", dur.as_secs() * 1000 + dur.subsec_millis() as u64);
+	let subsecs: u64 = dur.subsec_millis().into();
+	println!("Request took {} milliseconds", dur.as_secs() * 1000 + subsecs);
 
 	Ok(())
 }
@@ -65,10 +66,17 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 fn server(url: &str) -> Result<(), nng::Error>
 {
 	// Create the socket
-	let mut s = Socket::new(Protocol::Rep0)?;
+	let s = Socket::new(Protocol::Rep0)?;
 
 	// Create all of the worker contexts
-	let workers: Vec<_> = (0..PARALLEL).map(|_| create_worker(&s)).collect::<Result<_, _>>()?;
+	let workers: Vec<_> = (0..PARALLEL)
+		.map(|_| {
+			let ctx = Context::new(&s)?;
+			let ctx_clone = ctx.clone();
+			let aio = Aio::new(move |aio, res| worker_callback(aio, &ctx_clone, res))?;
+			Ok((aio, ctx))
+		})
+		.collect::<Result<_, nng::Error>>()?;
 
 	// Only after we have the workers do we start listening.
 	s.listen(url)?;
@@ -83,55 +91,28 @@ fn server(url: &str) -> Result<(), nng::Error>
 	Ok(())
 }
 
-/// Create a new worker context for the server.
-fn create_worker(s: &Socket) -> Result<(Aio, Context), nng::Error>
-{
-	let mut state = State::Recv;
-
-	let ctx = Context::new(s)?;
-	let ctx_clone = ctx.clone();
-	let aio = Aio::with_callback(move |aio| worker_callback(aio, &ctx_clone, &mut state))?;
-
-	Ok((aio, ctx))
-}
-
 /// Callback function for workers.
-fn worker_callback(aio: &Aio, ctx: &Context, state: &mut State)
+fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult)
 {
-	let new_state = match *state {
-		State::Recv => {
-			// If there was an issue, we're just going to panic instead of
-			// doing something sensible.
-			let _ = aio.result().unwrap();
-			let msg = aio.get_msg().unwrap();
-			let ms = LittleEndian::read_u64(&msg);
+	match res {
+		// We successfully sent the message, wait for a new one.
+		AioResult::SendOk => ctx.recv(aio).unwrap(),
 
+		// We successfully received a message.
+		AioResult::RecvOk(m) => {
+			let ms = LittleEndian::read_u64(&m);
 			aio.sleep(Duration::from_millis(ms)).unwrap();
-			State::Wait
 		},
-		State::Wait => {
+
+		// We successfully slept.
+		AioResult::SleepOk => {
 			let msg = Message::new().unwrap();
 			ctx.send(aio, msg).unwrap();
-
-			State::Send
 		},
-		State::Send => {
-			// Again, just panic bad if things happened.
-			let _ = aio.result().unwrap();
-			ctx.recv(aio).unwrap();
 
-			State::Recv
+		// Anything else is an error and we will just panic.
+		AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) => {
+			panic!("Error: {}", e)
 		},
-	};
-
-	*state = new_state;
-}
-
-/// State of a request.
-#[derive(Copy, Clone)]
-enum State
-{
-	Recv,
-	Wait,
-	Send,
+	}
 }

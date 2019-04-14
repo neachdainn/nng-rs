@@ -36,7 +36,7 @@ fn main() -> Result<(), nng::Error>
 /// Run the client portion of the program.
 fn client(url: &str) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Req0)?;
+	let s = Socket::new(Protocol::Req0)?;
 	s.dial(url)?;
 
 	println!("CLIENT: SENDING DATE REQUEST");
@@ -56,7 +56,7 @@ fn client(url: &str) -> Result<(), nng::Error>
 /// Run the server portion of the program.
 fn server(url: &str) -> Result<(), nng::Error>
 {
-	let mut s = Socket::new(Protocol::Rep0)?;
+	let s = Socket::new(Protocol::Rep0)?;
 	s.listen(url)?;
 
 	loop {

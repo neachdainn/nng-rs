@@ -12,7 +12,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** Any of these options should be considered *unstable* as they will ideally be replaced with safe versions.
 * The `IPC_SECURITY_DESCRIPTOR` has been added as the first "unsafe option".
 * The `PAIR1_POLY` option has been added.
-* The following traits are now implemented:
+* The following traits are now implemented: (#18, #23)
 	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
 	** `Protocol`: `Eq`, `PartialEq`, `Hash`
 	** `SocketAddr`: `Display`, `Eq`, `PartialEq`, `Hash`
@@ -21,24 +21,20 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `ErrorKind` type has been renamed to `Error` and the old `Error` type has been deleted.
 	** Additionally, the `Hash` trait has been derived for the new `Error` type.
+* `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
+* `Message::try_from` was renamed to `Message::from_slice`.
+* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33.
+* The following functions now take `&self` instead of `&mut self` (#27):
+	** `Socket::{dial, listen, recv, send, recv_async, send_async, pipe_notify}`.
+	** `Context::{send, recv}`.
 
 === Deprecated ===
 
 === Removed ===
 
-=== Fixed ===
-
-=== Security ===
-
-== [nng-sys Unreleased] ==
-
-=== Added ===
-
-=== Changed ===
-
-=== Deprecated ===
-
-=== Removed ===
+* The `nng-sys` crate has been moved to a new repository (#17).
+* The `Aio::new` function now requires a callback and the non-callback version has been removed. (#24)
+* The `Aio::result` function has been removed in favor of providing the result directly to the completion callback. (#24)
 
 === Fixed ===
 

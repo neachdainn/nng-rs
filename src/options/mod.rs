@@ -22,8 +22,8 @@ pub(crate) mod private;
 /// code will work:
 ///
 /// ```
-/// use nng::*;
 /// use nng::options::{Options, Raw};
+/// use nng::*;
 ///
 /// let socket = Socket::new(Protocol::Pub0).unwrap();
 /// let raw = socket.get_opt::<Raw>().unwrap();
@@ -33,8 +33,8 @@ pub(crate) mod private;
 /// But all this is a compile error:
 ///
 /// ```compile_fail
-/// use nng::*;
 /// use nng::options::{Options, Raw};
+/// use nng::*;
 ///
 /// let socket = Socket::new(Protocol::Pub0).unwrap();
 /// socket.set_opt::<Raw>(true).unwrap(); // Won't compile

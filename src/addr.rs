@@ -1,7 +1,9 @@
-use std::fmt;
-use std::net::{SocketAddrV4, SocketAddrV6};
-use std::os::raw::c_char;
-use std::path::PathBuf;
+use std::{
+	fmt,
+	net::{SocketAddrV4, SocketAddrV6},
+	os::raw::c_char,
+	path::PathBuf,
+};
 
 /// Represents the addresses used by the underlying transports.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -52,24 +54,25 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 	fn from(addr: nng_sys::nng_sockaddr) -> SocketAddr
 	{
 		unsafe {
-			match addr.s_family {
-				nng_sys::NNG_AF_INPROC => {
+			match nng_sys::nng_sockaddr_family::try_from(i32::from(addr.s_family)) {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INPROC) => {
 					SocketAddr::InProc(buf_to_string(&addr.s_inproc.sa_name[..]))
 				},
-				nng_sys::NNG_AF_IPC => {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_IPC) => {
 					SocketAddr::Ipc(buf_to_string(&addr.s_ipc.sa_path[..]).into())
 				},
-				nng_sys::NNG_AF_INET => {
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET) => {
 					SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port))
 				},
-				nng_sys::NNG_AF_INET6 => SocketAddr::Inet6(SocketAddrV6::new(
-					addr.s_in6.sa_addr.into(),
-					addr.s_in6.sa_port,
-					0,
-					0,
-				)),
-				nng_sys::NNG_AF_ZT => SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt)),
-				_ => SocketAddr::Unspecified,
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET6) => {
+					let v6_addr = addr.s_in6.sa_addr.into();
+					let port = addr.s_in6.sa_port;
+					SocketAddr::Inet6(SocketAddrV6::new(v6_addr, port, 0, 0))
+				},
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_ZT) => {
+					SocketAddr::ZeroTier(SocketAddrZt::new(&addr.s_zt))
+				},
+				Ok(nng_sys::nng_sockaddr_family::NNG_AF_UNSPEC) | Err(_) => SocketAddr::Unspecified,
 			}
 		}
 	}

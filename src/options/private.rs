@@ -1,11 +1,16 @@
 //! Implementation details about implementing options.
-use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_int, c_void};
-use std::ptr;
-use std::time::Duration;
+use std::{
+	ffi::{CStr, CString},
+	os::raw::{c_char, c_int, c_void},
+	ptr,
+	time::Duration,
+};
 
-use crate::addr::SocketAddr;
-use crate::error::{Error, Result};
+use crate::{
+	addr::SocketAddr,
+	error::{Error, Result},
+	util::validate_ptr,
+};
 
 /// Exposes the ability to get and set the option.
 ///
@@ -127,10 +132,10 @@ pub trait HasOpts: Sized
 		unsafe {
 			let mut ptr: *mut c_char = ptr::null_mut();
 			let rv = (Self::GETOPT_STRING)(self.handle(), opt, &mut ptr as *mut _);
-			validate_ptr!(rv, ptr);
+			let ptr = validate_ptr(rv, ptr)?;
 
-			let name = CStr::from_ptr(ptr).to_string_lossy().into_owned();
-			nng_sys::nng_strfree(ptr);
+			let name = CStr::from_ptr(ptr.as_ptr()).to_string_lossy().into_owned();
+			nng_sys::nng_strfree(ptr.as_ptr());
 
 			Ok(name)
 		}
@@ -170,11 +175,9 @@ pub trait HasOpts: Sized
 	}
 
 	/// Set the value of the pointer to the option.
-	///
-	/// TODO(#22): This is not a safe interface.
-	fn setopt_ptr(&self, opt: *const c_char, val: *mut c_void) -> Result<()>
+	unsafe fn setopt_ptr(&self, opt: *const c_char, val: *mut c_void) -> Result<()>
 	{
-		let rv = unsafe { (Self::SETOPT_PTR)(self.handle(), opt, val) };
+		let rv = (Self::SETOPT_PTR)(self.handle(), opt, val);
 		rv2res!(rv)
 	}
 

@@ -7,11 +7,13 @@
 //! Messages are divided into a header and a body, where the body generally
 //! carries user-payload and the header carries protocol specific header
 //! information. Most applications will only interact with the body.
-use std::ops::{Deref, DerefMut};
-use std::{ptr, slice};
+use std::{
+	ops::{Deref, DerefMut},
+	ptr::{self, NonNull},
+	slice,
+};
 
-use crate::error::Result;
-use crate::pipe::Pipe;
+use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 
 /// An `nng` message type.
 #[derive(Debug)]
@@ -24,7 +26,7 @@ pub struct Message
 	// struct and return references to that. This will solve the borrowing
 	// issue and avoid code duplication.
 	/// The pointer to the actual message.
-	msgp: *mut nng_sys::nng_msg,
+	msgp: NonNull<nng_sys::nng_msg>,
 
 	/// The fake "body" of the message.
 	body: Body,
@@ -34,29 +36,14 @@ pub struct Message
 }
 impl Message
 {
-	/// Creates a message from the given `nng_msg`
-	pub(crate) unsafe fn from_ptr(msgp: *mut nng_sys::nng_msg) -> Self
-	{
-		Message { msgp, body: Body { msgp }, header: Header { msgp } }
-	}
-
-	/// Consumes the message and returns the `nng_msg` pointer.
-	pub(crate) unsafe fn into_ptr(self) -> *mut nng_sys::nng_msg
-	{
-		let ptr = self.msgp;
-		std::mem::forget(self);
-
-		ptr
-	}
-
 	/// Create an empty message.
 	pub fn new() -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, 0) };
 
-		validate_ptr!(rv, msgp);
-		Ok(unsafe { Message::from_ptr(msgp) })
+		let msgp = validate_ptr(rv, msgp)?;
+		Ok(Message::from_ptr(msgp))
 	}
 
 	/// Create an empty message with a pre-allocated body buffer.
@@ -67,16 +54,35 @@ impl Message
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, cap) };
-
-		validate_ptr!(rv, msgp);
+		let msgp = validate_ptr(rv, msgp)?;
 
 		// When nng allocates a message, it fills the body and sets the size to
 		// whatever you requested. It makes sense in a C context, less so here.
 		unsafe {
-			nng_sys::nng_msg_clear(msgp);
+			nng_sys::nng_msg_clear(msgp.as_ptr());
 		}
 
-		Ok(unsafe { Message::from_ptr(msgp) })
+		Ok(Message::from_ptr(msgp))
+	}
+
+	/// Attempts to convert a buffer into a message.
+	///
+	/// This is functionally equivalent to calling `From` but allows the user
+	/// to handle the case of `nng` being out of memory.
+	pub fn from_slice(s: &[u8]) -> Result<Self>
+	{
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, s.len()) };
+
+		let msgp = validate_ptr(rv, msgp)?;
+
+		// At this point, `nng` thinks we have the requested amount of memory.
+		// There is no more validation we can try to do.
+		unsafe {
+			ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp.as_ptr()) as _, s.len())
+		}
+
+		Ok(Message::from_ptr(msgp))
 	}
 
 	/// Create a message that is filled to `size` with zeros.
@@ -85,29 +91,8 @@ impl Message
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, size) };
 
-		validate_ptr!(rv, msgp);
-		Ok(unsafe { Message::from_ptr(msgp) })
-	}
-
-	/// Attempts to convert a buffer into a message.
-	///
-	/// This is functionally equivalent to calling `From` but allows the user
-	/// to handle the case of `nng` being out of memory.
-	///
-	/// This function will be converted to the `TryFrom` trait once it is
-	/// stable.
-	pub fn try_from(s: &[u8]) -> Result<Self>
-	{
-		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, s.len()) };
-
-		validate_ptr!(rv, msgp);
-
-		// At this point, `nng` thinks we have the requested amount of memory.
-		// There is no more validation we can try to do.
-		unsafe { ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp) as _, s.len()) }
-
-		Ok(unsafe { Message::from_ptr(msgp) })
+		let msgp = validate_ptr(rv, msgp)?;
+		Ok(Message::from_ptr(msgp))
 	}
 
 	/// Attempts to duplicate the message.
@@ -118,35 +103,23 @@ impl Message
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 
-		let rv = unsafe { nng_sys::nng_msg_dup(&mut msgp as _, self.msgp) };
+		let rv = unsafe { nng_sys::nng_msg_dup(&mut msgp as _, self.msgp.as_ptr()) };
 
-		validate_ptr!(rv, msgp);
-		Ok(unsafe { Message::from_ptr(msgp) })
+		let msgp = validate_ptr(rv, msgp)?;
+		Ok(Message::from_ptr(msgp))
 	}
 
 	/// Returns a reference to the message body.
-	pub fn body(&self) -> &Body
-	{
-		&self.body
-	}
+	pub fn body(&self) -> &Body { &self.body }
 
 	/// Returns a mutable reference to the message body.
-	pub fn body_mut(&mut self) -> &mut Body
-	{
-		&mut self.body
-	}
+	pub fn body_mut(&mut self) -> &mut Body { &mut self.body }
 
 	/// Returns a reference to the message header.
-	pub fn header(&self) -> &Header
-	{
-		&self.header
-	}
+	pub fn header(&self) -> &Header { &self.header }
 
 	/// Returns a mutable reference to the message header.
-	pub fn header_mut(&mut self) -> &mut Header
-	{
-		&mut self.header
-	}
+	pub fn header_mut(&mut self) -> &mut Header { &mut self.header }
 
 	/// Returns the pipe object associated with the message.
 	///
@@ -161,14 +134,13 @@ impl Message
 	/// authentication for peers located on an untrusted network.
 	pub fn pipe(&mut self) -> Option<Pipe>
 	{
-		let pipe = unsafe { nng_sys::nng_msg_get_pipe(self.msgp) };
+		let (pipe, id) = unsafe {
+			let pipe = nng_sys::nng_msg_get_pipe(self.msgp.as_ptr());
+			let id = nng_sys::nng_pipe_id(pipe);
+			(pipe, id)
+		};
 
-		if pipe.id > 0 {
-			Some(Pipe::from_nng_sys(pipe))
-		}
-		else {
-			None
-		}
+		if id > 0 { Some(Pipe::from_nng_sys(pipe)) } else { None }
 	}
 
 	/// Sets the pipe associated with the message.
@@ -178,7 +150,22 @@ impl Message
 	/// can do this when in polyamorous mode. Not all protocols support this.
 	pub fn set_pipe(&mut self, pipe: &Pipe)
 	{
-		unsafe { nng_sys::nng_msg_set_pipe(self.msgp, pipe.handle()) }
+		unsafe { nng_sys::nng_msg_set_pipe(self.msgp.as_ptr(), pipe.handle()) }
+	}
+
+	/// Creates a new message from the given pointer.
+	pub(crate) fn from_ptr(msgp: NonNull<nng_sys::nng_msg>) -> Self
+	{
+		Message { msgp, body: Body { msgp }, header: Header { msgp } }
+	}
+
+	/// Consumes the message and returns the `nng_msg` pointer.
+	pub(crate) fn into_ptr(self) -> NonNull<nng_sys::nng_msg>
+	{
+		let ptr = self.msgp;
+		std::mem::forget(self);
+
+		ptr
 	}
 }
 impl Drop for Message
@@ -186,7 +173,7 @@ impl Drop for Message
 	fn drop(&mut self)
 	{
 		unsafe {
-			nng_sys::nng_msg_free(self.msgp);
+			nng_sys::nng_msg_free(self.msgp.as_ptr());
 		}
 	}
 }
@@ -214,7 +201,7 @@ impl<'a> From<&'a [u8]> for Message
 		// wrapper. Since the message allocation function only ever returns
 		// `ENOMEM`, we're going to provide a more Rust-like interface by
 		// panicking in the same way all other Rust allocations panic.
-		Message::try_from(s).expect("Nng failed to allocate the memory")
+		Message::from_slice(s).expect("Nng failed to allocate the memory")
 	}
 }
 
@@ -222,31 +209,26 @@ impl Deref for Message
 {
 	type Target = Body;
 
-	fn deref(&self) -> &Body
-	{
-		&self.body
-	}
+	fn deref(&self) -> &Body { &self.body }
 }
 impl DerefMut for Message
 {
-	fn deref_mut(&mut self) -> &mut Body
-	{
-		&mut self.body
-	}
+	fn deref_mut(&mut self) -> &mut Body { &mut self.body }
 }
 
 /// The body of a `Message`.
 #[derive(Debug)]
 pub struct Body
 {
-	msgp: *mut nng_sys::nng_msg,
+	msgp: NonNull<nng_sys::nng_msg>,
 }
 impl Body
 {
 	/// Appends the data to the back of the message body.
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe { nng_sys::nng_msg_append(self.msgp, data.as_ptr() as _, data.len()) };
+		let rv =
+			unsafe { nng_sys::nng_msg_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -258,26 +240,27 @@ impl Body
 	pub fn truncate(&mut self, len: usize)
 	{
 		let rv = unsafe {
-			let current_len = nng_sys::nng_msg_len(self.msgp);
-			nng_sys::nng_msg_chop(self.msgp, current_len.saturating_sub(len))
+			let current_len = nng_sys::nng_msg_len(self.msgp.as_ptr());
+			nng_sys::nng_msg_chop(self.msgp.as_ptr(), current_len.saturating_sub(len))
 		};
 
 		// We are guarding against this, so this should never happen
-		assert!(rv == 0, "Message was too short to truncate");
+		debug_assert!(rv == 0, "Message was too short to truncate");
 	}
 
 	/// Clears the message body.
 	pub fn clear(&mut self)
 	{
 		unsafe {
-			nng_sys::nng_msg_clear(self.msgp);
+			nng_sys::nng_msg_clear(self.msgp.as_ptr());
 		}
 	}
 
 	/// Prepends the data to the message body.
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv = unsafe { nng_sys::nng_msg_insert(self.msgp, data.as_ptr() as _, data.len()) };
+		let rv =
+			unsafe { nng_sys::nng_msg_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
 		rv2res!(rv)
 	}
@@ -288,8 +271,8 @@ impl Body
 	pub fn reserve(&mut self, additional: usize) -> Result<()>
 	{
 		let rv = unsafe {
-			let current_len = nng_sys::nng_msg_len(self.msgp);
-			nng_sys::nng_msg_realloc(self.msgp, current_len + additional)
+			let current_len = nng_sys::nng_msg_len(self.msgp.as_ptr());
+			nng_sys::nng_msg_realloc(self.msgp.as_ptr(), current_len + additional)
 		};
 
 		rv2res!(rv)
@@ -298,7 +281,7 @@ impl Body
 	/// Remove the first `len` bytes from the front of the message body.
 	pub fn trim(&mut self, len: usize) -> Result<()>
 	{
-		let rv = unsafe { nng_sys::nng_msg_trim(self.msgp, len) };
+		let rv = unsafe { nng_sys::nng_msg_trim(self.msgp.as_ptr(), len) };
 
 		rv2res!(rv)
 	}
@@ -313,8 +296,8 @@ impl Deref for Body
 	fn deref(&self) -> &[u8]
 	{
 		unsafe {
-			let ptr = nng_sys::nng_msg_body(self.msgp);
-			let len = nng_sys::nng_msg_len(self.msgp);
+			let ptr = nng_sys::nng_msg_body(self.msgp.as_ptr());
+			let len = nng_sys::nng_msg_len(self.msgp.as_ptr());
 
 			slice::from_raw_parts(ptr as _, len)
 		}
@@ -325,8 +308,8 @@ impl DerefMut for Body
 	fn deref_mut(&mut self) -> &mut [u8]
 	{
 		unsafe {
-			let ptr = nng_sys::nng_msg_body(self.msgp);
-			let len = nng_sys::nng_msg_len(self.msgp);
+			let ptr = nng_sys::nng_msg_body(self.msgp.as_ptr());
+			let len = nng_sys::nng_msg_len(self.msgp.as_ptr());
 
 			slice::from_raw_parts_mut(ptr as _, len)
 		}
@@ -337,15 +320,16 @@ impl DerefMut for Body
 #[derive(Debug)]
 pub struct Header
 {
-	msgp: *mut nng_sys::nng_msg,
+	msgp: NonNull<nng_sys::nng_msg>,
 }
 impl Header
 {
 	/// Appends the data to the back of the message header.
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv =
-			unsafe { nng_sys::nng_msg_header_append(self.msgp, data.as_ptr() as _, data.len()) };
+		let rv = unsafe {
+			nng_sys::nng_msg_header_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
+		};
 
 		rv2res!(rv)
 	}
@@ -357,27 +341,28 @@ impl Header
 	pub fn truncate(&mut self, len: usize)
 	{
 		let rv = unsafe {
-			let current_len = nng_sys::nng_msg_header_len(self.msgp);
-			nng_sys::nng_msg_header_chop(self.msgp, current_len.saturating_sub(len))
+			let current_len = nng_sys::nng_msg_header_len(self.msgp.as_ptr());
+			nng_sys::nng_msg_header_chop(self.msgp.as_ptr(), current_len.saturating_sub(len))
 		};
 
 		// We are guarding against this, so this should never happen
-		assert!(rv == 0, "Message was too short to truncate");
+		debug_assert!(rv == 0, "Message was too short to truncate");
 	}
 
 	/// Clears the message header.
 	pub fn clear(&mut self)
 	{
 		unsafe {
-			nng_sys::nng_msg_header_clear(self.msgp);
+			nng_sys::nng_msg_header_clear(self.msgp.as_ptr());
 		}
 	}
 
 	/// Prepends the data to the message header.
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
-		let rv =
-			unsafe { nng_sys::nng_msg_header_insert(self.msgp, data.as_ptr() as _, data.len()) };
+		let rv = unsafe {
+			nng_sys::nng_msg_header_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
+		};
 
 		rv2res!(rv)
 	}
@@ -385,7 +370,7 @@ impl Header
 	/// Remove the first `len` bytes from the front of the message header.
 	pub fn trim(&mut self, len: usize) -> Result<()>
 	{
-		let rv = unsafe { nng_sys::nng_msg_header_trim(self.msgp, len) };
+		let rv = unsafe { nng_sys::nng_msg_header_trim(self.msgp.as_ptr(), len) };
 
 		rv2res!(rv)
 	}
@@ -400,8 +385,8 @@ impl Deref for Header
 	fn deref(&self) -> &[u8]
 	{
 		unsafe {
-			let ptr = nng_sys::nng_msg_header(self.msgp);
-			let len = nng_sys::nng_msg_header_len(self.msgp);
+			let ptr = nng_sys::nng_msg_header(self.msgp.as_ptr());
+			let len = nng_sys::nng_msg_header_len(self.msgp.as_ptr());
 
 			slice::from_raw_parts(ptr as _, len)
 		}
@@ -412,8 +397,8 @@ impl DerefMut for Header
 	fn deref_mut(&mut self) -> &mut [u8]
 	{
 		unsafe {
-			let ptr = nng_sys::nng_msg_header(self.msgp);
-			let len = nng_sys::nng_msg_header_len(self.msgp);
+			let ptr = nng_sys::nng_msg_header(self.msgp.as_ptr());
+			let len = nng_sys::nng_msg_header_len(self.msgp.as_ptr());
 
 			slice::from_raw_parts_mut(ptr as _, len)
 		}

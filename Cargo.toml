@@ -1,2 +1,31 @@
-[workspace]
-members = ["nng", "nng-sys"]
+[package]
+name = "nng"
+version = "0.4.0"
+authors = ["Nathan Kent <nate@nkent.net>"]
+
+description = "A safe wrapper for nanomsg-next-generation (nng)"
+repository = "https://gitlab.com/neachdainn/nng-rs"
+readme = "README.md"
+
+keywords = ["nng", "nanomsg"]
+categories = ["api-bindings", "network-programming"]
+license = "MIT"
+
+edition = "2018"
+
+[badges]
+gitlab = { repository = "neachdainn/nng-rs", branch = "master" }
+
+[features]
+default = ["build-nng"]
+build-nng = ["nng-sys/build-nng"]
+
+[dependencies]
+nng-sys = "1.1.1-rc"
+log = "0.4"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.6", features = ["winnt", "std"] }
+
+[dev-dependencies]
+byteorder = "1.2"

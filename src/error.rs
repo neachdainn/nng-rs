@@ -53,7 +53,7 @@ pub enum Error
 	EntryNotFound,
 
 	/// A protocol error occurred
-	ProtocolError,
+	Protocol,
 
 	/// Remote address is unreachable
 	DestUnreachable,
@@ -110,10 +110,10 @@ pub enum Error
 	Internal,
 
 	/// An unknown system error occurred.
-	SystemErr(i32),
+	SystemErr(u32),
 
 	/// An unknown transport error occurred.
-	TransportErr(i32),
+	TransportErr(u32),
 
 	/// Unknown error code
 	///
@@ -122,7 +122,7 @@ pub enum Error
 	/// hidden from the docs because we do not really want to support this and
 	/// to keep prevent additional error types from becoming breaking changes.
 	#[doc(hidden)]
-	Unknown(i32),
+	Unknown(u32),
 }
 impl Error
 {
@@ -131,7 +131,7 @@ impl Error
 	/// This is not an implementation of `From<i32>` because that would make
 	/// the conversion a public part of this crate.
 	#[rustfmt::skip]
-	pub(crate) fn from_code(code: i32) -> Error
+	pub(crate) fn from_code(code: u32) -> Error
 	{
 		match code {
 			0            => panic!("OK result passed as an error"),
@@ -147,7 +147,7 @@ impl Error
 			nng_sys::NNG_EADDRINUSE   => Error::AddressInUse,
 			nng_sys::NNG_ESTATE       => Error::IncorrectState,
 			nng_sys::NNG_ENOENT       => Error::EntryNotFound,
-			nng_sys::NNG_EPROTO       => Error::ProtocolError,
+			nng_sys::NNG_EPROTO       => Error::Protocol,
 			nng_sys::NNG_EUNREACHABLE => Error::DestUnreachable,
 			nng_sys::NNG_EADDRINVAL   => Error::AddressInvalid,
 			nng_sys::NNG_EPERM        => Error::PermissionDenied,
@@ -175,10 +175,7 @@ impl Error
 
 impl From<SendError> for Error
 {
-	fn from((_, e): SendError) -> Error
-	{
-		e
-	}
+	fn from((_, e): SendError) -> Error { e }
 }
 
 impl From<Error> for io::Error
@@ -186,10 +183,11 @@ impl From<Error> for io::Error
 	fn from(e: Error) -> io::Error
 	{
 		if let Error::SystemErr(c) = e {
-			io::Error::from_raw_os_error(c)
+			io::Error::from_raw_os_error(c as i32)
 		}
 		else {
 			#[rustfmt::skip]
+			#[allow(clippy::match_same_arms)]
 			let new_kind = match e {
 				Error::Interrupted => io::ErrorKind::Interrupted,
 				Error::InvalidInput | Error::NoArgument => io::ErrorKind::InvalidInput,
@@ -239,7 +237,7 @@ impl fmt::Display for Error
 			Error::AddressInUse      => write!(f, "Address in use"),
 			Error::IncorrectState    => write!(f, "Incorrect state"),
 			Error::EntryNotFound     => write!(f, "Entry not found"),
-			Error::ProtocolError     => write!(f, "Protocol error"),
+			Error::Protocol          => write!(f, "Protocol error"),
 			Error::DestUnreachable   => write!(f, "Destination unreachable"),
 			Error::AddressInvalid    => write!(f, "Address invalid"),
 			Error::PermissionDenied  => write!(f, "Permission denied"),
@@ -258,7 +256,7 @@ impl fmt::Display for Error
 			Error::Ambiguous         => write!(f, "Ambiguous option"),
 			Error::BadType           => write!(f, "Incorrect type"),
 			Error::Internal          => write!(f, "Internal error detected"),
-			Error::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c)),
+			Error::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c as i32)),
 			Error::TransportErr(c)   => write!(f, "Transport error #{}", c),
 			Error::Unknown(c)        => write!(f, "Unknown error code #{}", c),
 		}

@@ -1,34 +1,25 @@
 //! Utility code.
 //!
 //! Things that make developing this crate slightly easier.
-use std::time::Duration;
+use std::{
+	os::raw::{c_char, c_int, c_void},
+	ptr::NonNull,
+	time::Duration,
+};
+
+use crate::error::{Error, Result};
 
 /// Converts a `nng` return code into a Rust `Result`.
 macro_rules! rv2res {
 	($rv:expr, $ok:expr) => {
 		match $rv {
 			0 => Ok($ok),
-			e => Err($crate::error::Error::from_code(e)),
+			e => Err($crate::error::Error::from_code(e as u32)),
 			}
 	};
 
 	($rv:expr) => {
 		rv2res!($rv, ())
-	};
-}
-
-/// Checks an `nng` return code and validates the pointer.
-macro_rules! validate_ptr {
-	($rv:ident, $ptr:ident) => {
-		validate_ptr!($rv, $ptr, {})
-	};
-
-	($rv:ident, $ptr:ident, $before:tt) => {
-		if $rv != 0 {
-			$before;
-			return Err($crate::error::Error::from_code($rv));
-			}
-		assert!(!$ptr.is_null(), "Nng returned a null pointer from a successful function");
 	};
 }
 
@@ -53,12 +44,39 @@ macro_rules! create_option
 		{
 			type OptType = $ot;
 		}
+		#[allow(clippy::cast_possible_truncation)]
 		impl $crate::options::private::OptOps for $opt
 		{
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
 			fn set<T: $crate::options::private::HasOpts>($s: &T, $v: Self::OptType) -> $crate::error::Result<()> { $sexpr }
 		}
-	}
+	};
+
+	(
+		$(#[$attr:meta])*
+		$opt:ident -> $ot:ty:
+		Set $s:ident $v:ident = $sexpr:stmt;
+	) => {
+		create_option!(
+		$(#[$attr])*
+		$opt -> $ot:
+		Get _g = unreachable!("should not have been implemented - option is write-only");
+		Set $s $v = $sexpr;
+		);
+	};
+
+	(
+		$(#[$attr:meta])*
+		$opt:ident -> $ot:ty:
+		Get $g:ident = $gexpr:stmt;
+	) => {
+		create_option!(
+		$(#[$attr])*
+		$opt -> $ot:
+		Get $g = $gexpr;
+		Set _s _v = unreachable!("should not have been implemented - option is read-only");
+		);
+	};
 }
 
 /// Implements the specified options for the type.
@@ -111,28 +129,25 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub unsafe extern "C" fn fake_opt<H, T>(
-	_: H,
-	_: *const std::os::raw::c_char,
-	_: T,
-) -> std::os::raw::c_int
+pub(crate) unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const c_char, _: T) -> c_int
 {
-	panic!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
+	unimplemented!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
 
 /// A catch-all function for unsupported generic options operations.
-pub unsafe extern "C" fn fake_genopt<H>(
+pub(crate) unsafe extern "C" fn fake_genopt<H>(
 	_: H,
-	_: *const std::os::raw::c_char,
-	_: *const std::os::raw::c_void,
+	_: *const c_char,
+	_: *const c_void,
 	_: usize,
-) -> std::os::raw::c_int
+) -> c_int
 {
-	panic!("{} does not support the generic option operation", stringify!(H))
+	unimplemented!("{} does not support the generic option operation", stringify!(H))
 }
 
 /// Converts a Rust Duration into an `nng_duration`.
-pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 {
 	// The subsecond milliseconds is guaranteed to be less than 1000, which
 	// means converting from `u32` to `i32` is safe. The only other
@@ -151,7 +166,7 @@ pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 }
 
 /// Converts an `nng_duration` into a Rust Duration.
-pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
+pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 {
 	if ms == nng_sys::NNG_DURATION_INFINITE {
 		None
@@ -164,16 +179,15 @@ pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 	}
 }
 
-/// Wraps around an object to prevent any interaction with it.
-pub struct BlackBox<T>
+/// Checks an `nng` return code and validates the pointer, returning a
+/// `NonNull`.
+#[inline]
+pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
 {
-	_data: T,
-}
-impl<T> BlackBox<T>
-{
-	/// Creates a new wrapper the object.
-	pub fn new(_data: T) -> Self
-	{
-		BlackBox { _data }
+	if rv != 0 {
+		Err(Error::from_code(rv as u32))
+	}
+	else {
+		Ok(NonNull::new(ptr).expect("NNG returned a null pointer from a successful function"))
 	}
 }

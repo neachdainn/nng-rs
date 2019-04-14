@@ -22,6 +22,12 @@ This crate provides a safe wrapper around the NNG library, seeking to maintain a
 similar to the original library. As such, the majority of examples available online should be
 easy to apply to this crate.
 
+### Rust Version Requirements
+
+The current version requires **Rustc v1.31 or greater**.
+In general, this crate should always be able to compile with the Rustc version available on the oldest Ubuntu LTS release.
+Any change that requires a newer Rustc version will always be considered a breaking change and this crate's version number will be bumped accordingly.
+
 ### Examples
 
 The following example uses the [intra-process][2] transport to set up a [request][3]/[reply][4]
@@ -32,11 +38,11 @@ use nng::*;
 
 // Set up the server and listen for connections on the specified address.
 let address = "inproc://nng/lib.rs";
-let mut server = Socket::new(Protocol::Rep0).unwrap();
+let server = Socket::new(Protocol::Rep0).unwrap();
 server.listen(address).unwrap();
 
 // Set up the client and connect to the specified address
-let mut client = Socket::new(Protocol::Req0).unwrap();
+let client = Socket::new(Protocol::Req0).unwrap();
 client.dial(address).unwrap();
 
 // Send the request from the client to the server.
