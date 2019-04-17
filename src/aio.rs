@@ -4,7 +4,10 @@ use std::{
 	os::raw::c_void,
 	panic::{catch_unwind, AssertUnwindSafe, UnwindSafe},
 	ptr::{self, NonNull},
-	sync::{Arc, Mutex},
+	sync::{
+		atomic::{AtomicPtr, AtomicUsize, Ordering},
+		Arc,
+	},
 	time::Duration,
 };
 
@@ -85,11 +88,7 @@ use log::error;
 pub struct Aio
 {
 	/// The inner AIO bits shared by all instances of this AIO.
-	///
-	/// Even though there are a select number of operations that don't require
-	/// any Rust locking (e.g., `nng_aio_cancel`), the process of constructing
-	/// the AIO is much easier if everything is behind a mutex.
-	inner: Arc<Mutex<Inner>>,
+	inner: Arc<Inner>,
 
 	/// The callback function.
 	///
@@ -127,12 +126,12 @@ impl Aio
 		F: Fn(&Aio, AioResult) + Sync + Send + UnwindSafe + 'static,
 	{
 		// The shared inner needs to have a fixed location before we can do anything
-		// else. Make sure to mark the AIO as "Building" so we don't try to free a
-		// dangling pointer.
-		let inner = Arc::new(Mutex::new(Inner {
-			handle: AioPtr(NonNull::dangling()),
-			state:  State::Building,
-		}));
+		// else, which complicates the process of building the AIO slightly. We need to
+		// use a second, non-atomic pointer and then atomically copy it in.
+		let inner = Arc::new(Inner {
+			handle: AtomicPtr::new(ptr::null_mut()),
+			state:  AtomicUsize::new(State::Inactive as usize),
+		});
 
 		// Now, create the Aio that will be stored within the callback itself.
 		let cb_aio = Aio { inner: Arc::clone(&inner), callback: None };
@@ -140,20 +139,20 @@ impl Aio
 		// Wrap the user's callback in our own state-keeping logic
 		let bounce = move || {
 			let res = unsafe {
-				// Don't hold the lock during the callback, hence the extra frame.
-				let mut l = cb_aio.inner.lock().unwrap();
-				let rv = nng_sys::nng_aio_result(l.handle.ptr()) as u32;
+				let state = cb_aio.inner.state.load(Ordering::Acquire).into();
+				let aiop = cb_aio.inner.handle.load(Ordering::Relaxed);
+				let rv = nng_sys::nng_aio_result(aiop) as u32;
 
-				let res = match (l.state, rv) {
+				let res = match (state, rv) {
 					(State::Sending, 0) => AioResult::SendOk,
 					(State::Sending, e) => {
-						let msgp = nng_sys::nng_aio_get_msg(l.handle.ptr());
+						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::SendErr(msg, Error::from_code(e))
 					},
 
 					(State::Receiving, 0) => {
-						let msgp = nng_sys::nng_aio_get_msg(l.handle.ptr());
+						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::RecvOk(msg)
 					},
@@ -162,13 +161,11 @@ impl Aio
 					(State::Sleeping, 0) => AioResult::SleepOk,
 					(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
 
-					// The code guarantees that we can't be in the `Building` state after
-					// construction and I am 99% sure we can't get any events when the AIO has no
-					// running operations.
-					(State::Building, _) | (State::Inactive, _) => unreachable!(),
+					// I am 99% sure that we will never get a callback in the Inactive state
+					(State::Inactive, _) => unreachable!(),
 				};
 
-				l.state = State::Inactive;
+				cb_aio.inner.state.store(State::Inactive as usize, Ordering::Release);
 				res
 			};
 			callback(&cb_aio, res)
@@ -180,10 +177,95 @@ impl Aio
 		// allocate the AIO.
 		let callback = Some(AssertUnwindSafe(Aio::alloc_trampoline(&inner, bounce)?));
 
-		// If we made it here, the type is officially done building and we can mark is
-		// as such.
-		inner.lock().unwrap().state = State::Inactive;
 		Ok(Self { inner, callback })
+	}
+
+	/// Set the timeout of asynchronous operations.
+	///
+	/// This causes a timer to be started when the operation is actually
+	/// started. If the timer expires before the operation is completed, then it
+	/// is aborted with `Error::TimedOut`.
+	///
+	/// As most operations involve some context switching, it is usually a good
+	/// idea to allow a least a few tens of milliseconds before timing them out
+	/// - a too small timeout might not allow the operation to properly begin
+	/// before giving up!
+	///
+	/// It is only valid to try and set this when no operations are active.
+	pub fn set_timeout(&self, dur: Option<Duration>) -> Result<()>
+	{
+		// We need to check that no operations are happening and then prevent them from
+		// happening while we set the timeout. Any state that isn't `Inactive` will do
+		// so the choice is arbitrary. That being said, `Sleeping` feels the most
+		// accurate.
+		let sleeping = State::Sleeping as usize;
+		let inactive = State::Inactive as usize;
+		let old_state = self.inner.state.compare_and_swap(inactive, sleeping, Ordering::Acquire);
+
+		if old_state == inactive {
+			let ms = duration_to_nng(dur);
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
+			unsafe {
+				nng_sys::nng_aio_set_timeout(aiop, ms);
+			}
+
+			self.inner.state.store(inactive, Ordering::Release);
+			Ok(())
+		}
+		else {
+			// Should this be `Error::TryAgain`?
+			Err(Error::IncorrectState)
+		}
+	}
+
+	/// Performs and asynchronous sleep operation.
+	///
+	/// If the sleep finishes completely, it will never return an error. If a
+	/// timeout has been set and it is shorter than the duration of the sleep
+	/// operation, the sleep operation will end early with
+	/// `Error::TimedOut`.
+	///
+	/// This function will return immediately. If there is already an I/O
+	/// operation in progress, this function will return `Error::TryAgain`.
+	pub fn sleep(&self, dur: Duration) -> Result<()>
+	{
+		let sleeping = State::Sleeping as usize;
+		let inactive = State::Inactive as usize;
+		let old_state = self.inner.state.compare_and_swap(inactive, sleeping, Ordering::AcqRel);
+
+		if old_state == inactive {
+			let ms = duration_to_nng(Some(dur));
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
+			unsafe {
+				nng_sys::nng_sleep_aio(ms, aiop);
+			}
+
+			Ok(())
+		}
+		else {
+			Err(Error::TryAgain)
+		}
+	}
+
+	/// Blocks the current thread until the current asynchronous operation
+	/// completes.
+	///
+	/// If there are no operations running then this function returns
+	/// immediately. This function should **not** be called from within the
+	/// completion callback.
+	pub fn wait(&self)
+	{
+		unsafe {
+			nng_sys::nng_aio_wait(self.inner.handle.load(Ordering::Relaxed));
+		}
+	}
+
+	/// Cancel the currently running I/O operation.
+	pub fn cancel(&self)
+	{
+		unsafe {
+			nng_sys::nng_aio_cancel(self.inner.handle.load(Ordering::Relaxed));
+		}
 	}
 
 	/// Attempts to clone the AIO object.
@@ -205,93 +287,21 @@ impl Aio
 		}
 	}
 
-	/// Blocks the current thread until the current asynchronous operation
-	/// completes.
-	///
-	/// If there are no operations running then this function returns
-	/// immediately. This function should **not** be called from within the
-	/// completion callback.
-	pub fn wait(&self)
-	{
-		// We can't hold the lock while we wait. Lucky for us, the pointer will
-		// literally never change.
-		let ptr = self.inner.lock().unwrap().handle.ptr();
-		unsafe {
-			nng_sys::nng_aio_wait(ptr);
-		}
-	}
-
-	/// Cancel the currently running I/O operation.
-	pub fn cancel(&self)
-	{
-		// Technically we don't need to lock but it makes the construction code cleaner.
-		let inner = self.inner.lock().unwrap();
-		unsafe {
-			nng_sys::nng_aio_cancel(inner.handle.ptr());
-		}
-	}
-
-	/// Set the timeout of asynchronous operations.
-	///
-	/// This causes a timer to be started when the operation is actually
-	/// started. If the timer expires before the operation is completed, then it
-	/// is aborted with `Error::TimedOut`.
-	///
-	/// As most operations involve some context switching, it is usually a good
-	/// idea to allow a least a few tens of milliseconds before timing them out
-	/// - a too small timeout might not allow the operation to properly begin
-	/// before giving up!
-	pub fn set_timeout(&self, dur: Option<Duration>)
-	{
-		// The `nng_aio_set_timeout` function is very much not thread-safe, so we do
-		// need to lock.
-		let ms = duration_to_nng(dur);
-
-		let inner = self.inner.lock().unwrap();
-		unsafe {
-			nng_sys::nng_aio_set_timeout(inner.handle.ptr(), ms);
-		}
-	}
-
-	/// Performs and asynchronous sleep operation.
-	///
-	/// If the sleep finishes completely, it will never return an error. If a
-	/// timeout has been set and it is shorter than the duration of the sleep
-	/// operation, the sleep operation will end early with
-	/// `Error::TimedOut`.
-	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`.
-	pub fn sleep(&self, dur: Duration) -> Result<()>
-	{
-		let mut inner = self.inner.lock().unwrap();
-
-		if inner.state == State::Inactive {
-			let ms = duration_to_nng(Some(dur));
-			unsafe {
-				nng_sys::nng_sleep_aio(ms, inner.handle.ptr());
-			}
-			inner.state = State::Sleeping;
-
-			Ok(())
-		}
-		else {
-			Err(Error::TryAgain)
-		}
-	}
-
 	/// Send a message on the provided socket.
 	pub(crate) fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
-		let mut inner = self.inner.lock().unwrap();
+		let inactive = State::Inactive as usize;
+		let sending = State::Sending as usize;
 
-		if inner.state == State::Inactive {
+		let old_state = self.inner.state.compare_and_swap(inactive, sending, Ordering::AcqRel);
+
+		if old_state == inactive {
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
 			unsafe {
-				nng_sys::nng_aio_set_msg(inner.handle.ptr(), msg.into_ptr().as_ptr());
-				nng_sys::nng_send_aio(socket.handle(), inner.handle.ptr());
+				nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
+				nng_sys::nng_send_aio(socket.handle(), aiop);
 			}
 
-			inner.state = State::Sending;
 			Ok(())
 		}
 		else {
@@ -302,14 +312,15 @@ impl Aio
 	/// Receive a message on the provided socket.
 	pub(crate) fn recv_socket(&self, socket: &Socket) -> Result<()>
 	{
-		let mut inner = self.inner.lock().unwrap();
+		let inactive = State::Inactive as usize;
+		let receiving = State::Receiving as usize;
+		let old_state = self.inner.state.compare_and_swap(inactive, receiving, Ordering::AcqRel);
 
-		if inner.state == State::Inactive {
+		if old_state == inactive {
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
 			unsafe {
-				nng_sys::nng_recv_aio(socket.handle(), inner.handle.ptr());
+				nng_sys::nng_recv_aio(socket.handle(), aiop);
 			}
-
-			inner.state = State::Receiving;
 			Ok(())
 		}
 		else {
@@ -320,15 +331,18 @@ impl Aio
 	/// Send a message on the provided context.
 	pub(crate) fn send_ctx(&self, ctx: &Context, msg: Message) -> SendResult<()>
 	{
-		let mut inner = self.inner.lock().unwrap();
+		let inactive = State::Inactive as usize;
+		let sending = State::Sending as usize;
 
-		if inner.state == State::Inactive {
+		let old_state = self.inner.state.compare_and_swap(inactive, sending, Ordering::AcqRel);
+
+		if old_state == inactive {
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
 			unsafe {
-				nng_sys::nng_aio_set_msg(inner.handle.ptr(), msg.into_ptr().as_ptr());
-				nng_sys::nng_ctx_send(ctx.handle(), inner.handle.ptr());
+				nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
+				nng_sys::nng_ctx_send(ctx.handle(), aiop);
 			}
 
-			inner.state = State::Sending;
 			Ok(())
 		}
 		else {
@@ -339,14 +353,15 @@ impl Aio
 	/// Receive a message on the provided context.
 	pub(crate) fn recv_ctx(&self, ctx: &Context) -> Result<()>
 	{
-		let mut inner = self.inner.lock().unwrap();
+		let inactive = State::Inactive as usize;
+		let receiving = State::Receiving as usize;
+		let old_state = self.inner.state.compare_and_swap(inactive, receiving, Ordering::AcqRel);
 
-		if inner.state == State::Inactive {
+		if old_state == inactive {
+			let aiop = self.inner.handle.load(Ordering::Relaxed);
 			unsafe {
-				nng_sys::nng_ctx_recv(ctx.handle(), inner.handle.ptr());
+				nng_sys::nng_ctx_recv(ctx.handle(), aiop);
 			}
-
-			inner.state = State::Receiving;
 			Ok(())
 		}
 		else {
@@ -358,10 +373,7 @@ impl Aio
 	///
 	/// We need this because, in Rustc 1.31, there is zero way to get the type
 	/// of the closure other than calling a generic function.
-	fn alloc_trampoline<F>(
-		inner: &Arc<Mutex<Inner>>,
-		bounce: F,
-	) -> Result<Arc<dyn FnOnce() + Sync + Send>>
+	fn alloc_trampoline<F>(inner: &Arc<Inner>, bounce: F) -> Result<Arc<dyn FnOnce() + Sync + Send>>
 	where
 		F: Fn() + Sync + Send + UnwindSafe + 'static,
 	{
@@ -384,7 +396,8 @@ impl Aio
 			error!("NNG returned a non-null pointer from a failed function");
 			return Err(Error::Unknown(0));
 		}
-		inner.lock().unwrap().handle = AioPtr(validate_ptr(rv, aio)?);
+		validate_ptr(rv, aio)?;
+		inner.handle.store(aio, Ordering::Release);
 
 		// Put the callback in the blackbox.
 		Ok(Arc::new(move || {
@@ -450,8 +463,8 @@ impl Drop for Aio
 		// the AIO in a state where we know the callback isn't running. I *think* the
 		// `nng_aio_free` function will handle this for us but the wording of the
 		// documentation is a little confusing to me. Fortunately, the documentation for
-		// `nng_aio_stop` is much clearer, will definitely do what we want and will also
-		// allow us to leave the actual freeing to the Inner object.
+		// `nng_aio_stop` is much clearer, will definitely do what we want, and will
+		// also allow us to leave the actual freeing to the Inner object.
 		//
 		// Of course, all of this depends on the user not being able to move a closure
 		// Aio out of the closure. For that, all we need to do is provide it to them as
@@ -460,19 +473,9 @@ impl Drop for Aio
 		if let Some(ref mut a) = self.callback {
 			// We share ownership of the callback, so we might need to shut things down.
 			if Arc::get_mut(a).is_some() {
-				// We are the only owner so we need to shut down the AIO. One thing we need to
-				// watch out for is making sure we aren't holding on to the lock when we do the
-				// shutdown. The stop function will block until the callback happens and the
-				// callback will block until the lock is released: deadlock.
-				//
-				// Now, we could try to avoid this by not putting the pointer behind a mutex,
-				// but that would potentially cause issues with keeping the state synchronized
-				// and we would just end up using the state's lock for the pointer anyway.
-				// Instead, let's take advantage of the fact that the pointer will never change,
-				// the pointed-to object is behind its own lock, and we're not touching the
-				// state.
-				let ptr = self.inner.lock().unwrap().handle.ptr();
-				unsafe { nng_sys::nng_aio_stop(ptr) }
+				// We are the only owner so we need to shut down the AIO.
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe { nng_sys::nng_aio_stop(aiop) }
 			}
 			else {
 				// Just a sanity check. We need to never take a weak reference to the callback.
@@ -493,27 +496,34 @@ impl Drop for Aio
 struct Inner
 {
 	/// The handle to the NNG AIO object.
-	handle: AioPtr,
+	///
+	/// Unfortunately, we do have to put this behind some kind of
+	/// synchronization primitive. Fortunately, we can always access it with
+	/// with the Relaxed ordering and, because we're almost always accessing the
+	/// state atomic when we access the handle, we shouldn't have any
+	/// extra cache issues.
+	handle: AtomicPtr<nng_sys::nng_aio>,
 
-	/// The current state of the AIO object.
-	state: State,
+	/// The current state of the AIO object, represented as a `usize`.
+	state: AtomicUsize,
 }
 
 impl Drop for Inner
 {
 	fn drop(&mut self)
 	{
-		// It is possible for this to be dropping while the pointer is dangling. The
+		// It is possible for this to be dropping while the pointer is null. The
 		// Inner struct is created before the pointer is allocated and it will be
-		// dropped with a dangling pointer if the NNG allocation fails.
-		if self.state != State::Building {
+		// dropped with a null pointer if the NNG allocation fails.
+		let aiop = self.handle.load(Ordering::Acquire);
+		if !aiop.is_null() {
 			// If we are being dropped, then the callback is being dropped. If the callback
 			// is being dropped, then an instance of `Aio` shut down the AIO. This will
 			// either run the callback and clean up the Message memory or the AIO didn't
 			// have an operation running and there is nothing to clean up. As such, we don't
 			// need to do anything except free the AIO.
 			unsafe {
-				nng_sys::nng_aio_free(self.handle.ptr());
+				nng_sys::nng_aio_free(aiop);
 			}
 		}
 	}
@@ -568,15 +578,9 @@ impl From<AioResult> for Result<Option<Message>>
 
 /// Represents the state of the AIO object.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(usize)]
 enum State
 {
-	/// The AIO is in the process of being constructed.
-	///
-	/// This exists purely so that the callback forms of the AIO (which need a
-	/// non-moving pointer) can signal that they failed to fully construct. This
-	/// should never be seen outside of that context.
-	Building,
-
 	/// There is currently nothing happening on the AIO.
 	Inactive,
 
@@ -590,13 +594,18 @@ enum State
 	Sleeping,
 }
 
-/// Newtype to make the `*mut nng_aio` implement `Send`.
-#[repr(transparent)]
-#[derive(Debug)]
-struct AioPtr(NonNull<nng_sys::nng_aio>);
-impl AioPtr
+impl From<usize> for State
 {
-	/// Returns the wrapped pointer.
-	fn ptr(&self) -> *mut nng_sys::nng_aio { self.0.as_ptr() }
+	fn from(atm: usize) -> State
+	{
+		// Fortunately, Godbolt says that this will compile to a compare, jump, and a
+		// subtract. Three instructions isn't that bad.
+		match atm {
+			x if x == State::Inactive as usize => State::Inactive,
+			x if x == State::Sending as usize => State::Sending,
+			x if x == State::Receiving as usize => State::Receiving,
+			x if x == State::Sleeping as usize => State::Sleeping,
+			_ => unreachable!(),
+		}
+	}
 }
-unsafe impl Send for AioPtr {}
