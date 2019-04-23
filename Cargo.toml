@@ -21,7 +21,7 @@ default = ["build-nng"]
 build-nng = ["nng-sys/build-nng"]
 
 [dependencies]
-nng-sys = "1.1.1-rc.1"
+nng-sys = { version = "1.1.1-rc.1", default-features = false }
 log = "0.4"
 
 [target.'cfg(windows)'.dependencies]
