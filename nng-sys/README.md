@@ -13,7 +13,7 @@ However, it is currently in active development along with [the nng crate][2] and
 The `nng` library is compiled and linked by default.
 This can be disabled by setting `default-features` to `false`.
 
-**Currently Linked Version:** v1.1.1
+**Currently Linked Version:** master @ c036b3e
 
 [1]: https://nanomsg.github.io/nng/
 [2]: https://crates.io/crates/nng
