@@ -6,9 +6,6 @@
 //! The protocol is simple: the client sends a request with the number of
 //! milliseconds to wait, the server waits that long and sends back an empty
 //! reply.
-extern crate byteorder;
-extern crate nng;
-
 use std::time::{Duration, Instant};
 use std::{env, process, thread};
 

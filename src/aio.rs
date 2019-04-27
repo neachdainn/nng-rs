@@ -37,53 +37,85 @@ use log::error;
 /// before responding:
 ///
 /// ```
-/// use byteorder::{ByteOrder, LittleEndian};
-/// use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 /// use std::time::Duration;
+/// use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+/// use nng::*;
 ///
-/// let address = "inproc://nng/aio.rs#callbacks";
-/// let num_contexts = 10;
+/// const ADDRESS: &'static str = "inproc://nng/aio/example";
+/// const WORKERS: usize = 10;
 ///
-/// // Create the new socket and all of the socket contexts.
-/// let socket = Socket::new(Protocol::Rep0).unwrap();
-/// let workers: Vec<_> = (0..num_contexts)
-///     .map(|_| {
-///         let ctx = Context::new(&socket).unwrap();
-///         let ctx_clone = ctx.clone();
-///         let aio = Aio::new(move |aio, res| callback(aio, &ctx_clone, res)).unwrap();
-///         (aio, ctx)
-///     })
-///     .collect();
+/// fn server() -> Result<()> {
+///     // Set up the server socket but don't listen for connections yet.
+///     let server = Socket::new(Protocol::Rep0)?;
 ///
-/// // Start listening only after the contexts are available.
-/// socket.listen(address).unwrap();
+///     // Create all of the worker contexts. These do *not* represent the number
+///     // of threads that the REP socket will use.
+///     let workers: Vec<_> = (0..WORKERS)
+///         .map(|_| {
+///             let ctx = Context::new(&server)?;
+///             let ctx_clone = ctx.clone();
 ///
-/// // Have the workers start responding to replies.
-/// for (a, c) in &workers {
-///     c.recv(a).unwrap();
+///             // An actual program should have better error handling.
+///             let aio = Aio::new(move |aio, res| callback(aio, &ctx_clone, res).unwrap())?;
+///             Ok((aio, ctx))
+///         })
+///         .collect::<Result<_>>()?;
+///
+///     // Only after we have all of the workers do we start listening.
+///     server.listen(ADDRESS)?;
+///
+///     // Now, start the workers.
+///     for (a, c) in &workers {
+///         c.recv(a)?;
+///     }
+///
+///     // Now, do nothing and let the workers handle the jobs.
+///     std::thread::park();
+///     Ok(())
 /// }
 ///
-/// fn callback(aio: &Aio, ctx: &Context, res: AioResult) {
+/// fn callback(aio: &Aio, ctx: &Context, res: AioResult) -> Result<()> {
 ///     match res {
-///         // We successfully sent the message, wait for a new one.
-///         AioResult::SendOk => ctx.recv(aio).unwrap(),
+///         // We successfully send the reply, wait for a new request.
+///         AioResult::SendOk => ctx.recv(aio),
 ///
 ///         // We successfully received a message.
 ///         AioResult::RecvOk(m) => {
-///             let ms = LittleEndian::read_u64(&m);
-///             aio.sleep(Duration::from_millis(ms)).unwrap();
+///             let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
+///             aio.sleep(Duration::from_millis(ms))
 ///         },
 ///
 ///         // We successfully slept.
 ///         AioResult::SleepOk => {
-///             let msg = Message::new().unwrap();
-///             ctx.send(aio, msg).unwrap();
+///             // We could have hung on to the request `Message` to avoid an
+///             let _ = ctx.send(aio, Message::new()?)?;
+///             Ok(())
 ///         },
 ///
-///         // Anything else is an error that will just be ignored.
-///         _ => {},
+///         // Anything else is an error and an actual program should handle it.
+///         _ => panic!("Error in the AIO"),
 ///     }
 /// }
+///
+/// fn client(ms: u64) -> Result<()> {
+///     // Set up the client socket and connect to the server.
+///     let client = Socket::new(Protocol::Req0)?;
+///     client.dial(ADDRESS)?;
+///     // Create the message containing the number of milliseconds to sleep.
+///     let mut req = Message::new()?;
+///     req.write_u64::<LittleEndian>(ms).unwrap();
+///
+///     // Send the request to the server and wait for a response.
+///     client.send(req)?;
+///
+///     // This should block for approximately `ms` milliseconds as we wait for the
+///     // server to sleep.
+///     client.recv()?;
+///
+///     Ok(())
+/// }
+///
+/// # // The async of this makes it hard to test, so we won't
 /// ```
 pub struct Aio
 {

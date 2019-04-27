@@ -4,9 +4,6 @@
 //! derived from the legacy nanomsg demonstration program. The program
 //! implements a simple RPC style service, which just returns the number of
 //! seconds since the Unix epoch.
-extern crate byteorder;
-extern crate nng;
-
 use std::time::SystemTime;
 use std::{env, process};
 

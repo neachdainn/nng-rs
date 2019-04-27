@@ -41,7 +41,7 @@ const ADDRESS: &'static str = "inproc://nng/example";
 
 fn request() -> Result<()> {
     // Set up the client and connect to the specified address
-    let mut client = Socket::new(Protocol::Req0)?;
+    let client = Socket::new(Protocol::Req0)?;
     client.dial(ADDRESS)?;
 
     // Send the request from the client to the server. In general, it will be
