@@ -17,7 +17,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** `Dialer`: `Copy`, `Hash`, `Ord`, `PartialOrd`
 	** `Header`: `Default`
 	** `Listener`: `Copy`, `Hash`, `Ord`, `PartialOrd`
-	** `Message`: `Default`
+	** `Message`: `Default`, `FromIterator` for both values and references of `u8`
 	** `Pipe`: `Copy`, `Hash`, `Ord`, `PartialOrd`
 	** `Protocol`: `Ord`, `PartialOrd`
 	** `Socket`: `Hash`, `Ord`, `PartialOrd`

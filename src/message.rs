@@ -1,5 +1,6 @@
 //! Message handling utilities
 use std::{
+	iter::FromIterator,
 	io::{self, Write},
 	ops::{Deref, DerefMut, Index, IndexMut},
 	ptr::{self, NonNull},
@@ -293,6 +294,32 @@ impl<'a> From<&'a [u8]> for Message
 impl<'a> From<&'a Vec<u8>> for Message
 {
 	fn from(s: &Vec<u8>) -> Message { s.as_slice().into() }
+}
+
+impl FromIterator<u8> for Message
+{
+	fn from_iter<T>(iter: T) -> Message
+		where T: IntoIterator<Item = u8>
+	{
+		let iter = iter.into_iter();
+		let (lower, _) = iter.size_hint();
+		let mut msg = Message::with_capacity(lower).expect("Failed to allocate memory");
+		msg.extend(iter);
+		msg
+	}
+}
+
+impl<'a> FromIterator<&'a u8> for Message
+{
+	fn from_iter<T>(iter: T) -> Message
+		where T: IntoIterator<Item = &'a u8>
+	{
+		let iter = iter.into_iter();
+		let (lower, _) = iter.size_hint();
+		let mut msg = Message::with_capacity(lower).expect("Failed to allocate memory");
+		msg.extend(iter);
+		msg
+	}
 }
 
 impl Deref for Message
