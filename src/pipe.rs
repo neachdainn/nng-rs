@@ -91,7 +91,7 @@ impl Pipe
 	}
 
 	/// Returns the underlying nng handle for the pipe.
-	pub(crate) fn handle(&self) -> nng_sys::nng_pipe { self.handle }
+	pub(crate) const fn handle(&self) -> nng_sys::nng_pipe { self.handle }
 
 	/// Create a new Pipe handle from a libnng handle.
 	///

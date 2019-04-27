@@ -8,9 +8,9 @@ extern crate nng;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{env, mem, process, thread};
+use std::{env, process, thread};
 
-use byteorder::{ByteOrder, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use nng::options::protocol::pubsub::Subscribe;
 use nng::options::Options;
 use nng::{Message, PipeEvent, Protocol, Socket};
@@ -55,8 +55,8 @@ fn publisher(url: &str) -> Result<(), nng::Error>
 
 		// Load the number of subscribers and send the value across
 		let data = count.load(Ordering::Relaxed) as u64;
-		let mut msg = Message::zeros(mem::size_of::<u64>())?;
-		LittleEndian::write_u64(&mut msg, data);
+		let mut msg = Message::new()?;
+		msg.write_u64::<LittleEndian>(data).unwrap();
 
 		println!("PUBLISHER: SENDING {}", data);
 		s.send(msg)?;
@@ -75,7 +75,7 @@ fn subscriber(url: &str) -> Result<(), nng::Error>
 
 	loop {
 		let msg = s.recv()?;
-		let subs = LittleEndian::read_u64(&msg);
+		let subs = msg.as_slice().read_u64::<LittleEndian>().unwrap();
 		println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
 	}
 }

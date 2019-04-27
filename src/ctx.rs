@@ -55,7 +55,11 @@ impl Context
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `ErrorKind::TryAgain`
 	/// and return the message to the caller.
-	pub fn send(&self, aio: &Aio, msg: Message) -> SendResult<()> { aio.send_ctx(self, msg) }
+	pub fn send<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
+	{
+		let msg = msg.into();
+		aio.send_ctx(self, msg)
+	}
 
 	/// Receive a message using the context asynchronously.
 	///

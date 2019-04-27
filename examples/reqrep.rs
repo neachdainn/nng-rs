@@ -8,9 +8,9 @@ extern crate byteorder;
 extern crate nng;
 
 use std::time::SystemTime;
-use std::{env, mem, process};
+use std::{env, process};
 
-use byteorder::{ByteOrder, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use nng::{Message, Protocol, Socket};
 
 /// Message representing a date request
@@ -40,13 +40,12 @@ fn client(url: &str) -> Result<(), nng::Error>
 	s.dial(url)?;
 
 	println!("CLIENT: SENDING DATE REQUEST");
-	let mut req = Message::zeros(mem::size_of::<u64>())?;
-	LittleEndian::write_u64(&mut req, DATE_REQUEST);
+	let mut req = Message::new()?;
+	req.write_u64::<LittleEndian>(DATE_REQUEST).unwrap();
 	s.send(req)?;
 
 	println!("CLIENT: WAITING FOR RESPONSE");
-	let res = s.recv()?;
-	let epoch = LittleEndian::read_u64(&res);
+	let epoch = s.recv()?.as_slice().read_u64::<LittleEndian>().unwrap();
 
 	println!("CLIENT: UNIX EPOCH WAS {} SECONDS AGO", epoch);
 
@@ -63,7 +62,7 @@ fn server(url: &str) -> Result<(), nng::Error>
 		println!("SERVER: WAITING FOR COMMAND");
 		let mut msg = s.recv()?;
 
-		let cmd = LittleEndian::read_u64(&msg);
+		let cmd = msg.as_slice().read_u64::<LittleEndian>().unwrap();
 		if cmd != DATE_REQUEST {
 			println!("SERVER: UNKNOWN COMMAND");
 			continue;
@@ -74,7 +73,9 @@ fn server(url: &str) -> Result<(), nng::Error>
 			.duration_since(SystemTime::UNIX_EPOCH)
 			.expect("Current system time is before Unix epoch")
 			.as_secs();
-		LittleEndian::write_u64(&mut msg, rep);
+
+		msg.clear();
+		msg.write_u64::<LittleEndian>(rep).unwrap();
 
 		println!("SERVER: SENDING {}", rep);
 		s.send(msg)?;

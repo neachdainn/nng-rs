@@ -192,12 +192,14 @@ impl Socket
 	///
 	/// If the message cannot be sent, then it is returned to the caller as a
 	/// part of the `Error`.
-	pub fn send(&self, data: Message) -> SendResult<()>
+	pub fn send<M: Into<Message>>(&self, msg: M) -> SendResult<()>
 	{
+		let msg = msg.into();
+
 		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		unsafe {
-			let msgp = data.into_ptr();
+			let msgp = msg.into_ptr();
 			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
 
 			if rv != 0 {
@@ -221,8 +223,9 @@ impl Socket
 	/// This function will return immediately. If there is already an I/O
 	/// operation in progress, this function will return `Error::TryAgain`
 	/// and return the message to the caller.
-	pub fn send_async(&self, aio: &Aio, msg: Message) -> SendResult<()>
+	pub fn send_async<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
 	{
+		let msg = msg.into();
 		aio.send_socket(self, msg)
 	}
 

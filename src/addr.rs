@@ -91,7 +91,7 @@ pub struct SocketAddrZt
 impl SocketAddrZt
 {
 	/// Converts an `nng_sockaddr_zt` into its corresponding Rust type.
-	fn new(addr: &nng_sys::nng_sockaddr_zt) -> SocketAddrZt
+	const fn new(addr: &nng_sys::nng_sockaddr_zt) -> SocketAddrZt
 	{
 		SocketAddrZt {
 			family: addr.sa_family,

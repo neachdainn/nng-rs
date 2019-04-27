@@ -197,7 +197,6 @@ impl From<Error> for io::Error
 				Error::PermissionDenied => io::ErrorKind::PermissionDenied,
 				Error::ConnectionAborted => io::ErrorKind::ConnectionAborted,
 				Error::ConnectionReset => io::ErrorKind::ConnectionReset,
-				Error::Canceled => io::ErrorKind::Interrupted, // I am not sure about this one
 				Error::ResourceExists => io::ErrorKind::AlreadyExists,
 				Error::BadType => io::ErrorKind::InvalidData,
 				_ => io::ErrorKind::Other,

@@ -10,9 +10,9 @@ extern crate byteorder;
 extern crate nng;
 
 use std::time::{Duration, Instant};
-use std::{env, mem, process, thread};
+use std::{env, process, thread};
 
-use byteorder::{ByteOrder, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 
 /// Number of outstanding requests that we can handle at a given time.
@@ -48,8 +48,8 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error>
 	let s = Socket::new(Protocol::Req0)?;
 	s.dial(url)?;
 
-	let mut req = Message::zeros(mem::size_of::<u64>())?;
-	LittleEndian::write_u64(&mut req, ms);
+	let mut req = Message::new()?;
+	req.write_u64::<LittleEndian>(ms).unwrap();
 
 	let start = Instant::now();
 	s.send(req)?;
@@ -100,7 +100,7 @@ fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult)
 
 		// We successfully received a message.
 		AioResult::RecvOk(m) => {
-			let ms = LittleEndian::read_u64(&m);
+			let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
 			aio.sleep(Duration::from_millis(ms)).unwrap();
 		},
 

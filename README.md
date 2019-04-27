@@ -34,36 +34,49 @@ The following example uses the [intra-process][2] transport to set up a [request
 socket pair. The "client" sends a String to the "server" which responds with a nice phrase.
 
 ```rust
+use std::io::Write;
 use nng::*;
 
-// Set up the server and listen for connections on the specified address.
-let address = "inproc://nng/lib.rs";
-let server = Socket::new(Protocol::Rep0).unwrap();
-server.listen(address).unwrap();
+const ADDRESS: &'static str = "inproc://nng/example";
 
-// Set up the client and connect to the specified address
-let client = Socket::new(Protocol::Req0).unwrap();
-client.dial(address).unwrap();
+fn request() -> Result<()> {
+    // Set up the client and connect to the specified address
+    let mut client = Socket::new(Protocol::Req0)?;
+    # // Don't error if we hit here before the server does.
+    # client.set_nonblocking(true);
+    client.dial(ADDRESS)?;
 
-// Send the request from the client to the server.
-let request = b"Ferris"[..].into();
-client.send(request).unwrap();
+    // Send the request from the client to the server. In general, it will be
+    // better to directly use a `Message` to enable zero-copy, but that doesn't
+    // matter here.
+    # // Do block until the server is ready.
+    # client.set_nonblocking(false);
+    client.send("Ferris".as_bytes())?;
 
-// Receive the message on the server and send back the reply
-let request = {
-    let req = server.recv().unwrap();
-    String::from_utf8(req.to_vec()).unwrap()
-};
-assert_eq!(request, "Ferris");
-let reply = format!("Hello, {}!", request).as_bytes().into();
-server.send(reply).unwrap();
+    // Wait for the response from the server.
+    let msg = client.recv()?;
+    let reply = String::from_utf8_lossy(&msg);
+    assert_eq!(reply, "Hello, Ferris!");
+    Ok(())
+}
 
-// Get the response on the client side.
-let reply = {
-    let rep = client.recv().unwrap();
-    String::from_utf8(rep.to_vec()).unwrap()
-};
-assert_eq!(reply, "Hello, Ferris!");
+fn reply() -> Result<()> {
+    // Set up the server and listen for connections on the specified address.
+    let server = Socket::new(Protocol::Rep0)?;
+    server.listen(ADDRESS)?;
+
+    // Receive the message from the client.
+    let mut msg = server.recv()?;
+    let name = String::from_utf8_lossy(&msg).into_owned();
+    assert_eq!(name, "Ferris");
+
+    // Reuse the message to be more efficient.
+    msg.clear();
+    write!(msg, "Hello, {}!", name).unwrap();
+
+    server.send(msg)?;
+    Ok(())
+}
 ```
 
 Additional examples are in the `examples` directory.
