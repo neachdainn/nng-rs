@@ -62,7 +62,8 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 					SocketAddr::Ipc(buf_to_string(&addr.s_ipc.sa_path[..]).into())
 				},
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET) => {
-					SocketAddr::Inet(SocketAddrV4::new(addr.s_in.sa_addr.into(), addr.s_in.sa_port))
+					let v4_addr = u32::from_be(addr.s_in.sa_addr).into();
+					SocketAddr::Inet(SocketAddrV4::new(v4_addr, addr.s_in.sa_port))
 				},
 				Ok(nng_sys::nng_sockaddr_family::NNG_AF_INET6) => {
 					let v6_addr = addr.s_in6.sa_addr.into();
