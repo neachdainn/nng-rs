@@ -86,15 +86,6 @@ impl Dialer
 		);
 	}
 
-	/// Returns the positive identifier for the dialer.
-	pub fn id(self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_dialer_id(self.handle) };
-		assert!(id > 0, "Invalid dialer ID returned from valid socket");
-
-		id
-	}
-
 	/// Create a new Dialer handle from a libnng handle.
 	///
 	/// This function will panic if the handle is not valid.

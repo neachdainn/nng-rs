@@ -51,20 +51,6 @@ impl Pipe
 		if id > 0 { Some(Listener::from_nng_sys(listener)) } else { None }
 	}
 
-	/// Returns the ID of the owning socket.
-	///
-	/// This function should be considered unstable. Eventually it should be
-	/// possible to get the socket itself, rather than just the ID.
-	pub fn socket_id(self) -> i32
-	{
-		unsafe {
-			let socket = nng_sys::nng_pipe_socket(self.handle);
-			let id = nng_sys::nng_socket_id(socket);
-			assert!(id > 0, "Invalid socket associated with valid pipe");
-			id
-		}
-	}
-
 	/// Closes the pipe.
 	///
 	/// Messages that have been submitted for sending may be flushed or
@@ -82,15 +68,6 @@ impl Pipe
 			"Unexpected error code while closing pipe ({})",
 			rv
 		);
-	}
-
-	/// Returns the positive identifier for the pipe.
-	pub fn id(self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_pipe_id(self.handle) };
-		assert!(id > 0, "Invalid pipe ID returned from valid pipe");
-
-		id
 	}
 
 	/// Returns the underlying nng handle for the pipe.

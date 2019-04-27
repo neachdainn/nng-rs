@@ -45,15 +45,6 @@ impl Context
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
 	}
 
-	/// Returns the positive identifier for this context.
-	pub fn id(&self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_ctx_id(self.inner.ctx) };
-		assert!(id > 0, "Invalid context ID returned from valid context");
-
-		id
-	}
-
 	/// Send a message using the context asynchronously.
 	///
 	/// This function will return immediately. If there is already an I/O

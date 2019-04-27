@@ -88,15 +88,6 @@ impl Listener
 		);
 	}
 
-	/// Returns the positive identifier for the listener.
-	pub fn id(self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_listener_id(self.handle) };
-		assert!(id > 0, "Invalid listener ID returned from valid socket");
-
-		id
-	}
-
 	/// Create a new Listener handle from a libnng handle.
 	///
 	/// This function will panic if the handle is not valid.
