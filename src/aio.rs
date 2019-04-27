@@ -5,7 +5,10 @@ use std::{
 	os::raw::c_void,
 	panic::catch_unwind,
 	ptr::{self, NonNull},
-	sync::{atomic::{AtomicPtr, AtomicUsize, Ordering}, Arc},
+	sync::{
+		atomic::{AtomicPtr, AtomicUsize, Ordering},
+		Arc
+	},
 	time::Duration,
 };
 
@@ -309,7 +312,7 @@ impl Aio
 		// the uniqueness of the callback pointer to know when to safely drop items. See
 		// the `Drop` implementation for more details.
 		if let Some(a) = &self.callback {
-			let callback = Some(a.clone());
+			let callback = Some(Arc::clone(a));
 			Some(Self { inner: Arc::clone(&self.inner), callback })
 		}
 		else {
@@ -480,7 +483,7 @@ impl PartialEq for Aio
 	}
 }
 
-impl Eq for Aio { }
+impl Eq for Aio {}
 
 #[allow(clippy::use_debug)]
 impl fmt::Debug for Aio

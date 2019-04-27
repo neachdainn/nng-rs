@@ -8,6 +8,24 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+=== Changed ===
+
+=== Deprecated ===
+
+=== Removed ===
+
+=== Fixed ===
+
+=== Security ===
+
+//------------------------------------------------------------------------------
+// Past Releases
+//------------------------------------------------------------------------------
+
+== [nng-rs v0.5.0-rc.2] - 2019=04-27 ==
+
+=== Added ===
+
 * The `Message` and `Header` types now implement `Write`.
 * The `Message` type received several new functions to make its API similar to that of a `Vec<u8>` or `VecDeque<u8>`.
 * Implemented additional common traits on types:
@@ -39,8 +57,6 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Renamed the `NNG_OPT_TLS_VERIFIED` option from `tls::TlsVerified` to `tls::Verified`.
 * Renamed the `NNG_OPT_IPC_SECURITY_DESCRIPTOR` option from `ipc::IpcSecurityDescriptor` to `ipc::SecurityDescriptor`.
 
-=== Deprecated ===
-
 === Removed ===
 
 * The `Body` type has been removed. Most applications do not need to touch the header, so it makes sense to mask the distinction between the body and header slightly.
@@ -49,12 +65,6 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Fixed ===
 
 * The IPv4 address is now in the correct order. (#28)
-
-=== Security ===
-
-//------------------------------------------------------------------------------
-// Past Releases
-//------------------------------------------------------------------------------
 
 == [nng-rs v0.5.0-rc.1] - 2019-04-14 ==
 

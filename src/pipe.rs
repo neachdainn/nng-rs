@@ -153,7 +153,7 @@ expose_options!{
 mod unix_impls
 {
 	use super::*;
-	use crate::options::{SetOpt, transport::ipc};
+	use crate::options::{transport::ipc, SetOpt};
 
 	impl SetOpt<ipc::PeerUid> for Pipe {}
 	impl SetOpt<ipc::PeerGid> for Pipe {}
