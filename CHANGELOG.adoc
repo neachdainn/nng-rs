@@ -37,6 +37,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Removed ===
 
 * The `Body` type has been removed. Most applications do not need to touch the header, so it makes sense to mask the distinction between the body and header slightly.
+* `Pipe::socket_id` has been removed. (#15)
 
 === Fixed ===
 
