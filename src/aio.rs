@@ -3,7 +3,7 @@ use std::{
 	fmt,
 	hash::{Hash, Hasher},
 	os::raw::c_void,
-	panic::{catch_unwind, AssertUnwindSafe, UnwindSafe},
+	panic::catch_unwind,
 	ptr::{self, NonNull},
 	sync::{atomic::{AtomicPtr, AtomicUsize, Ordering}, Arc},
 	time::Duration,
@@ -131,7 +131,7 @@ pub struct Aio
 	/// We can assert that is is unwind safe because we literally never call
 	/// this function. I don't think we could if we wanted to, which is the
 	/// entire point of the black box.
-	callback: Option<AssertUnwindSafe<Arc<dyn FnOnce() + Sync + Send>>>,
+	callback: Option<Arc<dyn FnOnce() + Sync + Send>>,
 }
 
 impl Aio
@@ -153,7 +153,7 @@ impl Aio
 	/// or catching and handling the panic within the callback.
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
-		F: Fn(&Aio, AioResult) + Sync + Send + UnwindSafe + 'static,
+		F: Fn(&Aio, AioResult) + Sync + Send + 'static,
 	{
 		// The shared inner needs to have a fixed location before we can do anything
 		// else, which complicates the process of building the AIO slightly. We need to
@@ -205,7 +205,7 @@ impl Aio
 		// Unfortunately, we have no way to get the type of a closure other than calling
 		// a generic function, so we do have to call another function to actually
 		// allocate the AIO.
-		let callback = Some(AssertUnwindSafe(Aio::alloc_trampoline(&inner, bounce)?));
+		let callback = Some(Aio::alloc_trampoline(&inner, bounce)?);
 
 		Ok(Self { inner, callback })
 	}
@@ -309,7 +309,7 @@ impl Aio
 		// the uniqueness of the callback pointer to know when to safely drop items. See
 		// the `Drop` implementation for more details.
 		if let Some(a) = &self.callback {
-			let callback = Some(AssertUnwindSafe((*a).clone()));
+			let callback = Some(a.clone());
 			Some(Self { inner: Arc::clone(&self.inner), callback })
 		}
 		else {
@@ -405,7 +405,7 @@ impl Aio
 	/// of the closure other than calling a generic function.
 	fn alloc_trampoline<F>(inner: &Arc<Inner>, bounce: F) -> Result<Arc<dyn FnOnce() + Sync + Send>>
 	where
-		F: Fn() + Sync + Send + UnwindSafe + 'static,
+		F: Fn() + Sync + Send + 'static,
 	{
 		let mut boxed = Box::new(bounce);
 
@@ -442,7 +442,7 @@ impl Aio
 	/// and a `c_void`, the type system does not enforce this for us.
 	extern "C" fn trampoline<F>(arg: *mut c_void)
 	where
-		F: Fn() + Sync + Send + UnwindSafe + 'static,
+		F: Fn() + Sync + Send + 'static,
 	{
 		let res = catch_unwind(|| unsafe {
 			let callback_ptr = arg as *const F;
