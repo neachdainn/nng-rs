@@ -42,15 +42,11 @@ const ADDRESS: &'static str = "inproc://nng/example";
 fn request() -> Result<()> {
     // Set up the client and connect to the specified address
     let mut client = Socket::new(Protocol::Req0)?;
-    # // Don't error if we hit here before the server does.
-    # client.set_nonblocking(true);
     client.dial(ADDRESS)?;
 
     // Send the request from the client to the server. In general, it will be
     // better to directly use a `Message` to enable zero-copy, but that doesn't
     // matter here.
-    # // Do block until the server is ready.
-    # client.set_nonblocking(false);
     client.send("Ferris".as_bytes())?;
 
     // Wait for the response from the server.
