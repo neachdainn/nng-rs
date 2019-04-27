@@ -28,9 +28,6 @@ use crate::{
 	socket::Socket,
 };
 
-#[cfg(windows)]
-use crate::options::transport::ipc::IpcSecurityDescriptor;
-
 /// A constructed and running listener.
 ///
 /// This listener has already been started on the socket and will continue
@@ -147,6 +144,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
 	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
 
 	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
@@ -242,6 +240,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
 	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
 
 	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
@@ -266,7 +265,22 @@ expose_options!{
 }
 
 #[cfg(windows)]
-impl crate::options::UnsafeSetOpt<IpcSecurityDescriptor> for ListenerOptions {}
+mod windows_impls
+{
+	use super::*;
+	use crate::options::transport::ipc;
+
+	impl crate::options::UnsafeSetOpt<ipc::SecurityDescriptor> for ListenerOptions {}
+}
+
+#[cfg(unix)]
+mod unix_impls
+{
+	use super::*;
+	use crate::options::transport::ipc;
+
+	impl crate::options::SetOpt<ipc::Permissions> for ListenerOptions {}
+}
 
 impl Drop for ListenerOptions
 {

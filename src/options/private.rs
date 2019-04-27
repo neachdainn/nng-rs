@@ -56,6 +56,8 @@ pub trait HasOpts: Sized
 		*const c_char,
 		*mut *mut c_char,
 	) -> c_int;
+	/// Raw `nng` function for getting a u64.
+	const GETOPT_UINT64: unsafe extern "C" fn(Self::Handle, *const c_char, *mut u64) -> c_int;
 
 	/// Raw `nng` function for setting opaque data.
 	const SETOPT: unsafe extern "C" fn(Self::Handle, *const c_char, *const c_void, usize) -> c_int;
@@ -139,6 +141,15 @@ pub trait HasOpts: Sized
 
 			Ok(name)
 		}
+	}
+
+	/// The the `u64` option.
+	fn getopt_uint64(&self, opt: *const c_char) -> Result<u64>
+	{
+		let mut res = 0;
+		let rv = unsafe { (Self::GETOPT_UINT64)(self.handle(), opt, &mut res as _) };
+
+		rv2res!(rv, res)
 	}
 
 	/// Sets the value of opaque data.

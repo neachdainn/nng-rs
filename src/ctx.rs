@@ -125,6 +125,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
 	GETOPT_SOCKADDR = crate::util::fake_opt;
 	GETOPT_STRING = crate::util::fake_opt;
+	GETOPT_UINT64 = crate::util::fake_opt;
 
 	SETOPT = nng_sys::nng_ctx_setopt;
 	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;

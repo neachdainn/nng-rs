@@ -380,6 +380,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_getopt_size;
 	GETOPT_SOCKADDR = crate::util::fake_opt;
 	GETOPT_STRING = nng_sys::nng_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_getopt_uint64;
 
 	SETOPT = nng_sys::nng_setopt;
 	SETOPT_BOOL = nng_sys::nng_setopt_bool;
@@ -410,6 +411,16 @@ expose_options!{
 	         transport::tls::CertKeyFile,
 	         transport::websocket::RequestHeaders,
 	         transport::websocket::ResponseHeaders];
+}
+
+#[cfg(unix)]
+mod unix_impls
+{
+	use super::*;
+	use crate::options::{RecvFd, SendFd, SetOpt};
+
+	impl SetOpt<RecvFd> for Socket {}
+	impl SetOpt<SendFd> for Socket {}
 }
 
 /// A wrapper type around the underlying `nng_socket`.

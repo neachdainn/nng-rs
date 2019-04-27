@@ -129,6 +129,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_pipe_getopt_size;
 	GETOPT_SOCKADDR = nng_sys::nng_pipe_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_pipe_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_pipe_getopt_uint64;
 
 	SETOPT = crate::util::fake_genopt;
 	SETOPT_BOOL = crate::util::fake_opt;
@@ -139,12 +140,23 @@ expose_options!{
 	SETOPT_STRING =crate::util::fake_opt;
 
 	Gets -> [LocalAddr, RemAddr, RecvMaxSize,
+	         transport::ipc::PeerPid,
 	         transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive,
-	         transport::tls::TlsVerified,
+	         transport::tls::Verified,
 	         transport::websocket::RequestHeaders,
 	         transport::websocket::ResponseHeaders];
 	Sets -> [];
+}
+
+#[cfg(unix)]
+mod unix_impls
+{
+	use super::*;
+	use crate::options::{SetOpt, transport::ipc};
+
+	impl SetOpt<ipc::PeerUid> for Pipe {}
+	impl SetOpt<ipc::PeerGid> for Pipe {}
 }
 
 /// An event that happens on a Pipe instance.

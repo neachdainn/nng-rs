@@ -142,6 +142,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_dialer_getopt_size;
 	GETOPT_SOCKADDR = nng_sys::nng_dialer_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_dialer_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_dialer_getopt_uint64;
 
 	SETOPT = nng_sys::nng_dialer_setopt;
 	SETOPT_BOOL = nng_sys::nng_dialer_setopt_bool;
@@ -242,6 +243,7 @@ expose_options!{
 	GETOPT_SIZE = nng_sys::nng_dialer_getopt_size;
 	GETOPT_SOCKADDR = nng_sys::nng_dialer_getopt_sockaddr;
 	GETOPT_STRING = nng_sys::nng_dialer_getopt_string;
+	GETOPT_UINT64 = nng_sys::nng_dialer_getopt_uint64;
 
 	SETOPT = nng_sys::nng_dialer_setopt;
 	SETOPT_BOOL = nng_sys::nng_dialer_setopt_bool;

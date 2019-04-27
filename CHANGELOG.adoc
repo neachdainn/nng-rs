@@ -22,6 +22,11 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** `Protocol`: `Ord`, `PartialOrd`
 	** `Socket`: `Hash`, `Ord`, `PartialOrd`
 	** `SocketAddr`: `Ord`, `PartialOrd`
+* Implemented several of the remaining options. (#5)
+	** `NNG_OPT_RECVFD`
+	** `NNG_OPT_SENDFD`
+	** `NNG_OPT_IPC_PERMISSIONS`
+	** `NNG_OPT_IPC_PEER_{GUP}ID`
 
 === Changed ===
 
@@ -31,6 +36,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** `Message::zeros` → `Message::with_zeros`
 * All variations of the "send" operation now take `Into<Message>` instead of `Message` directly.
 * All of the "close" functions now take `&self` instead of `self`.
+* Renamed the `NNG_OPT_TLS_VERIFIED` option from `tls::TlsVerified` to `tls::Verified`.
+* Renamed the `NNG_OPT_IPC_SECURITY_DESCRIPTOR` option from `ipc::IpcSecurityDescriptor` to `ipc::SecurityDescriptor`.
 
 === Deprecated ===
 
