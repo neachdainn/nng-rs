@@ -70,15 +70,6 @@ impl Pipe
 		);
 	}
 
-	/// Returns the positive identifier for the pipe.
-	pub fn id(self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_pipe_id(self.handle) };
-		assert!(id > 0, "Invalid pipe ID returned from valid pipe");
-
-		id
-	}
-
 	/// Returns the underlying nng handle for the pipe.
 	pub(crate) const fn handle(self) -> nng_sys::nng_pipe { self.handle }
 

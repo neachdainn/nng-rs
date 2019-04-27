@@ -300,15 +300,6 @@ impl Socket
 	/// dropped.
 	pub fn close(&self) { self.inner.close() }
 
-	/// Get the positive identifier for the socket.
-	pub fn id(&self) -> i32
-	{
-		let id = unsafe { nng_sys::nng_socket_id(self.inner.handle) };
-		assert!(id > 0, "Invalid socket ID returned from valid socket");
-
-		id
-	}
-
 	/// Returns the underlying `nng_socket`.
 	pub(crate) fn handle(&self) -> nng_sys::nng_socket { self.inner.handle }
 
