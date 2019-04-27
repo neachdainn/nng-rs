@@ -1,6 +1,9 @@
 //! Types of options available.
 use std::time::Duration;
 
+#[cfg(unix)]
+use std::os::unix::io::RawFd;
+
 use crate::addr::SocketAddr;
 
 create_option! {
@@ -115,6 +118,27 @@ create_option! {
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_RECVBUF as *const _ as _, val);
 }
 
+#[cfg(unix)]
+create_option! {
+	/// A raw file descriptor that can be used to poll for receiving on a socket.
+	///
+	/// This descriptor will be _readable_ when a message is available for
+	/// receiving on the socket. When no message is ready for receiving, it will
+	/// _not_ be readable.
+	///
+	/// While this may be useful for integrating into existing polling loops, the
+	/// use of asynchronous I/O objects will be more efficient.
+	///
+	/// Applications should **never** attempt to read or write to the file
+	/// descriptor.
+	///
+	/// ## Support
+	///
+	/// * All sockets.
+	RecvFd -> RawFd:
+	Get s = s.getopt_int(nng_sys::NNG_OPT_RECVFD as *const _ as _);
+}
+
 create_option! {
 	/// The maximum message size that the will be accepted from a remote peer.
 	///
@@ -173,6 +197,27 @@ create_option! {
 	SendBufferSize -> i32:
 	Get s = s.getopt_int(nng_sys::NNG_OPT_SENDBUF as *const _ as _);
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_SENDBUF as *const _ as _, val);
+}
+
+#[cfg(unix)]
+create_option! {
+	/// A raw file descriptor that can be used to poll for sending on a socket.
+	///
+	/// This descriptor will be _readable_ when a message is available for sending
+	/// a message without blocking. When the socket can no longer accept messages
+	/// without blocking, the descriptor will _not_ be readable.
+	///
+	/// While this may be useful for integrating into existing polling loops, the
+	/// use of asynchronous I/O objects will be more efficient.
+	///
+	/// Applications should **never** attempt to read or write to the file
+	/// descriptor.
+	///
+	/// ## Support
+	///
+	/// * All sockets.
+	SendFd -> RawFd:
+	Get s = s.getopt_int(nng_sys::NNG_OPT_SENDFD as *const _ as _);
 }
 
 create_option! {
@@ -382,6 +427,31 @@ pub mod transport
 		#[cfg(windows)]
 		use winapi::um::winnt::PSECURITY_DESCRIPTOR;
 
+		#[cfg(unix)]
+		create_option! {
+			/// Configures the permissions used on the UNIX domain socket.
+			///
+			/// This value represents the normal permission bits of the file. The default is
+			/// system-specific but is most often `0644`. Note that not all systems will respect
+			/// this value. In particular, illumos and Solaris are known to ignore these permission
+			/// settings. It is also important to note that the _umask_ of the process is **not**
+			/// applied to these bits.
+			///
+			/// The best practice for limiting access is to place the socket in a directory writable
+			/// only by the server, and only readable and searchable by clients. All mainstream
+			/// POSIX systems will fail to permit a client to connect to a socket located in a
+			/// directory for which the client lacks search (execute) permission.
+			///
+			/// Also consider using the `PeerId` property from within the pipe notify callback to
+			/// validate peer credentials.
+			///
+			/// ## Support
+			///
+			/// * Listeners that are using the IPC protocol.
+			Permissions -> u32:
+			Set s val = s.setopt_int(nng_sys::NNG_OPT_IPC_PERMISSIONS as *const _ as _, val as _);
+		}
+
 		#[cfg(windows)]
 		create_option! {
 			/// Configures the `SECURITY_DESCRIPTOR` that is used when creating the underlying named
@@ -410,10 +480,53 @@ pub mod transport
 			///   Windows platform.
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
-			IpcSecurityDescriptor -> PSECURITY_DESCRIPTOR:
+			SecurityDescriptor -> PSECURITY_DESCRIPTOR:
 			Set s val = unsafe {
 				s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val)
 			};
+		}
+
+		#[cfg(unix)]
+		create_option! {
+			/// Returns the peer user ID from a pipe.
+			///
+			/// This is the effective user id of the peer when either the underlying `listen()` or
+			/// `connect()` calls were made, and is not forgeable.
+			///
+			/// ## Supports
+			///
+			/// * Pipes that are using the IPC protocol.
+			PeerUid -> u64:
+			Get s = s.getopt_uint64(nng_sys::NNG_OPT_IPC_PEER_UID as *const _ as _);
+		}
+
+		#[cfg(unix)]
+		create_option! {
+			/// Returns the peer primary group ID from a pipe.
+			///
+			/// This is the effective group id of the peer when either the underlying `listen()` or
+			/// `connect()` calls were made, and is not forgeable.
+			///
+			/// ## Supports
+			///
+			/// * Pipes that are using the IPC protocol.
+			PeerGid -> u64:
+			Get s = s.getopt_uint64(nng_sys::NNG_OPT_IPC_PEER_GID as *const _ as _);
+		}
+
+		create_option! {
+			/// Returns the process ID of the peer.
+			///
+			/// Applications should not assume that the process ID does not change, as it is
+			/// possible (although unsupported!) for a nefarious process to pass a file descriptor
+			/// between processes. However, it is not possible for a nefarious application to forge
+			/// the identity of a well-behaved one using this method.
+			///
+			/// ## Supports
+			///
+			/// * Pipes that are using the IPC protocol.
+			PeerPid -> u64:
+			Get s = s.getopt_uint64(nng_sys::NNG_OPT_IPC_PEER_PID as *const _ as _);
 		}
 	}
 
@@ -528,7 +641,7 @@ pub mod transport
 			///     * TLS
 			///
 			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
-			TlsVerified -> bool:
+			Verified -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED as *const _ as _);
 		}
 	}

@@ -99,6 +99,7 @@ macro_rules! expose_options
 		GETOPT_SIZE = $go_sz:path;
 		GETOPT_SOCKADDR = $go_sa:path;
 		GETOPT_STRING = $go_str:path;
+		GETOPT_UINT64 = $go_uint64:path;
 
 		SETOPT = $so:path;
 		SETOPT_BOOL = $so_b:path;
@@ -122,6 +123,7 @@ macro_rules! expose_options
 			const GETOPT_SIZE: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut usize) -> std::os::raw::c_int = $go_sz;
 			const GETOPT_SOCKADDR: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut nng_sys::nng_sockaddr) -> std::os::raw::c_int = $go_sa;
 			const GETOPT_STRING: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut *mut std::os::raw::c_char) -> std::os::raw::c_int = $go_str;
+			const GETOPT_UINT64: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *mut u64) -> std::os::raw::c_int = $go_uint64;
 
 			const SETOPT: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *const std::os::raw::c_void, usize) -> std::os::raw::c_int = $so;
 			const SETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, bool) -> std::os::raw::c_int = $so_b;
