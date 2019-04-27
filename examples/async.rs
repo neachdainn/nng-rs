@@ -23,93 +23,92 @@ use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
 const PARALLEL: usize = 128;
 
 /// Entry point of the application.
-fn main() -> Result<(), nng::Error>
-{
-	// Begin by parsing the arguments. We are either a server or a client, and
-	// we need an address and potentially a sleep duration.
-	let args: Vec<_> = env::args().collect();
+fn main() -> Result<(), nng::Error> {
+    // Begin by parsing the arguments. We are either a server or a client, and
+    // we need an address and potentially a sleep duration.
+    let args: Vec<_> = env::args().collect();
 
-	match &args[..] {
-		[_, t, url] if t == "server" => server(url),
-		[_, t, url, count] if t == "client" => client(url, count.parse().unwrap()),
-		_ => {
-			println!("Usage:\nasync server <url>\n  or\nasync client <url> <ms>");
-			process::exit(1);
-		},
-	}
+    match &args[..] {
+        [_, t, url] if t == "server" => server(url),
+        [_, t, url, count] if t == "client" => client(url, count.parse().unwrap()),
+        _ => {
+            println!("Usage:\nasync server <url>\n  or\nasync client <url> <ms>");
+            process::exit(1);
+        }
+    }
 }
 
 /// Run the client portion of the program.
-fn client(url: &str, ms: u64) -> Result<(), nng::Error>
-{
-	let s = Socket::new(Protocol::Req0)?;
-	s.dial(url)?;
+fn client(url: &str, ms: u64) -> Result<(), nng::Error> {
+    let s = Socket::new(Protocol::Req0)?;
+    s.dial(url)?;
 
-	let mut req = Message::new()?;
-	req.write_u64::<LittleEndian>(ms).unwrap();
+    let mut req = Message::new()?;
+    req.write_u64::<LittleEndian>(ms).unwrap();
 
-	let start = Instant::now();
-	s.send(req)?;
-	s.recv()?;
+    let start = Instant::now();
+    s.send(req)?;
+    s.recv()?;
 
-	let dur = Instant::now().duration_since(start);
-	let subsecs: u64 = dur.subsec_millis().into();
-	println!("Request took {} milliseconds", dur.as_secs() * 1000 + subsecs);
+    let dur = Instant::now().duration_since(start);
+    let subsecs: u64 = dur.subsec_millis().into();
+    println!(
+        "Request took {} milliseconds",
+        dur.as_secs() * 1000 + subsecs
+    );
 
-	Ok(())
+    Ok(())
 }
 
 /// Run the server portion of the program.
-fn server(url: &str) -> Result<(), nng::Error>
-{
-	// Create the socket
-	let s = Socket::new(Protocol::Rep0)?;
+fn server(url: &str) -> Result<(), nng::Error> {
+    // Create the socket
+    let s = Socket::new(Protocol::Rep0)?;
 
-	// Create all of the worker contexts
-	let workers: Vec<_> = (0..PARALLEL)
-		.map(|_| {
-			let ctx = Context::new(&s)?;
-			let ctx_clone = ctx.clone();
-			let aio = Aio::new(move |aio, res| worker_callback(aio, &ctx_clone, res))?;
-			Ok((aio, ctx))
-		})
-		.collect::<Result<_, nng::Error>>()?;
+    // Create all of the worker contexts
+    let workers: Vec<_> = (0..PARALLEL)
+        .map(|_| {
+            let ctx = Context::new(&s)?;
+            let ctx_clone = ctx.clone();
+            let aio = Aio::new(move |aio, res| worker_callback(aio, &ctx_clone, res))?;
+            Ok((aio, ctx))
+        })
+        .collect::<Result<_, nng::Error>>()?;
 
-	// Only after we have the workers do we start listening.
-	s.listen(url)?;
+    // Only after we have the workers do we start listening.
+    s.listen(url)?;
 
-	// Now start all of the workers listening.
-	for (a, c) in &workers {
-		c.recv(a)?;
-	}
+    // Now start all of the workers listening.
+    for (a, c) in &workers {
+        c.recv(a)?;
+    }
 
-	thread::sleep(Duration::from_secs(60 * 60 * 24 * 365));
+    thread::sleep(Duration::from_secs(60 * 60 * 24 * 365));
 
-	Ok(())
+    Ok(())
 }
 
 /// Callback function for workers.
-fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult)
-{
-	match res {
-		// We successfully sent the message, wait for a new one.
-		AioResult::SendOk => ctx.recv(aio).unwrap(),
+fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult) {
+    match res {
+        // We successfully sent the message, wait for a new one.
+        AioResult::SendOk => ctx.recv(aio).unwrap(),
 
-		// We successfully received a message.
-		AioResult::RecvOk(m) => {
-			let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
-			aio.sleep(Duration::from_millis(ms)).unwrap();
-		},
+        // We successfully received a message.
+        AioResult::RecvOk(m) => {
+            let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
+            aio.sleep(Duration::from_millis(ms)).unwrap();
+        }
 
-		// We successfully slept.
-		AioResult::SleepOk => {
-			let msg = Message::new().unwrap();
-			ctx.send(aio, msg).unwrap();
-		},
+        // We successfully slept.
+        AioResult::SleepOk => {
+            let msg = Message::new().unwrap();
+            ctx.send(aio, msg).unwrap();
+        }
 
-		// Anything else is an error and we will just panic.
-		AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) => {
-			panic!("Error: {}", e)
-		},
-	}
+        // Anything else is an error and we will just panic.
+        AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) => {
+            panic!("Error: {}", e)
+        }
+    }
 }

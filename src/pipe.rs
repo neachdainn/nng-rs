@@ -1,5 +1,5 @@
 use std::{
-	cmp::{Eq, Ordering, Ord, PartialEq, PartialOrd},
+	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
 	hash::{Hash, Hasher},
 };
 
@@ -114,14 +114,11 @@ impl PartialEq for Pipe
 	}
 }
 
-impl Eq for Pipe { }
+impl Eq for Pipe {}
 
 impl PartialOrd for Pipe
 {
-	fn partial_cmp(&self, other: &Pipe) -> Option<Ordering>
-	{
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other: &Pipe) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 impl Ord for Pipe

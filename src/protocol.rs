@@ -1,7 +1,8 @@
 /// Protocols available for use by sockets.
 use std::fmt;
 
-/// Describes a relationship between a socket and all sockets to which it is connected.
+/// Describes a relationship between a socket and all sockets to which it is
+/// connected.
 #[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Protocol
 {
@@ -139,8 +140,5 @@ pub enum Protocol
 #[allow(clippy::use_debug)]
 impl fmt::Display for Protocol
 {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-	{
-		write!(f, "{:?}", self)
-	}
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{:?}", self) }
 }

@@ -19,8 +19,8 @@
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::{
 	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+	ffi::CString,
 	hash::{Hash, Hasher},
-	ffi::CString
 };
 
 use crate::{
@@ -122,10 +122,7 @@ impl Eq for Listener {}
 
 impl PartialOrd for Listener
 {
-	fn partial_cmp(&self, other: &Listener) -> Option<Ordering>
-	{
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other: &Listener) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 impl Ord for Listener

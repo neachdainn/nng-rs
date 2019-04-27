@@ -17,7 +17,7 @@ use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 /// In addition to the regular portion of the message there is a header that
 /// carries protocol specific header information. Most applications will not
 /// need to touch the header and will only interact with the regular message.
-// TODO: We could implement many other common traits, we just have to figure out if the header
+// TODO(#29): We could implement many other common traits, we just have to figure out if the header
 // should be included in those or not. Maybe sometimes people will care about that. Also, make sure
 // those changes also get applied to `Header`.
 #[derive(Debug)]
@@ -28,12 +28,13 @@ pub struct Message
 
 	/// The fake "header" of the message.
 	///
-	/// This object is fake because the Rust level message type does not actually need to have a
-	/// header type, as NNG manages that behind the single pointer. However, if the user has a
-	/// reference to the header than the message needs to be considered borrowed. We could make the
-	/// header type similar to iterators (in that they would hold a reference to the message) but
-	/// that requires both a `Header` and `HeaderMut` type which seems like it would just end with
-	/// duplicate code.
+	/// This object is fake because the Rust level message type does not
+	/// actually need to have a header type, as NNG manages that behind the
+	/// single pointer. However, if the user has a reference to the header than
+	/// the message needs to be considered borrowed. We could make the
+	/// header type similar to iterators (in that they would hold a reference to
+	/// the message) but that requires both a `Header` and `HeaderMut` type
+	/// which seems like it would just end with duplicate code.
 	header: Header,
 }
 impl Message
@@ -114,8 +115,8 @@ impl Message
 
 	/// Remove the first `len` bytes from the front of the message body.
 	///
-	/// If `len` is greater than the message body's current length then this will clear the entire
-	/// message.
+	/// If `len` is greater than the message body's current length then this
+	/// will clear the entire message.
 	pub fn trim(&mut self, len: usize)
 	{
 		let rv = unsafe {
@@ -155,20 +156,17 @@ impl Message
 	pub fn as_mut_header(&mut self) -> &mut Header { &mut self.header }
 
 	/// Returns the length of the message.
-	pub fn len(&self) -> usize
-	{
-		unsafe { nng_sys::nng_msg_len(self.msgp.as_ptr()) }
-	}
+	pub fn len(&self) -> usize { unsafe { nng_sys::nng_msg_len(self.msgp.as_ptr()) } }
 
 	/// Returns true if the message body is empty.
-	pub fn is_empty(&self) -> bool
-	{
-		self.len() == 0
-	}
+	pub fn is_empty(&self) -> bool { self.len() == 0 }
 
 	/// Clears the message body.
-	pub fn clear(&mut self){
-		unsafe { nng_sys::nng_msg_clear(self.msgp.as_ptr()); }
+	pub fn clear(&mut self)
+	{
+		unsafe {
+			nng_sys::nng_msg_clear(self.msgp.as_ptr());
+		}
 	}
 
 	/// Prepends the data to the message body.
@@ -277,10 +275,7 @@ impl Clone for Message
 
 impl Default for Message
 {
-	fn default() -> Message
-	{
-		Message::new().unwrap()
-	}
+	fn default() -> Message { Message::new().unwrap() }
 }
 
 impl<'a> From<&'a [u8]> for Message
@@ -297,10 +292,7 @@ impl<'a> From<&'a [u8]> for Message
 
 impl<'a> From<&'a Vec<u8>> for Message
 {
-	fn from(s: &Vec<u8>) -> Message
-	{
-		s.as_slice().into()
-	}
+	fn from(s: &Vec<u8>) -> Message { s.as_slice().into() }
 }
 
 impl Deref for Message
@@ -331,10 +323,7 @@ impl Write for Message
 	}
 
 	#[inline]
-	fn flush(&mut self) -> io::Result<()>
-	{
-		Ok(())
-	}
+	fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }
 
 impl Extend<u8> for Message
@@ -362,25 +351,19 @@ impl<I: SliceIndex<[u8]>> Index<I> for Message
 	type Output = I::Output;
 
 	#[inline]
-	fn index(&self, index: I) -> &Self::Output
-	{
-		self.as_slice().index(index)
-	}
+	fn index(&self, index: I) -> &Self::Output { self.as_slice().index(index) }
 }
 
 impl<I: SliceIndex<[u8]>> IndexMut<I> for Message
 {
 	#[inline]
-	fn index_mut(&mut self, index: I) -> &mut Self::Output
-	{
-		self.as_mut_slice().index_mut(index)
-	}
+	fn index_mut(&mut self, index: I) -> &mut Self::Output { self.as_mut_slice().index_mut(index) }
 }
 
 /// The header of a `Message`.
 ///
-/// Most normal applications will never have to touch the message header. The only time it will be
-/// necessary is if the socket is in "raw" mode.
+/// Most normal applications will never have to touch the message header. The
+/// only time it will be necessary is if the socket is in "raw" mode.
 #[derive(Debug)]
 pub struct Header
 {
@@ -405,8 +388,8 @@ impl Header
 
 	/// Remove the first `len` bytes from the front of the message header.
 	///
-	/// If `len` is greater than the message header's current length then this will clear the entire
-	/// message.
+	/// If `len` is greater than the message header's current length then this
+	/// will clear the entire message.
 	pub fn trim(&mut self, len: usize)
 	{
 		let rv = unsafe {
@@ -428,7 +411,8 @@ impl Header
 		}
 	}
 
-	/// Returns a mutable slice that contains the contents of the message header.
+	/// Returns a mutable slice that contains the contents of the message
+	/// header.
 	pub fn as_mut_slice(&mut self) -> &mut [u8]
 	{
 		unsafe {
@@ -440,21 +424,17 @@ impl Header
 	}
 
 	/// Returns the length of the message header.
-	pub fn len(&self) -> usize
-	{
-		unsafe { nng_sys::nng_msg_header_len(self.msgp.as_ptr()) }
-	}
+	pub fn len(&self) -> usize { unsafe { nng_sys::nng_msg_header_len(self.msgp.as_ptr()) } }
 
 	/// Returns true if the message header is empty.
-	pub fn is_empty(&self) -> bool
-	{
-		self.len() == 0
-	}
+	pub fn is_empty(&self) -> bool { self.len() == 0 }
 
 	/// Clears the message header.
 	pub fn clear(&mut self)
 	{
-		unsafe { nng_sys::nng_msg_header_clear(self.msgp.as_ptr()); }
+		unsafe {
+			nng_sys::nng_msg_header_clear(self.msgp.as_ptr());
+		}
 	}
 
 	/// Appends the data to the back of the message header.
@@ -508,10 +488,7 @@ impl Write for Header
 	}
 
 	#[inline]
-	fn flush(&mut self) -> io::Result<()>
-	{
-		Ok(())
-	}
+	fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }
 
 impl Extend<u8> for Header
@@ -539,17 +516,11 @@ impl<I: SliceIndex<[u8]>> Index<I> for Header
 	type Output = I::Output;
 
 	#[inline]
-	fn index(&self, index: I) -> &Self::Output
-	{
-		self.as_slice().index(index)
-	}
+	fn index(&self, index: I) -> &Self::Output { self.as_slice().index(index) }
 }
 
 impl<I: SliceIndex<[u8]>> IndexMut<I> for Header
 {
 	#[inline]
-	fn index_mut(&mut self, index: I) -> &mut Self::Output
-	{
-		self.as_mut_slice().index_mut(index)
-	}
+	fn index_mut(&mut self, index: I) -> &mut Self::Output { self.as_mut_slice().index_mut(index) }
 }

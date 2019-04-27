@@ -92,20 +92,15 @@ impl PartialEq for Context
 {
 	fn eq(&self, other: &Context) -> bool
 	{
-		unsafe{
-			nng_sys::nng_ctx_id(self.inner.ctx) == nng_sys::nng_ctx_id(other.inner.ctx)
-		}
+		unsafe { nng_sys::nng_ctx_id(self.inner.ctx) == nng_sys::nng_ctx_id(other.inner.ctx) }
 	}
 }
 
-impl Eq for Context { }
+impl Eq for Context {}
 
 impl PartialOrd for Context
 {
-	fn partial_cmp(&self, other: &Context) -> Option<Ordering>
-	{
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other: &Context) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 impl Ord for Context

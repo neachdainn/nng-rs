@@ -351,14 +351,11 @@ impl PartialEq for Socket
 	}
 }
 
-impl Eq for Socket { }
+impl Eq for Socket {}
 
 impl PartialOrd for Socket
 {
-	fn partial_cmp(&self, other: &Socket) -> Option<Ordering>
-	{
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other: &Socket) -> Option<Ordering> { Some(self.cmp(other)) }
 }
 
 impl Ord for Socket
