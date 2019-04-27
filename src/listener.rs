@@ -17,7 +17,11 @@
 //! See the [nng documentation][1] for more information.
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
-use std::{cmp, ffi::CString};
+use std::{
+	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+	hash::{Hash, Hasher},
+	ffi::CString
+};
 
 use crate::{
 	error::{Error, Result},
@@ -32,7 +36,7 @@ use crate::options::transport::ipc::IpcSecurityDescriptor;
 /// This listener has already been started on the socket and will continue
 /// serving the connection until either it is explicitly close or the owning
 /// socket is closed.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Listener
 {
 	/// The handle to the underlying
@@ -72,7 +76,7 @@ impl Listener
 	///
 	/// Listeners are implicitly closed when the socket they are associated with
 	/// is closed. Listeners are _not_ closed when all handles are dropped.
-	pub fn close(&self)
+	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
 		// and both of those mean that the drop was successful.
@@ -85,7 +89,7 @@ impl Listener
 	}
 
 	/// Returns the positive identifier for the listener.
-	pub fn id(&self) -> i32
+	pub fn id(self) -> i32
 	{
 		let id = unsafe { nng_sys::nng_listener_id(self.handle) };
 		assert!(id > 0, "Invalid listener ID returned from valid socket");
@@ -106,7 +110,7 @@ impl Listener
 	}
 }
 
-impl cmp::PartialEq for Listener
+impl PartialEq for Listener
 {
 	fn eq(&self, other: &Listener) -> bool
 	{
@@ -114,7 +118,36 @@ impl cmp::PartialEq for Listener
 	}
 }
 
-impl cmp::Eq for Listener {}
+impl Eq for Listener {}
+
+impl PartialOrd for Listener
+{
+	fn partial_cmp(&self, other: &Listener) -> Option<Ordering>
+	{
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Listener
+{
+	fn cmp(&self, other: &Listener) -> Ordering
+	{
+		unsafe {
+			let us = nng_sys::nng_listener_id(self.handle);
+			let them = nng_sys::nng_listener_id(other.handle);
+			us.cmp(&them)
+		}
+	}
+}
+
+impl Hash for Listener
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		let id = unsafe { nng_sys::nng_listener_id(self.handle) };
+		id.hash(state)
+	}
+}
 
 #[rustfmt::skip]
 expose_options!{

@@ -1,13 +1,11 @@
 //! Asynchonous I/O operaions.
 use std::{
 	fmt,
+	hash::{Hash, Hasher},
 	os::raw::c_void,
 	panic::{catch_unwind, AssertUnwindSafe, UnwindSafe},
 	ptr::{self, NonNull},
-	sync::{
-		atomic::{AtomicPtr, AtomicUsize, Ordering},
-		Arc,
-	},
+	sync::{atomic::{AtomicPtr, AtomicUsize, Ordering}, Arc},
 	time::Duration,
 };
 
@@ -465,6 +463,24 @@ impl Aio
 		}
 	}
 }
+
+impl Hash for Aio
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		self.inner.handle.load(Ordering::Relaxed).hash(state)
+	}
+}
+
+impl PartialEq for Aio
+{
+	fn eq(&self, other: &Aio) -> bool
+	{
+		self.inner.handle.load(Ordering::Relaxed) == other.inner.handle.load(Ordering::Relaxed)
+	}
+}
+
+impl Eq for Aio { }
 
 #[allow(clippy::use_debug)]
 impl fmt::Debug for Aio

@@ -1,5 +1,8 @@
 /// Protocols available for use by sockets.
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+use std::fmt;
+
+/// Describes a relationship between a socket and all sockets to which it is connected.
+#[derive(Copy, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Protocol
 {
 	/// Version 0 of the bus protocol.
@@ -131,4 +134,13 @@ pub enum Protocol
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_surveyor.7.html
 	Surveyor0,
+}
+
+#[allow(clippy::use_debug)]
+impl fmt::Display for Protocol
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "{:?}", self)
+	}
 }

@@ -39,6 +39,7 @@ macro_rules! create_option
 		$(#[$attr])*
 		#[allow(missing_debug_implementations)]
 		#[allow(missing_copy_implementations)]
+		#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 		pub enum $opt {}
 		impl $crate::options::Opt for $opt
 		{
@@ -49,6 +50,14 @@ macro_rules! create_option
 		{
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
 			fn set<T: $crate::options::private::HasOpts>($s: &T, $v: Self::OptType) -> $crate::error::Result<()> { $sexpr }
+		}
+		#[allow(clippy::use_debug)]
+		impl std::fmt::Display for $opt
+		{
+			fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result
+			{
+				write!(f, "{:?}", self)
+			}
 		}
 	};
 

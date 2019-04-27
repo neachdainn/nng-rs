@@ -81,7 +81,7 @@ impl From<nng_sys::nng_sockaddr> for SocketAddr
 
 /// A ZeroTier socket address.
 #[doc(hidden)]
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SocketAddrZt
 {
 	pub family: u16,

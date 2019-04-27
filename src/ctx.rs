@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+	hash::{Hash, Hasher},
+	sync::Arc,
+};
 
 use crate::{
 	aio::Aio,
@@ -82,6 +86,47 @@ impl Context
 
 	/// Returns the inner `nng_ctx` object.
 	pub(crate) fn handle(&self) -> nng_sys::nng_ctx { self.inner.ctx }
+}
+
+impl PartialEq for Context
+{
+	fn eq(&self, other: &Context) -> bool
+	{
+		unsafe{
+			nng_sys::nng_ctx_id(self.inner.ctx) == nng_sys::nng_ctx_id(other.inner.ctx)
+		}
+	}
+}
+
+impl Eq for Context { }
+
+impl PartialOrd for Context
+{
+	fn partial_cmp(&self, other: &Context) -> Option<Ordering>
+	{
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Context
+{
+	fn cmp(&self, other: &Context) -> Ordering
+	{
+		unsafe {
+			let us = nng_sys::nng_ctx_id(self.inner.ctx);
+			let them = nng_sys::nng_ctx_id(other.inner.ctx);
+			us.cmp(&them)
+		}
+	}
+}
+
+impl Hash for Context
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		let id = unsafe { nng_sys::nng_ctx_id(self.inner.ctx) };
+		id.hash(state)
+	}
 }
 
 #[rustfmt::skip]

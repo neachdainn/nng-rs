@@ -17,6 +17,9 @@ use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 /// In addition to the regular portion of the message there is a header that
 /// carries protocol specific header information. Most applications will not
 /// need to touch the header and will only interact with the regular message.
+// TODO: We could implement many other common traits, we just have to figure out if the header
+// should be included in those or not. Maybe sometimes people will care about that. Also, make sure
+// those changes also get applied to `Header`.
 #[derive(Debug)]
 pub struct Message
 {
@@ -227,7 +230,7 @@ impl Message
 	/// This is most useful when used with protocols that support directing a
 	/// message to a specific peer. For example, the _pair_ version 1 protocol
 	/// can do this when in polyamorous mode. Not all protocols support this.
-	pub fn set_pipe(&mut self, pipe: &Pipe)
+	pub fn set_pipe(&mut self, pipe: Pipe)
 	{
 		unsafe { nng_sys::nng_msg_set_pipe(self.msgp.as_ptr(), pipe.handle()) }
 	}
@@ -269,6 +272,14 @@ impl Clone for Message
 		// cloning is such a well-used part of Rust that we're going to panic
 		// if the clone fails.
 		self.try_clone().expect("Nng failed to duplicate the message")
+	}
+}
+
+impl Default for Message
+{
+	fn default() -> Message
+	{
+		Message::new().unwrap()
 	}
 }
 

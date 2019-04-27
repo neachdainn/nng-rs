@@ -10,7 +10,18 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `Message` and `Header` types now implement `Write`.
 * The `Message` type received several new functions to make its API similar to that of a `Vec<u8>` or `VecDeque<u8>`.
-* Derived `Clone` for the `Pipe` type.
+* Implemented additional common traits on types:
+	** All options: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+	** `Aio`: `Eq`, `Hash`, `PartialEq`
+	** `Context`: `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
+	** `Dialer`: `Copy`, `Hash`, `Ord`, `PartialOrd`
+	** `Header`: `Default`
+	** `Listener`: `Copy`, `Hash`, `Ord`, `PartialOrd`
+	** `Message`: `Default`
+	** `Pipe`: `Copy`, `Hash`, `Ord`, `PartialOrd`
+	** `Protocol`: `Ord`, `PartialOrd`
+	** `Socket`: `Hash`, `Ord`, `PartialOrd`
+	** `SocketAddr`: `Ord`, `PartialOrd`
 
 === Changed ===
 

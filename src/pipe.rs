@@ -1,4 +1,7 @@
-use std::cmp;
+use std::{
+	cmp::{Eq, Ordering, Ord, PartialEq, PartialOrd},
+	hash::{Hash, Hasher},
+};
 
 use crate::{dialer::Dialer, listener::Listener};
 
@@ -16,7 +19,7 @@ use crate::{dialer::Dialer, listener::Listener};
 /// See the [nng documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Pipe
 {
 	/// The underlying nng pipe.
@@ -25,7 +28,7 @@ pub struct Pipe
 impl Pipe
 {
 	/// Returns the dialer associated with this pipe, if any.
-	pub fn dialer(&self) -> Option<Dialer>
+	pub fn dialer(self) -> Option<Dialer>
 	{
 		let (dialer, id) = unsafe {
 			let dialer = nng_sys::nng_pipe_dialer(self.handle);
@@ -37,7 +40,7 @@ impl Pipe
 	}
 
 	/// Returns the listener associated with this pipe, if any.
-	pub fn listener(&self) -> Option<Listener>
+	pub fn listener(self) -> Option<Listener>
 	{
 		let (listener, id) = unsafe {
 			let listener = nng_sys::nng_pipe_listener(self.handle);
@@ -52,7 +55,7 @@ impl Pipe
 	///
 	/// This function should be considered unstable. Eventually it should be
 	/// possible to get the socket itself, rather than just the ID.
-	pub fn socket_id(&self) -> i32
+	pub fn socket_id(self) -> i32
 	{
 		unsafe {
 			let socket = nng_sys::nng_pipe_socket(self.handle);
@@ -68,7 +71,7 @@ impl Pipe
 	/// delivered, depending upon the transport and the linger option. Pipe are
 	/// automatically closed when their creator closes or when the remote peer
 	/// closes the underlying connection.
-	pub fn close(&self)
+	pub fn close(self)
 	{
 		// The pipe either closes succesfully, was already closed, or was never open. In
 		// any of those scenarios, the pipe is in the desired state. As such, we don't
@@ -82,7 +85,7 @@ impl Pipe
 	}
 
 	/// Returns the positive identifier for the pipe.
-	pub fn id(&self) -> i32
+	pub fn id(self) -> i32
 	{
 		let id = unsafe { nng_sys::nng_pipe_id(self.handle) };
 		assert!(id > 0, "Invalid pipe ID returned from valid pipe");
@@ -91,7 +94,7 @@ impl Pipe
 	}
 
 	/// Returns the underlying nng handle for the pipe.
-	pub(crate) const fn handle(&self) -> nng_sys::nng_pipe { self.handle }
+	pub(crate) const fn handle(self) -> nng_sys::nng_pipe { self.handle }
 
 	/// Create a new Pipe handle from a libnng handle.
 	///
@@ -103,11 +106,42 @@ impl Pipe
 	}
 }
 
-impl cmp::PartialEq for Pipe
+impl PartialEq for Pipe
 {
 	fn eq(&self, other: &Pipe) -> bool
 	{
 		unsafe { nng_sys::nng_pipe_id(self.handle) == nng_sys::nng_pipe_id(other.handle) }
+	}
+}
+
+impl Eq for Pipe { }
+
+impl PartialOrd for Pipe
+{
+	fn partial_cmp(&self, other: &Pipe) -> Option<Ordering>
+	{
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Pipe
+{
+	fn cmp(&self, other: &Pipe) -> Ordering
+	{
+		unsafe {
+			let us = nng_sys::nng_pipe_id(self.handle);
+			let them = nng_sys::nng_pipe_id(other.handle);
+			us.cmp(&them)
+		}
+	}
+}
+
+impl Hash for Pipe
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		let id = unsafe { nng_sys::nng_pipe_id(self.handle) };
+		id.hash(state)
 	}
 }
 

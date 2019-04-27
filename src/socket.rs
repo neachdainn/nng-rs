@@ -1,6 +1,8 @@
 use std::{
+	cmp::{Eq, Ordering, PartialEq, PartialOrd},
 	ffi::CString,
 	fmt,
+	hash::{Hash, Hasher},
 	os::raw::{c_int, c_void},
 	panic::{catch_unwind, RefUnwindSafe},
 	ptr,
@@ -339,7 +341,7 @@ impl Socket
 	}
 }
 
-impl std::cmp::PartialEq for Socket
+impl PartialEq for Socket
 {
 	fn eq(&self, other: &Socket) -> bool
 	{
@@ -348,7 +350,37 @@ impl std::cmp::PartialEq for Socket
 		}
 	}
 }
-impl std::cmp::Eq for Socket {}
+
+impl Eq for Socket { }
+
+impl PartialOrd for Socket
+{
+	fn partial_cmp(&self, other: &Socket) -> Option<Ordering>
+	{
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Socket
+{
+	fn cmp(&self, other: &Socket) -> Ordering
+	{
+		unsafe {
+			let us = nng_sys::nng_socket_id(self.inner.handle);
+			let them = nng_sys::nng_socket_id(other.inner.handle);
+			us.cmp(&them)
+		}
+	}
+}
+
+impl Hash for Socket
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		let id = unsafe { nng_sys::nng_socket_id(self.inner.handle) };
+		id.hash(state)
+	}
+}
 
 #[rustfmt::skip]
 expose_options!{

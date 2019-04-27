@@ -18,7 +18,11 @@
 //! See the [nng documentation][1] for more information.
 //!
 //! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
-use std::{cmp, ffi::CString};
+use std::{
+	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+	hash::{Hash, Hasher},
+	ffi::CString
+};
 
 use crate::{
 	error::{Error, Result},
@@ -30,7 +34,7 @@ use crate::{
 /// This dialer has already been started on the socket and will continue
 /// serving the connection until either it is explicitly closed or the owning
 /// socket is closed.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Dialer
 {
 	/// The handle to the underlying
@@ -70,7 +74,7 @@ impl Dialer
 	///
 	/// Dialers are implicitly closed when the socket they are associated with
 	/// is closed. Dialers are _not_ closed when all handles are dropped.
-	pub fn close(&self)
+	pub fn close(self)
 	{
 		// Closing the dialer should only ever result in success or ECLOSED and
 		// both of those mean that the drop was successful.
@@ -83,7 +87,7 @@ impl Dialer
 	}
 
 	/// Returns the positive identifier for the dialer.
-	pub fn id(&self) -> i32
+	pub fn id(self) -> i32
 	{
 		let id = unsafe { nng_sys::nng_dialer_id(self.handle) };
 		assert!(id > 0, "Invalid dialer ID returned from valid socket");
@@ -101,7 +105,7 @@ impl Dialer
 	}
 }
 
-impl cmp::PartialEq for Dialer
+impl PartialEq for Dialer
 {
 	fn eq(&self, other: &Dialer) -> bool
 	{
@@ -109,7 +113,36 @@ impl cmp::PartialEq for Dialer
 	}
 }
 
-impl cmp::Eq for Dialer {}
+impl Eq for Dialer {}
+
+impl PartialOrd for Dialer
+{
+	fn partial_cmp(&self, other: &Dialer) -> Option<Ordering>
+	{
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Dialer
+{
+	fn cmp(&self, other: &Dialer) -> Ordering
+	{
+		unsafe {
+			let us = nng_sys::nng_dialer_id(self.handle);
+			let them = nng_sys::nng_dialer_id(other.handle);
+			us.cmp(&them)
+		}
+	}
+}
+
+impl Hash for Dialer
+{
+	fn hash<H: Hasher>(&self, state: &mut H)
+	{
+		let id = unsafe { nng_sys::nng_dialer_id(self.handle) };
+		id.hash(state)
+	}
+}
 
 #[rustfmt::skip]
 expose_options!{
