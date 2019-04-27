@@ -72,7 +72,7 @@ impl Listener
 	///
 	/// Listeners are implicitly closed when the socket they are associated with
 	/// is closed. Listeners are _not_ closed when all handles are dropped.
-	pub fn close(self)
+	pub fn close(&self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
 		// and both of those mean that the drop was successful.

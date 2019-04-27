@@ -10,6 +10,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * The `Message` and `Header` types now implement `Write`.
 * The `Message` type received several new functions to make its API similar to that of a `Vec<u8>` or `VecDeque<u8>`.
+* Derived `Clone` for the `Pipe` type.
 
 === Changed ===
 
@@ -18,6 +19,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 	** `Message::header_mut` → `Message::as_mut_header`
 	** `Message::zeros` → `Message::with_zeros`
 * All variations of the "send" operation now take `Into<Message>` instead of `Message` directly.
+* All of the "close" functions now take `&self` instead of `self`.
 
 === Deprecated ===
 

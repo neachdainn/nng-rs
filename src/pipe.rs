@@ -16,7 +16,7 @@ use crate::{dialer::Dialer, listener::Listener};
 /// See the [nng documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Pipe
 {
 	/// The underlying nng pipe.
@@ -68,7 +68,7 @@ impl Pipe
 	/// delivered, depending upon the transport and the linger option. Pipe are
 	/// automatically closed when their creator closes or when the remote peer
 	/// closes the underlying connection.
-	pub fn close(self)
+	pub fn close(&self)
 	{
 		// The pipe either closes succesfully, was already closed, or was never open. In
 		// any of those scenarios, the pipe is in the desired state. As such, we don't

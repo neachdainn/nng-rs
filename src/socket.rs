@@ -296,7 +296,7 @@ impl Socket
 	///
 	/// This function will be called automatically when all handles have been
 	/// dropped.
-	pub fn close(self) { self.inner.close() }
+	pub fn close(&self) { self.inner.close() }
 
 	/// Get the positive identifier for the socket.
 	pub fn id(&self) -> i32

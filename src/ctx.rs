@@ -78,7 +78,7 @@ impl Context
 	///
 	/// Closing the owning socket also closes this context. Additionally, the
 	/// context is closed once all handles have been dropped.
-	pub fn close(self) { self.inner.close() }
+	pub fn close(&self) { self.inner.close() }
 
 	/// Returns the inner `nng_ctx` object.
 	pub(crate) fn handle(&self) -> nng_sys::nng_ctx { self.inner.ctx }
