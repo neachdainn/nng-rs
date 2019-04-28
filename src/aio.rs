@@ -1,13 +1,12 @@
 //! Asynchonous I/O operaions.
 use std::{
-	fmt,
 	hash::{Hash, Hasher},
 	os::raw::c_void,
 	panic::catch_unwind,
 	ptr::{self, NonNull},
 	sync::{
 		atomic::{AtomicPtr, AtomicUsize, Ordering},
-		Arc
+		Arc,
 	},
 	time::Duration,
 };
@@ -57,7 +56,7 @@ use log::error;
 ///             let ctx_clone = ctx.clone();
 ///
 ///             // An actual program should have better error handling.
-///             let aio = Aio::new(move |aio, res| callback(aio, &ctx_clone, res).unwrap())?;
+///             let aio = Aio::new(move |aio, res| callback(&aio, &ctx_clone, res).unwrap())?;
 ///             Ok((aio, ctx))
 ///         })
 ///         .collect::<Result<_>>()?;
@@ -118,23 +117,11 @@ use log::error;
 ///
 /// # // The async of this makes it hard to test, so we won't
 /// ```
+#[derive(Clone, Debug)]
 pub struct Aio
 {
 	/// The inner AIO bits shared by all instances of this AIO.
 	inner: Arc<Inner>,
-
-	/// The callback function.
-	///
-	/// This is an `Option` because we do not want the `Aio` that is inside the
-	/// callback to have any sort of ownership over the callback. If it did,
-	/// then there would a circlar `Arc` reference and the AIO would never be
-	/// dropped. We are never going to manually call this function, so
-	/// the fact that it is an option is not an issue.
-	///
-	/// We can assert that is is unwind safe because we literally never call
-	/// this function. I don't think we could if we wanted to, which is the
-	/// entire point of the black box.
-	callback: Option<Arc<dyn FnOnce() + Sync + Send>>,
 }
 
 impl Aio
@@ -156,7 +143,7 @@ impl Aio
 	/// or catching and handling the panic within the callback.
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
-		F: Fn(&Aio, AioResult) + Sync + Send + 'static,
+		F: Fn(Aio, AioResult) + Sync + Send + 'static,
 	{
 		// The shared inner needs to have a fixed location before we can do anything
 		// else, which complicates the process of building the AIO slightly. We need to
@@ -164,13 +151,22 @@ impl Aio
 		let inner = Arc::new(Inner {
 			handle: AtomicPtr::new(ptr::null_mut()),
 			state:  AtomicUsize::new(State::Inactive as usize),
+			callback: AtomicPtr::new(ptr::null_mut()),
 		});
 
-		// Now, create the Aio that will be stored within the callback itself.
-		let cb_aio = Aio { inner: Arc::clone(&inner), callback: None };
+		// Now, we create the weak reference to the inner bits that will be stored
+		// inside of the callback.
+		let weak = Arc::downgrade(&inner);
 
 		// Wrap the user's callback in our own state-keeping logic
 		let bounce = move || {
+			// If we can't upgrade the pointer, then we are in the middle of dropping,
+			// so we can't do anything except return.
+			let cb_aio = match weak.upgrade() {
+				Some(i) => Aio { inner: i },
+				None => return,
+			};
+
 			let res = unsafe {
 				let state = cb_aio.inner.state.load(Ordering::Acquire).into();
 				let aiop = cb_aio.inner.handle.load(Ordering::Relaxed);
@@ -201,16 +197,38 @@ impl Aio
 				cb_aio.inner.state.store(State::Inactive as usize, Ordering::Release);
 				res
 			};
-			callback(&cb_aio, res)
+			callback(cb_aio, res)
 		};
 
-		// We can avoid double boxing by taking the address of a generic function.
-		// Unfortunately, we have no way to get the type of a closure other than calling
-		// a generic function, so we do have to call another function to actually
-		// allocate the AIO.
-		let callback = Some(Aio::alloc_trampoline(&inner, bounce)?);
+		// There are ways to avoid the double boxing, but unfortunately storing
+		// the callback inside of the Inner object means that we will need some
+		// way to mutate it and all of those options require `Sized`, which in
+		// turn means it needs a box.
+		let boxed: Box<Box<dyn Fn() + Sync + Send + 'static>> = Box::new(Box::new(bounce));
+		let callback_ptr = Box::into_raw(boxed);
 
-		Ok(Self { inner, callback })
+		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
+		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
+		let rv = unsafe{
+			nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline), callback_ptr as _)
+		};
+
+		// NNG should never touch the pointer and return a non-zero code at the same
+		// time. That being said, I'm going to be a pessimist and double check. If we do
+		// encounter that case, the safest thing to do is make the pointer null again so
+		// that the dropping of the inner can detect that something went south.
+		//
+		// This might leak memory (I'm not sure, depends on what NNG did), but a small
+		// amount of lost memory is better than a segfaulting Rust library.
+		if rv != 0 && !aio.is_null() {
+			error!("NNG returned a non-null pointer from a failed function");
+			return Err(Error::Unknown(0));
+		}
+		validate_ptr(rv, aio)?;
+		inner.handle.store(aio, Ordering::Release);
+		inner.callback.store(callback_ptr, Ordering::Relaxed);
+
+		Ok(Self { inner })
 	}
 
 	/// Set the timeout of asynchronous operations.
@@ -301,25 +319,6 @@ impl Aio
 		}
 	}
 
-	/// Attempts to clone the AIO object.
-	///
-	/// The AIO object that is passed as an argument to the callback can never
-	/// be cloned. Any other instance of the AIO object can be. All clones refer
-	/// to the same underlying AIO operations.
-	pub fn try_clone(&self) -> Option<Self>
-	{
-		// The user can never, ever clone an instance of the callback AIO object. We use
-		// the uniqueness of the callback pointer to know when to safely drop items. See
-		// the `Drop` implementation for more details.
-		if let Some(a) = &self.callback {
-			let callback = Some(Arc::clone(a));
-			Some(Self { inner: Arc::clone(&self.inner), callback })
-		}
-		else {
-			None
-		}
-	}
-
 	/// Send a message on the provided socket.
 	pub(crate) fn send_socket(&self, socket: &Socket, msg: Message) -> SendResult<()>
 	{
@@ -402,53 +401,15 @@ impl Aio
 		}
 	}
 
-	/// Utility function for allocating an `nng_aio`.
-	///
-	/// We need this because, in Rustc 1.31, there is zero way to get the type
-	/// of the closure other than calling a generic function.
-	fn alloc_trampoline<F>(inner: &Arc<Inner>, bounce: F) -> Result<Arc<dyn FnOnce() + Sync + Send>>
-	where
-		F: Fn() + Sync + Send + 'static,
-	{
-		let mut boxed = Box::new(bounce);
-
-		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
-		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
-		let rv = unsafe {
-			nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline::<F>), &mut *boxed as *mut _ as _)
-		};
-
-		// NNG should never touch the pointer and return a non-zero code at the same
-		// time. That being said, I'm going to be a pessimist and double check. If we do
-		// encounter that case, the safest thing to do is make the pointer null again so
-		// that the dropping of the inner can detect that something went south.
-		//
-		// This might leak memory (I'm not sure, depends on what NNG did), but a small
-		// amount of lost memory is better than a segfaulting Rust library.
-		if rv != 0 && !aio.is_null() {
-			error!("NNG returned a non-null pointer from a failed function");
-			return Err(Error::Unknown(0));
-		}
-		validate_ptr(rv, aio)?;
-		inner.handle.store(aio, Ordering::Release);
-
-		// Put the callback in the blackbox.
-		Ok(Arc::new(move || {
-			let _ = boxed;
-		}))
-	}
-
 	/// Trampoline function for calling a closure from C.
 	///
 	/// This is really unsafe because you have to be absolutely positive in that
 	/// the type of the pointer is actually `F`. Because we're going through C
 	/// and a `c_void`, the type system does not enforce this for us.
-	extern "C" fn trampoline<F>(arg: *mut c_void)
-	where
-		F: Fn() + Sync + Send + 'static,
+	extern "C" fn trampoline(arg: *mut c_void)
 	{
 		let res = catch_unwind(|| unsafe {
-			let callback_ptr = arg as *const F;
+			let callback_ptr = arg as *const Box<dyn Fn() + Sync + Send + 'static>;
 			if callback_ptr.is_null() {
 				// This should never happen. It means we, Nng-rs, got something wrong in the
 				// allocation code.
@@ -485,60 +446,6 @@ impl PartialEq for Aio
 
 impl Eq for Aio {}
 
-impl fmt::Debug for Aio
-{
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-	{
-		f.debug_struct("Aio")
-			.field("inner", &self.inner)
-			.field("callback", &self.callback.as_ref().map(|a| &*a as *const _))
-			.finish()
-	}
-}
-
-impl Drop for Aio
-{
-	fn drop(&mut self)
-	{
-		// This is actually a vastly critical point in the correctness of this type. The
-		// inner data won't be dropped until all of the Aio objects are dropped, meaning
-		// that the callback function is in the process of being shut down and may
-		// already be freed by the time we get to the drop method of the Inner. This
-		// means that we can't depend on the inner object to shut down the NNG AIO
-		// object and we have to do that instead.
-		//
-		// Therefore, if we are the unique owner of the callback closure, we need to put
-		// the AIO in a state where we know the callback isn't running. I *think* the
-		// `nng_aio_free` function will handle this for us but the wording of the
-		// documentation is a little confusing to me. Fortunately, the documentation for
-		// `nng_aio_stop` is much clearer, will definitely do what we want, and will
-		// also allow us to leave the actual freeing to the Inner object.
-		//
-		// Of course, all of this depends on the user not being able to move a closure
-		// Aio out of the closure. For that, all we need to do is provide it to them as
-		// a borrow and do not allow it to be cloned (by them). Fortunately, if we get
-		// this wrong, I _think_ the only issues will be non-responsive AIO operations.
-		if let Some(ref mut a) = self.callback {
-			// We share ownership of the callback, so we might need to shut things down.
-			if Arc::get_mut(a).is_some() {
-				// We are the only owner so we need to shut down the AIO.
-				let aiop = self.inner.handle.load(Ordering::Relaxed);
-				unsafe { nng_sys::nng_aio_stop(aiop) }
-			}
-			else {
-				// Just a sanity check. We need to never take a weak reference to the callback.
-				// I see no reason why we would, but I'm putting this check here just in case.
-				// If this panic ever happens, it is potentially a major bug.
-				assert_eq!(
-					Arc::weak_count(a),
-					0,
-					"There is a weak reference in the AIO. This is a bug - please file an issue"
-				);
-			}
-		}
-	}
-}
-
 /// The shared inner items of a `Aio`.
 #[derive(Debug)]
 struct Inner
@@ -554,6 +461,11 @@ struct Inner
 
 	/// The current state of the AIO object, represented as a `usize`.
 	state: AtomicUsize,
+
+	/// The callback function.
+	///
+	/// We're OK with the extra layer of indirection because we never call it.
+	callback: AtomicPtr<Box<dyn Fn() + Sync + Send + 'static>>,
 }
 
 impl Drop for Inner
@@ -565,13 +477,22 @@ impl Drop for Inner
 		// dropped with a null pointer if the NNG allocation fails.
 		let aiop = self.handle.load(Ordering::Acquire);
 		if !aiop.is_null() {
-			// If we are being dropped, then the callback is being dropped. If the callback
-			// is being dropped, then an instance of `Aio` shut down the AIO. This will
-			// either run the callback and clean up the Message memory or the AIO didn't
-			// have an operation running and there is nothing to clean up. As such, we don't
-			// need to do anything except free the AIO.
+			// If the callback has started, it will not be able to upgrade the weak pointer
+			// to a strong one and so it will just return from the callback. Otherwise, the
+			// NNG call to stop the AIO will wait until all callbacks have completed and it
+			// will prevent any more operations from starting.
+			//
+			// I think the call to free will do the same thing as the stop, but the online
+			// docs aren't super clear, the header has a comment saying that the AIO must
+			// not be running an operation when free is called, and the source doesn't
+			// clearly (to my understanding of the code) show that it is being done. Plus,
+			// the manual does suggest cases where stopping first is good.
 			unsafe {
+				nng_sys::nng_aio_stop(aiop);
 				nng_sys::nng_aio_free(aiop);
+
+				// Now that we know nothing is in the callback, we can free it.
+				let _ = Box::from_raw(self.callback.load(Ordering::Relaxed));
 			}
 		}
 	}

@@ -10,6 +10,9 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Changed ===
 
+* The AIO callback is now `Fn(Aio, AioResult)` instead of `Fn(&Aio, AioResult)`. (#30)
+* The `Aio::try_clone` function was replaced with deriving `Clone`. (#30)
+
 === Deprecated ===
 
 === Removed ===
