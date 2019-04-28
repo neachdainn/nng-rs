@@ -4,7 +4,7 @@ use std::{
 	fmt,
 	hash::{Hash, Hasher},
 	os::raw::{c_int, c_void},
-	panic::catch_unwind,
+	panic::{catch_unwind, RefUnwindSafe},
 	ptr,
 	sync::{Arc, Mutex},
 };
@@ -19,7 +19,7 @@ use crate::{
 };
 use log::error;
 
-type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
+type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + RefUnwindSafe + Send + Sync + 'static;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -242,7 +242,8 @@ impl Socket
 	/// or catching and handling the panic within the callback.
 	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
-		F: Fn(Pipe, PipeEvent) + Send + Sync + 'static,
+		F: Fn(Pipe, PipeEvent),
+		F: RefUnwindSafe + Send + Sync + 'static,
 	{
 		// Place the new callback into the inner portion.
 		{
