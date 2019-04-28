@@ -89,10 +89,10 @@ fn server(url: &str) -> Result<(), nng::Error> {
 }
 
 /// Callback function for workers.
-fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult) {
+fn worker_callback(aio: Aio, ctx: &Context, res: AioResult) {
     match res {
         // We successfully sent the message, wait for a new one.
-        AioResult::SendOk => ctx.recv(aio).unwrap(),
+        AioResult::SendOk => ctx.recv(&aio).unwrap(),
 
         // We successfully received a message.
         AioResult::RecvOk(m) => {
@@ -103,7 +103,7 @@ fn worker_callback(aio: &Aio, ctx: &Context, res: AioResult) {
         // We successfully slept.
         AioResult::SleepOk => {
             let msg = Message::new().unwrap();
-            ctx.send(aio, msg).unwrap();
+            ctx.send(&aio, msg).unwrap();
         }
 
         // Anything else is an error and we will just panic.

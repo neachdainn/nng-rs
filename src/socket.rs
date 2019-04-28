@@ -269,6 +269,9 @@ impl Socket
 			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST,
 		];
 
+		// It is fine to pass in the pointer to the inner bits because the inner bits will
+		// not be freed until after both the socket is no longer creating pipes and there
+		// is no thread inside of the pipe notify callback.
 		events
 			.iter()
 			.map(|&ev| unsafe {
