@@ -19,14 +19,6 @@ use crate::{
 };
 use log::error;
 
-// This is different from the AIO callback function in that it will be behind a
-// mutex due to the differences in how the callback function is set. The AIO
-// callback is set exactly once, at object creation, and can't ever be changed
-// until the AIO is freed. It does not need to worry about the function being
-// changed while the callback is running. The pipe notify function, on the other
-// hand, can be set and unset as the user desires, so we need to keep it locked
-// when the thing is running and we may as well let the user take advantage of
-// that lock.
 type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 
 /// A nanomsg-next-generation socket.
