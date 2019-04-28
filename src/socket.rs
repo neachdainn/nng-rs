@@ -4,7 +4,7 @@ use std::{
 	fmt,
 	hash::{Hash, Hasher},
 	os::raw::{c_int, c_void},
-	panic::{catch_unwind, RefUnwindSafe},
+	panic::catch_unwind,
 	ptr,
 	sync::{Arc, Mutex},
 };
@@ -27,7 +27,7 @@ use log::error;
 // hand, can be set and unset as the user desires, so we need to keep it locked
 // when the thing is running and we may as well let the user take advantage of
 // that lock.
-type PipeNotifyFn = dyn FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static;
+type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -235,7 +235,7 @@ impl Socket
 	/// on the socket.
 	///
 	/// Only a single callback function can be supplied at a time. Registering a
-	/// new callback implicitely unregisters any previously registered. If an
+	/// new callback implicitly unregisters any previously registered. If an
 	/// error is returned, then the callback could have been registered for a
 	/// subset of the events.
 	///
@@ -250,15 +250,13 @@ impl Socket
 	/// or catching and handling the panic within the callback.
 	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
-		F: FnMut(Pipe, PipeEvent) + Send + RefUnwindSafe + 'static,
+		F: Fn(Pipe, PipeEvent) + Send + Sync + 'static,
 	{
-		// Make sure that we're not currently in the middle of a callback. This _needs_
-		// to be held for the duration of this function.
-		let mut lock_guard = self.inner.pipe_notify.lock().expect("Mutex is poisoned");
-
-		// Now that we know that no thread is currently in the callbacks, the first
-		// thing we need to do is replace it with our new one.
-		*lock_guard = Some(Box::new(callback));
+		// Place the new callback into the inner portion.
+		{
+			let mut l = self.inner.pipe_notify.lock().unwrap();
+			*l = Some(Arc::new(callback));
+		}
 
 		// Because we're going to override the stored closure, we absolutely need to try
 		// and set the callback function for every single event. We cannot return
@@ -318,13 +316,17 @@ impl Socket
 
 			assert!(!arg.is_null(), "Null pointer passed as argument to trampoline");
 			let inner = &*(arg as *const _ as *const Inner);
+			let callback = {
+				// Don't hold the lock during the callback, just long enough to increment
+				// the Arc's counter.
+				let l = inner.pipe_notify.lock().unwrap();
+				match l.as_ref() {
+					Some(c) => Arc::clone(c),
+					None => return,
+				}
+			};
 
-			// It may be entirely possible that entered the trampoline function with a valid
-			// callback and then, before we got here, it was removed. As such, just ignore
-			// the case where there is not callback function.
-			if let Some(ref mut callback) = *inner.pipe_notify.lock().expect("Poisoned mutex") {
-				(*callback)(pipe, ev)
-			}
+			(*callback)(pipe, ev)
 		});
 
 		// See #6 for a "discussion" about why we abort.
@@ -436,10 +438,7 @@ struct Inner
 	handle: nng_sys::nng_socket,
 
 	/// The current pipe event callback.
-	///
-	/// This type has a Drop function, so we don't really need to worry about
-	/// the socket being closed before the notify callback is dropped.
-	pipe_notify: Mutex<Option<Box<PipeNotifyFn>>>,
+	pipe_notify: Mutex<Option<Arc<PipeNotifyFn>>>,
 }
 impl Inner
 {
