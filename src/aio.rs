@@ -485,17 +485,14 @@ impl PartialEq for Aio
 
 impl Eq for Aio {}
 
-#[allow(clippy::use_debug)]
 impl fmt::Debug for Aio
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		if let Some(ref a) = self.callback {
-			write!(f, "CalbackAio {{ inner: {:?}, callback: Some({:p}) }}", self.inner, a)
-		}
-		else {
-			write!(f, "CalbackAio {{ inner: {:?}, callback: None }}", self.inner)
-		}
+		f.debug_struct("Aio")
+			.field("inner", &self.inner)
+			.field("callback", &self.callback.as_ref().map(|a| &*a as *const _))
+			.finish()
 	}
 }
 

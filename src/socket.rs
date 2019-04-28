@@ -455,12 +455,14 @@ impl Inner
 	}
 }
 
-#[allow(clippy::use_debug)]
 impl fmt::Debug for Inner
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		write!(f, "Inner {{ handle: {:?}, pipe_notify: -- }}", self.handle)
+		f.debug_struct("Inner")
+			.field("handle", &self.handle)
+			.field("pipe_notify", &self.pipe_notify.lock().unwrap().is_some())
+			.finish()
 	}
 }
 
