@@ -84,7 +84,7 @@ pub trait Options: private::HasOpts
 	/// is to eventually create a safe interface for them.
 	unsafe fn unsafe_set_opt<T: private::OptOps>(&self, val: T::OptType) -> Result<()>
 	where
-		Self: UnsafeGetOpt<T>,
+		Self: UnsafeSetOpt<T>,
 	{
 		T::set(self, val)
 	}
