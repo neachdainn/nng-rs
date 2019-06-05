@@ -87,7 +87,7 @@ impl Pipe
 impl Pipe
 {
 	/// Returns the handle to the underlying `nng_pipe` object.
-	pub fn nng_pipe(&self) -> nng_sys::nng_pipe
+	pub fn nng_pipe(self) -> nng_sys::nng_pipe
 	{
 		self.handle()
 	}

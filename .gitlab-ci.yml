@@ -27,7 +27,7 @@ clippy:
   script:
     - rustup component add clippy
     - cargo clippy --version
-    - cargo clippy --all-targets
+    - cargo clippy --all-targets --all-features
   only:
     - tags
     - master
@@ -40,7 +40,7 @@ minimum-rust-version:
   script:
     - rustc --version
     - cargo --version
-    - cargo test --all --verbose
+    - cargo test --all --all-features --verbose
   only:
     - tags
     - master
@@ -52,7 +52,7 @@ stable:
   script:
     - rustc --version
     - cargo --version
-    - cargo test --all --verbose
+    - cargo test --all --all-features --verbose
   only:
     - tags
     - master
@@ -65,7 +65,7 @@ nightly:
   script:
     - rustc --version
     - cargo --version
-    - cargo test --all --verbose
+    - cargo test --all --all-features --verbose
   allow_failure: true
   only:
     - tags

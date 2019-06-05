@@ -100,7 +100,7 @@ impl Dialer
 impl Dialer
 {
 	/// Returns the underlying `nng_dialer` object.
-	pub fn nng_dialer(&self) -> nng_sys::nng_dialer
+	pub fn nng_dialer(self) -> nng_sys::nng_dialer
 	{
 		self.handle
 	}

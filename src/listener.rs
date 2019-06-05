@@ -102,7 +102,7 @@ impl Listener
 impl Listener
 {
 	/// Returns the underlying `nng_listener` object.
-	pub fn nng_listener(&self) -> nng_sys::nng_listener
+	pub fn nng_listener(self) -> nng_sys::nng_listener
 	{
 		self.handle
 	}

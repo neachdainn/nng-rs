@@ -470,7 +470,7 @@ impl Aio
 	/// object, this can cause segfaults.
 	pub unsafe fn set_state(&self, state: State, ordering: Ordering)
 	{
-		self.inner.state.store(state as usize, Ordering)
+		self.inner.state.store(state as usize, ordering)
 	}
 }
 
@@ -597,7 +597,7 @@ mod state
 	/// Represents the state of the AIO object.
 	#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 	#[repr(usize)]
-	pub(crate) enum State
+	pub enum State
 	{
 		/// There is currently nothing happening on the AIO.
 		Inactive,
@@ -634,4 +634,4 @@ mod state
 use self::state::State;
 
 #[cfg(feature = "ffi-module")]
-pub(crate) use self::state::State;
+pub use self::state::State;
