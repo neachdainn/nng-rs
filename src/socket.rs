@@ -495,6 +495,7 @@ impl Drop for Inner
 }
 
 /// A socket that is open in "raw" mode.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct RawSocket
 {
 	/// The NNG socket.
