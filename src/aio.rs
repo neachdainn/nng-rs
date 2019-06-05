@@ -2,7 +2,7 @@
 use std::{
 	hash::{Hash, Hasher},
 	os::raw::c_void,
-	panic::catch_unwind,
+	panic::{catch_unwind, RefUnwindSafe},
 	ptr::{self, NonNull},
 	sync::{
 		atomic::{AtomicPtr, AtomicUsize, Ordering},
@@ -19,6 +19,9 @@ use crate::{
 	util::{duration_to_nng, validate_ptr},
 };
 use log::error;
+
+/// Represents the type of the inner "trampoline" callback function.
+type InnerCallback = Box<dyn Fn() + RefUnwindSafe + Send + Sync + 'static>;
 
 /// An asynchronous I/O context.
 ///
@@ -134,16 +137,16 @@ impl Aio
 	///
 	/// ## Panicking
 	///
-	/// If the callback function panics, the program will abort. This is to
-	/// match the behavior specified in Rust 1.33 where the program will abort
-	/// when it panics across an `extern "C"` boundary. This library will
-	/// produce the abort regardless of which version of Rustc is being used.
-	///
-	/// The user is responsible for either having a callback that never panics
-	/// or catching and handling the panic within the callback.
+	/// If the callback function panics, the program will log the panic if
+	/// possible and then abort. Future Rustc versions will likely do the
+	/// same for uncaught panics at FFI boundaries, so this library will
+	/// produce the abort in order to keep things consistent. As such, the user
+	/// is responsible for either having a callback that never panics or
+	/// catching and handling the panic within the callback.
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
-		F: Fn(Aio, AioResult) + Sync + Send + 'static,
+		F: Fn(Aio, AioResult),
+		F: RefUnwindSafe + Sync + Send + 'static,
 	{
 		// The shared inner needs to have a fixed location before we can do anything
 		// else, which complicates the process of building the AIO slightly. We need to
@@ -204,7 +207,7 @@ impl Aio
 		// the callback inside of the Inner object means that we will need some
 		// way to mutate it and all of those options require `Sized`, which in
 		// turn means it needs a box.
-		let boxed: Box<Box<dyn Fn() + Sync + Send + 'static>> = Box::new(Box::new(bounce));
+		let boxed: Box<InnerCallback> = Box::new(Box::new(bounce));
 		let callback_ptr = Box::into_raw(boxed);
 
 		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
@@ -409,7 +412,7 @@ impl Aio
 	extern "C" fn trampoline(arg: *mut c_void)
 	{
 		let res = catch_unwind(|| unsafe {
-			let callback_ptr = arg as *const Box<dyn Fn() + Sync + Send + 'static>;
+			let callback_ptr = arg as *const InnerCallback;
 			if callback_ptr.is_null() {
 				// This should never happen. It means we, Nng-rs, got something wrong in the
 				// allocation code.
@@ -420,9 +423,17 @@ impl Aio
 		});
 
 		// See #6 for "discussion" about why we abort here.
-		if res.is_err() {
-			// No other useful information to relay to the user.
-			error!("Panic in AIO callback function.");
+		if let Err(e) = res {
+			if let Some(s) = e.downcast_ref::<String>() {
+				error!("Panic in AIO callback function: {}", s);
+			}
+			else if let Some(s) = e.downcast_ref::<&str>() {
+				error!("Panic in AIO callback function: {}", s);
+			}
+			else {
+				error!("Panic in AIO callback function.");
+			}
+
 			std::process::abort();
 		}
 	}
@@ -465,7 +476,7 @@ struct Inner
 	/// The callback function.
 	///
 	/// We're OK with the extra layer of indirection because we never call it.
-	callback: AtomicPtr<Box<dyn Fn() + Sync + Send + 'static>>,
+	callback: AtomicPtr<InnerCallback>,
 }
 
 impl Drop for Inner
