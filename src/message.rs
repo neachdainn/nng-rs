@@ -254,10 +254,7 @@ impl Message
 impl Message
 {
 	/// Returns the underlying `nng_msg` pointer.
-	pub fn nng_msg(&self) -> *mut nng_sys::nng_msg
-	{
-		self.msgp.as_ptr()
-	}
+	pub fn nng_msg(&self) -> *mut nng_sys::nng_msg { self.msgp.as_ptr() }
 }
 
 impl Drop for Message

@@ -424,9 +424,6 @@ pub mod transport
 	/// Options related to transports built on top of IPC.
 	pub mod ipc
 	{
-		#[cfg(windows)]
-		use winapi::um::winnt::PSECURITY_DESCRIPTOR;
-
 		#[cfg(unix)]
 		create_option! {
 			/// Configures the permissions used on the UNIX domain socket.
@@ -450,40 +447,6 @@ pub mod transport
 			/// * Listeners that are using the IPC protocol.
 			Permissions -> u32:
 			Set s val = s.setopt_int(nng_sys::NNG_OPT_IPC_PERMISSIONS as *const _ as _, val as _);
-		}
-
-		#[cfg(windows)]
-		create_option! {
-			/// Configures the `SECURITY_DESCRIPTOR` that is used when creating the underlying named
-			/// pipe.
-			///
-			/// **THIS OPTION IS NOT RUST SAFE AND IS UNSTABLE**
-			///
-			/// This option should be considered unstable. The goal will be to eventually wrap the
-			/// `SECURITY_DESCRIPTOR` in a safe wrapper but I do not have the knowledge about
-			/// Windows API to implement a reasonable version and I also do not have a Windows
-			/// machine to test this on.
-			///
-			/// Until then, management of the lifetimes of the object behind the pointer is left to
-			/// the user. The NNG documentation for this option is available [here][1]. Keep in mind
-			/// that:
-			///
-			/// 1. NNG only copies the pointer. That means that the pointed-to object needs to live
-			///    for as long as NNG requires it, which is probably until the Listener is
-			///    constructed. The safest bet is probably just to leak the object.
-			/// 2. This option is not safe from a Rust point-of-view. Passing in bad data can cause
-			///    bad things to happen.
-			///
-			/// ## Supports
-			///
-			/// * This option can be set on `ListenerOption` while using the IPC transport on a
-			///   Windows platform.
-			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_ipc.7
-			SecurityDescriptor -> PSECURITY_DESCRIPTOR:
-			Set s val = unsafe {
-				s.setopt_ptr(nng_sys::NNG_OPT_IPC_SECURITY_DESCRIPTOR as *const _ as _, val)
-			};
 		}
 
 		#[cfg(unix)]

@@ -103,10 +103,7 @@ impl Listener
 impl Listener
 {
 	/// Returns the underlying `nng_listener` object.
-	pub fn nng_listener(self) -> nng_sys::nng_listener
-	{
-		self.handle
-	}
+	pub fn nng_listener(self) -> nng_sys::nng_listener { self.handle }
 }
 
 impl PartialEq for Listener
@@ -245,10 +242,7 @@ impl ListenerOptions
 impl ListenerOptions
 {
 	/// Returns the underlying `nng_listener` object.
-	pub fn nng_listener(&self) -> nng_sys::nng_listener
-	{
-		self.handle
-	}
+	pub fn nng_listener(&self) -> nng_sys::nng_listener { self.handle }
 }
 
 #[rustfmt::skip]

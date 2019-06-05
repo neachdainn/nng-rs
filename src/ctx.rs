@@ -83,10 +83,7 @@ impl Context
 impl Context
 {
 	/// Returns the `nng_ctx` handle for this context.
-	pub fn nng_ctx(&self) -> nng_sys::nng_ctx
-	{
-		self.handle()
-	}
+	pub fn nng_ctx(&self) -> nng_sys::nng_ctx { self.handle() }
 }
 
 impl PartialEq for Context

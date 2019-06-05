@@ -169,6 +169,4 @@ pub use crate::{
 pub use nng_sys as ffi;
 
 #[cfg(feature = "ffi-module")]
-pub use crate::{
-	aio::State as AioState,
-};
+pub use crate::aio::State as AioState;

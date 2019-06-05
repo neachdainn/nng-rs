@@ -101,10 +101,7 @@ impl Dialer
 impl Dialer
 {
 	/// Returns the underlying `nng_dialer` object.
-	pub fn nng_dialer(self) -> nng_sys::nng_dialer
-	{
-		self.handle
-	}
+	pub fn nng_dialer(self) -> nng_sys::nng_dialer { self.handle }
 }
 
 impl PartialEq for Dialer
@@ -248,10 +245,7 @@ impl DialerOptions
 impl DialerOptions
 {
 	/// Returns the underlying `nng_dialer` object.
-	pub fn nng_dialer(&self) -> nng_sys::nng_dialer
-	{
-		self.handle
-	}
+	pub fn nng_dialer(&self) -> nng_sys::nng_dialer { self.handle }
 }
 
 #[rustfmt::skip]

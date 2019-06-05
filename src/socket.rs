@@ -260,9 +260,9 @@ impl Socket
 			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST,
 		];
 
-		// It is fine to pass in the pointer to the inner bits because the inner bits will
-		// not be freed until after both the socket is no longer creating pipes and there
-		// is no thread inside of the pipe notify callback.
+		// It is fine to pass in the pointer to the inner bits because the inner bits
+		// will not be freed until after both the socket is no longer creating pipes and
+		// there is no thread inside of the pipe notify callback.
 		events
 			.iter()
 			.map(|&ev| unsafe {
@@ -284,7 +284,10 @@ impl Socket
 
 		if self.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
 			Some(RawSocket { socket: self, _hidden: () })
-		} else { None }
+		}
+		else {
+			None
+		}
 	}
 
 	/// Close the underlying socket.
@@ -353,10 +356,7 @@ impl Socket
 impl Socket
 {
 	/// Returns the handle to the underlying `nng_socket` object.
-	pub fn nng_socket(&self) -> nng_sys::nng_socket
-	{
-		self.inner.handle
-	}
+	pub fn nng_socket(&self) -> nng_sys::nng_socket { self.inner.handle }
 }
 
 impl PartialEq for Socket
@@ -534,7 +534,7 @@ impl RawSocket
 		}
 
 		let socket = Socket {
-			inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
+			inner:       Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
 			nonblocking: false,
 		};
 

@@ -1,6 +1,9 @@
 use std::num::NonZeroU32;
 
-use crate::{error::{Error, Result}, socket::RawSocket};
+use crate::{
+	error::{Error, Result},
+	socket::RawSocket,
+};
 
 /// Forwards messages from socket _s1_ to socket _s2_ and vice versa.
 ///

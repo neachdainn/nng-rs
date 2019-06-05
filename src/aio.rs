@@ -153,8 +153,8 @@ impl Aio
 		// else, which complicates the process of building the AIO slightly. We need to
 		// use a second, non-atomic pointer and then atomically copy it in.
 		let inner = Arc::new(Inner {
-			handle: AtomicPtr::new(ptr::null_mut()),
-			state:  AtomicUsize::new(State::Inactive as usize),
+			handle:   AtomicPtr::new(ptr::null_mut()),
+			state:    AtomicUsize::new(State::Inactive as usize),
 			callback: AtomicPtr::new(ptr::null_mut()),
 		});
 
@@ -213,9 +213,7 @@ impl Aio
 
 		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
 		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
-		let rv = unsafe{
-			nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline), callback_ptr as _)
-		};
+		let rv = unsafe{ nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline), callback_ptr as _) };
 
 		// NNG should never touch the pointer and return a non-zero code at the same
 		// time. That being said, I'm going to be a pessimist and double check. If we do
@@ -445,25 +443,22 @@ impl Aio
 {
 	/// Retrieves the `nng_aio` handle for this AIO object.
 	///
-	/// The Rust AIO wrapper internally keeps track of the state of the `nng_aio`
-	/// object in order to monitor whether or not there is a message owned by the
-	/// `nng_aio`. If the state of the `nng_aio` object is changed in any way other
-	/// than through the wrapper, then the wrapper will need to have its state
-	/// updated to match. Failing to do so and then using the wrapper can cause
-	/// segfaults.
-	// We don't expose a `from_nng_aio` function because we have a strict requirement
-	// on the callback function. This type fundamentally will not work without our
-	// wrapper around the callback.
+	/// The Rust AIO wrapper internally keeps track of the state of the
+	/// `nng_aio` object in order to monitor whether or not there is a message
+	/// owned by the `nng_aio`. If the state of the `nng_aio` object is changed
+	/// in any way other than through the wrapper, then the wrapper will need to
+	/// have its state updated to match. Failing to do so and then using the
+	/// wrapper can cause segfaults.
+	// We don't expose a `from_nng_aio` function because we have a strict
+	// requirement on the callback function. This type fundamentally will not work
+	// without our wrapper around the callback.
 	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio
 	{
 		self.inner.handle.load(Ordering::Relaxed)
 	}
 
 	/// Retrieves the current state of the wrapper.
-	pub fn state(&self, ordering: Ordering) -> State
-	{
-		self.inner.state.load(ordering).into()
-	}
+	pub fn state(&self, ordering: Ordering) -> State { self.inner.state.load(ordering).into() }
 
 	/// Sets the current state of the wrapper.
 	///
