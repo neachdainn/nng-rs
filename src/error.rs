@@ -1,4 +1,4 @@
-use std::{error, fmt, io};
+use std::{error, fmt, io, num::NonZeroU32};
 
 use crate::message::Message;
 
@@ -126,13 +126,12 @@ pub enum Error
 }
 
 #[cfg_attr(not(feature = "ffi-module"), doc(hidden))]
-impl From<u32> for Error
+impl From<NonZeroU32> for Error
 {
 	#[rustfmt::skip]
-	fn from(code: u32) -> Error
+	fn from(code: NonZeroU32) -> Error
 	{
-		match code {
-			0            => panic!("OK result passed as an error"),
+		match code.get() {
 			nng_sys::NNG_EINTR        => Error::Interrupted,
 			nng_sys::NNG_ENOMEM       => Error::OutOfMemory,
 			nng_sys::NNG_EINVAL       => Error::InvalidInput,
@@ -166,7 +165,7 @@ impl From<u32> for Error
 			nng_sys::NNG_EINTERNAL    => Error::Internal,
 			c if c & nng_sys::NNG_ESYSERR != 0 => Error::SystemErr(c & !nng_sys::NNG_ESYSERR),
 			c if c & nng_sys::NNG_ETRANERR != 0 => Error::TransportErr(c & !nng_sys::NNG_ETRANERR),
-			_ => Error::Unknown(code),
+			c => Error::Unknown(c),
 		}
 	}
 }

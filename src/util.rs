@@ -12,9 +12,9 @@ use crate::error::{Error, Result};
 /// Converts a `nng` return code into a Rust `Result`.
 macro_rules! rv2res {
 	($rv:expr, $ok:expr) => {
-		match $rv {
-			0 => Ok($ok),
-			e => Err($crate::error::Error::from(e as u32)),
+		match std::num::NonZeroU32::new($rv as u32) {
+			None => Ok($ok),
+			Some(e) => Err($crate::error::Error::from(e)),
 			}
 	};
 
@@ -195,8 +195,8 @@ pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 #[inline]
 pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
 {
-	if rv != 0 {
-		Err(Error::from(rv as u32))
+	if let Some(e) = std::num::NonZeroU32::new(rv as u32) {
+		Err(Error::from(e))
 	}
 	else {
 		Ok(NonNull::new(ptr).expect("NNG returned a null pointer from a successful function"))

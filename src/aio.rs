@@ -1,6 +1,7 @@
 //! Asynchonous I/O operaions.
 use std::{
 	hash::{Hash, Hasher},
+	num::NonZeroU32,
 	os::raw::c_void,
 	panic::{catch_unwind, RefUnwindSafe},
 	ptr::{self, NonNull},
@@ -180,7 +181,7 @@ impl Aio
 					(State::Sending, e) => {
 						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-						AioResult::SendErr(msg, Error::from(e))
+						AioResult::SendErr(msg, NonZeroU32::new(e).unwrap().into())
 					},
 
 					(State::Receiving, 0) => {
@@ -188,10 +189,10 @@ impl Aio
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::RecvOk(msg)
 					},
-					(State::Receiving, e) => AioResult::RecvErr(Error::from(e)),
+					(State::Receiving, e) => AioResult::RecvErr(NonZeroU32::new(e).unwrap().into()),
 
 					(State::Sleeping, 0) => AioResult::SleepOk,
-					(State::Sleeping, e) => AioResult::SleepErr(Error::from(e)),
+					(State::Sleeping, e) => AioResult::SleepErr(NonZeroU32::new(e).unwrap().into()),
 
 					// I am 99% sure that we will never get a callback in the Inactive state
 					(State::Inactive, _) => unreachable!(),
