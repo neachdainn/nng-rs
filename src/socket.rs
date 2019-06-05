@@ -197,7 +197,7 @@ impl Socket
 			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
 
 			if rv != 0 {
-				Err((Message::from_ptr(msgp), Error::from_code(rv as u32)))
+				Err((Message::from_ptr(msgp), Error::from(rv as u32)))
 			}
 			else {
 				Ok(())
@@ -335,6 +335,16 @@ impl Socket
 
 			std::process::abort();
 		}
+	}
+}
+
+#[cfg(feature = "ffi-module")]
+impl Socket
+{
+	/// Returns the handle to the underlying `nng_socket` object.
+	pub fn nng_socket(&self) -> nng_sys::nng_socket
+	{
+		self.inner.handle
 	}
 }
 

@@ -28,6 +28,13 @@ The current version requires **Rustc v1.31 or greater**.
 In general, this crate should always be able to compile with the Rustc version available on the oldest Ubuntu LTS release.
 Any change that requires a newer Rustc version will always be considered a breaking change and this crate's version number will be bumped accordingly.
 
+### Features
+
+* `build-nng` (default): Build NNG from source and statically link to the library.
+* `ffi-module`: Expose the raw FFI bindings via the `nng::ffi` module.
+  This is useful for utilizing NNG features that are implemented in the base library but not this wrapper.
+  Note that this exposes some internal items of this library and it directly exposes the NNG library, so anything enabled by this can change without bumping versions.
+
 ### Examples
 
 The following example uses the [intra-process][2] transport to set up a [request][3]/[reply][4]

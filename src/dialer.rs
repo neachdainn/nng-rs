@@ -96,6 +96,16 @@ impl Dialer
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Dialer
+{
+	/// Returns the underlying `nng_dialer` object.
+	pub fn nng_dialer(self) -> nng_sys::nng_dialer
+	{
+		self.handle
+	}
+}
+
 impl PartialEq for Dialer
 {
 	fn eq(&self, other: &Dialer) -> bool
@@ -228,8 +238,18 @@ impl DialerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e as u32))),
+			e => Err((self, Error::from(e as u32))),
 		}
+	}
+}
+
+#[cfg(feature = "ffi-module")]
+impl DialerOptions
+{
+	/// Returns the underlying `nng_dialer` object.
+	pub fn nng_dialer(&self) -> nng_sys::nng_dialer
+	{
+		self.handle
 	}
 }
 

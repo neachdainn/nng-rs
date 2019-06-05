@@ -79,6 +79,16 @@ impl Context
 	pub(crate) fn handle(&self) -> nng_sys::nng_ctx { self.inner.ctx }
 }
 
+#[cfg(feature = "ffi-module")]
+impl Context
+{
+	/// Returns the `nng_ctx` handle for this context.
+	pub fn nng_ctx(&self) -> nng_sys::nng_ctx
+	{
+		self.handle()
+	}
+}
+
 impl PartialEq for Context
 {
 	fn eq(&self, other: &Context) -> bool

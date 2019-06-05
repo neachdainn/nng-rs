@@ -49,7 +49,7 @@ impl fmt::Display for SocketAddr
 	}
 }
 
-#[doc(hidden)]
+#[cfg_attr(not(feature = "ffi-module"), doc(hidden))]
 impl From<nng_sys::nng_sockaddr> for SocketAddr
 {
 	fn from(addr: nng_sys::nng_sockaddr) -> SocketAddr

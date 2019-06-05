@@ -98,6 +98,16 @@ impl Listener
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Listener
+{
+	/// Returns the underlying `nng_listener` object.
+	pub fn nng_listener(self) -> nng_sys::nng_listener
+	{
+		self.handle
+	}
+}
+
 impl PartialEq for Listener
 {
 	fn eq(&self, other: &Listener) -> bool
@@ -225,8 +235,18 @@ impl ListenerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e as u32))),
+			e => Err((self, Error::from(e as u32))),
 		}
+	}
+}
+
+#[cfg(feature = "ffi-module")]
+impl ListenerOptions
+{
+	/// Returns the underlying `nng_listener` object.
+	pub fn nng_listener(&self) -> nng_sys::nng_listener
+	{
+		self.handle
 	}
 }
 
@@ -262,15 +282,6 @@ expose_options!{
 	         transport::tls::CaFile,
 	         transport::tls::CertKeyFile,
 	         transport::websocket::ResponseHeaders];
-}
-
-#[cfg(windows)]
-mod windows_impls
-{
-	use super::*;
-	use crate::options::transport::ipc;
-
-	impl crate::options::UnsafeSetOpt<ipc::SecurityDescriptor> for ListenerOptions {}
 }
 
 #[cfg(unix)]

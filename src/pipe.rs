@@ -83,6 +83,16 @@ impl Pipe
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Pipe
+{
+	/// Returns the handle to the underlying `nng_pipe` object.
+	pub fn nng_pipe(self) -> nng_sys::nng_pipe
+	{
+		self.handle()
+	}
+}
+
 impl PartialEq for Pipe
 {
 	fn eq(&self, other: &Pipe) -> bool

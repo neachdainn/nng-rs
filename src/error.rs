@@ -124,14 +124,12 @@ pub enum Error
 	#[doc(hidden)]
 	Unknown(u32),
 }
-impl Error
+
+#[cfg_attr(not(feature = "ffi-module"), doc(hidden))]
+impl From<u32> for Error
 {
-	/// Converts an `i32` into an `Error`.
-	///
-	/// This is not an implementation of `From<i32>` because that would make
-	/// the conversion a public part of this crate.
 	#[rustfmt::skip]
-	pub(crate) fn from_code(code: u32) -> Error
+	fn from(code: u32) -> Error
 	{
 		match code {
 			0            => panic!("OK result passed as an error"),

@@ -18,6 +18,23 @@
 //! maintain an API that is similar to the original library. As such, the
 //! majority of examples available online should be easy to apply to this crate.
 //!
+//! ### Rust Version Requirements
+//!
+//! The current version requires **Rustc v1.31 or greater**. In general, this
+//! crate should always be able to compile with the Rustc version available on
+//! the oldest Ubuntu LTS release. Any change that requires a newer Rustc
+//! version will always be considered a breaking change and this crate's version
+//! number will be bumped accordingly.
+//!
+//! ### Features
+//!
+//! * `build-nng` (default): Build NNG from source and statically link to the library.
+//! * `ffi-module`: Expose the raw FFI bindings via the `nng::ffi` module. This
+//!   is useful for utilizing NNG features that are implemented in the base
+//!   library but not this wrapper. Note that this exposes some internal items
+//!   of this library and it directly exposes the NNG library, so anything
+//!   enabled by this can change without bumping versions.
+//!
 //! ### Examples
 //!
 //! The following example uses the [intra-process][2] transport to set up a
@@ -90,7 +107,6 @@
 #![deny(bare_trait_objects)]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
-#![deny(unreachable_pub)]
 #![deny(clippy::all)]
 #![deny(clippy::wrong_pub_self_convention)]
 // Clippy doesn't enable these with "all". Best to keep them warnings.
@@ -144,4 +160,13 @@ pub use crate::{
 	pipe::{Pipe, PipeEvent},
 	protocol::Protocol,
 	socket::Socket,
+};
+
+#[cfg(feature = "ffi-module")]
+/// Raw NNG foreign function interface.
+pub use nng_sys as ffi;
+
+#[cfg(feature = "ffi-module")]
+pub use crate::{
+	aio::State as AioState,
 };
