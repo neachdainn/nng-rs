@@ -10,6 +10,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * Reintroduced the `RefUnwindSafe` requirement on all callback functions.
 * The `ffi-module` feature is now available, which allows retrieving the underlying nng-sys types. (#33)
+* Added a `RawSocket` type that marks that the given socket is in "raw" mode. (#31)
 
 === Changed ===
 

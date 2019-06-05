@@ -159,7 +159,7 @@ pub use crate::{
 	message::{Header, Message},
 	pipe::{Pipe, PipeEvent},
 	protocol::Protocol,
-	socket::Socket,
+	socket::{RawSocket, Socket},
 };
 
 #[cfg(feature = "ffi-module")]

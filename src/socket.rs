@@ -276,6 +276,16 @@ impl Socket
 			.fold(Ok(()), std::result::Result::and)
 	}
 
+	/// Creates a `RawSocket` object if this socket is in "raw" mode.
+	pub fn into_raw(&self) -> RawSocket
+	{
+		use crate::options::{GetOpt, Raw};
+
+		if self.get_opt::<Raw>() {
+			Some(RawSocket { socket: self.clone(), _hidden: () })
+		} else { None }
+	}
+
 	/// Close the underlying socket.
 	///
 	/// Messages that have been submitted for sending may be flushed or
@@ -482,4 +492,50 @@ impl fmt::Debug for Inner
 impl Drop for Inner
 {
 	fn drop(&mut self) { self.close() }
+}
+
+/// A socket that is open in "raw" mode.
+pub struct RawSocket
+{
+	/// The NNG socket.
+	pub socket: Socket,
+
+	/// A hidden item to make sure that the user can't construct the type.
+	_hidden: (),
+}
+
+impl RawSocket
+{
+	/// Creates a new "raw" socket of the specified protocol.
+	pub fn new(t: Protocol) -> Result<RawSocket>
+	{
+		// This code is largely copied from the Socket impl.
+		let mut socket = nng_sys::nng_socket::NNG_SOCKET_INITIALIZER;
+		let rv = unsafe {
+			match t {
+				Protocol::Bus0 => nng_sys::nng_bus0_open_raw(&mut socket as *mut _),
+				Protocol::Pair0 => nng_sys::nng_pair0_open_raw(&mut socket as *mut _),
+				Protocol::Pair1 => nng_sys::nng_pair1_open_raw(&mut socket as *mut _),
+				Protocol::Pub0 => nng_sys::nng_pub0_open_raw(&mut socket as *mut _),
+				Protocol::Pull0 => nng_sys::nng_pull0_open_raw(&mut socket as *mut _),
+				Protocol::Push0 => nng_sys::nng_push0_open_raw(&mut socket as *mut _),
+				Protocol::Rep0 => nng_sys::nng_rep0_open_raw(&mut socket as *mut _),
+				Protocol::Req0 => nng_sys::nng_req0_open_raw(&mut socket as *mut _),
+				Protocol::Respondent0 => nng_sys::nng_respondent0_open_raw(&mut socket as *mut _),
+				Protocol::Sub0 => nng_sys::nng_sub0_open_raw(&mut socket as *mut _),
+				Protocol::Surveyor0 => nng_sys::nng_surveyor0_open_raw(&mut socket as *mut _),
+			}
+		};
+
+		if rv != 0 {
+			return Err(Error::from(rv as u32));
+		}
+
+		let socket = Socket {
+			inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
+			nonblocking: false,
+		};
+
+		Ok(RawSocket { socket, _hidden: () })
+	}
 }
