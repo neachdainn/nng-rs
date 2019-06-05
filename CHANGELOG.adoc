@@ -8,6 +8,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+* Reintroduced the `RefUnwindSafe` requirement on all callback functions.
+
 === Changed ===
 
 * The AIO callback is now `Fn(Aio, AioResult)` instead of `Fn(&Aio, AioResult)`. (#30)

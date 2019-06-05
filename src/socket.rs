@@ -233,13 +233,12 @@ impl Socket
 	///
 	/// ## Panicking
 	///
-	/// If the callback function panics, the program will abort. This is to
-	/// match the behavior specified in Rust 1.33 where the program will abort
-	/// when it panics across an `extern "C"` boundary. This library will
-	/// produce the abort regardless of which version of Rustc is being used.
-	///
-	/// The user is responsible for either having a callback that never panics
-	/// or catching and handling the panic within the callback.
+	/// If the callback function panics, the program will log the panic if
+	/// possible and then abort. Future Rustc versions will likely do the
+	/// same for uncaught panics at FFI boundaries, so this library will
+	/// produce the abort in order to keep things consistent. As such, the user
+	/// is responsible for either having a callback that never panics or
+	/// catching and handling the panic within the callback.
 	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
 		F: Fn(Pipe, PipeEvent),
@@ -323,8 +322,17 @@ impl Socket
 		});
 
 		// See #6 for a "discussion" about why we abort.
-		if res.is_err() {
-			error!("Panic in pipe notify callback function");
+		if let Err(e) = res {
+			if let Some(s) = e.downcast_ref::<String>() {
+				error!("Panic in AIO callback function: {}", s);
+			}
+			else if let Some(s) = e.downcast_ref::<&str>() {
+				error!("Panic in AIO callback function: {}", s);
+			}
+			else {
+				error!("Panic in AIO callback function.");
+			}
+
 			std::process::abort();
 		}
 	}
