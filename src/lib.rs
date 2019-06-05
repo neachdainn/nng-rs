@@ -139,6 +139,7 @@ mod util;
 mod addr;
 mod aio;
 mod ctx;
+mod device;
 mod dialer;
 mod error;
 mod listener;
@@ -153,6 +154,7 @@ pub use crate::{
 	addr::SocketAddr,
 	aio::{Aio, AioResult},
 	ctx::Context,
+	device::{forwarder, reflector},
 	dialer::{Dialer, DialerOptions},
 	error::{Error, Result},
 	listener::{Listener, ListenerOptions},

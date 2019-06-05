@@ -277,11 +277,11 @@ impl Socket
 	}
 
 	/// Creates a `RawSocket` object if this socket is in "raw" mode.
-	pub fn into_raw(&self) -> RawSocket
+	pub fn into_raw(&self) -> Option<RawSocket>
 	{
-		use crate::options::{GetOpt, Raw};
+		use crate::options::{Options, Raw};
 
-		if self.get_opt::<Raw>() {
+		if self.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
 			Some(RawSocket { socket: self.clone(), _hidden: () })
 		} else { None }
 	}
