@@ -3,6 +3,7 @@ use std::{
 	ffi::CString,
 	fmt,
 	hash::{Hash, Hasher},
+	num::NonZeroU32,
 	os::raw::{c_int, c_void},
 	panic::{catch_unwind, RefUnwindSafe},
 	ptr,
@@ -196,8 +197,8 @@ impl Socket
 			let msgp = msg.into_ptr();
 			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
 
-			if rv != 0 {
-				Err((Message::from_ptr(msgp), Error::from(rv as u32)))
+			if let Some(e) = NonZeroU32::new(rv as u32) {
+				Err((Message::from_ptr(msgp), Error::from(e)))
 			}
 			else {
 				Ok(())
@@ -277,12 +278,12 @@ impl Socket
 	}
 
 	/// Creates a `RawSocket` object if this socket is in "raw" mode.
-	pub fn into_raw(&self) -> Option<RawSocket>
+	pub fn into_raw(self) -> Option<RawSocket>
 	{
 		use crate::options::{Options, Raw};
 
 		if self.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
-			Some(RawSocket { socket: self.clone(), _hidden: () })
+			Some(RawSocket { socket: self, _hidden: () })
 		} else { None }
 	}
 
@@ -528,8 +529,8 @@ impl RawSocket
 			}
 		};
 
-		if rv != 0 {
-			return Err(Error::from(rv as u32));
+		if let Some(e) = NonZeroU32::new(rv as u32) {
+			return Err(Error::from(e));
 		}
 
 		let socket = Socket {

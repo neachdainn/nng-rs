@@ -22,6 +22,7 @@ use std::{
 	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
 	ffi::CString,
 	hash::{Hash, Hasher},
+	num::NonZeroU32,
 };
 
 use crate::{
@@ -232,13 +233,13 @@ impl DialerOptions
 		// do.
 		let rv = unsafe { nng_sys::nng_dialer_start(self.handle, flags as i32) };
 
-		match rv {
-			0 => {
-				let handle = Dialer { handle: self.handle };
-				std::mem::forget(self);
-				Ok(handle)
-			},
-			e => Err((self, Error::from(e as u32))),
+		if let Some(e) = NonZeroU32::new(rv as u32) {
+			Err((self, Error::from(e)))
+		}
+		else {
+			let handle = Dialer { handle: self.handle };
+			std::mem::forget(self);
+			Ok(handle)
 		}
 	}
 }

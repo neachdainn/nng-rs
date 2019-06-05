@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::{error::{Error, Result}, socket::RawSocket};
 
 /// Forwards messages from socket _s1_ to socket _s2_ and vice versa.
@@ -17,15 +19,23 @@ use crate::{error::{Error, Result}, socket::RawSocket};
 /// This is controlled by the `MaxTtl` option.
 ///
 /// This function does not return unless one of the sockets encounters an
-/// error. For more information see the [NNG documentation][1].
+/// error or is closed. For more information see the [NNG documentation][1].
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
 pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 {
 	let rv = unsafe { nng_sys::nng_device(s1.socket.handle(), s2.socket.handle()) };
-	assert_ne!(rv, 0, "nng_device returned with no error");
 
-	Err(Error::from(rv as u32))
+	// Appease Clippy.
+	drop(s1);
+	drop(s2);
+
+	if let Some(e) = NonZeroU32::new(rv as u32) {
+		Err(Error::from(e))
+	}
+	else {
+		unreachable!("nng_device returned with no errror");
+	}
 }
 
 /// Reflects a socket's sent messages back at itself.
@@ -35,8 +45,8 @@ pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 /// device is created where valid messages from the socket are simply returned
 /// back to the sender.
 ///
-/// This function does not return unless the socket encounters an error. For
-/// more information, see the [NNG documentation][1].
+/// This function does not return unless the socket encounters an error or is
+/// closed. For more information, see the [NNG documentation][1].
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
 pub fn reflector(s1: RawSocket) -> Result<()>
@@ -44,7 +54,13 @@ pub fn reflector(s1: RawSocket) -> Result<()>
 	let rv = unsafe {
 		nng_sys::nng_device(s1.socket.handle(), nng_sys::nng_socket::NNG_SOCKET_INITIALIZER)
 	};
-	assert_ne!(rv, 0, "nng_device returned with no error");
 
-	Err(Error::from(rv as u32))
+	drop(s1); // Appease Clippy
+
+	if let Some(e) = NonZeroU32::new(rv as u32) {
+		Err(Error::from(e))
+	}
+	else {
+		unreachable!("nng_device returned with no errror");
+	}
 }
