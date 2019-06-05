@@ -107,7 +107,6 @@
 #![deny(bare_trait_objects)]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
-#![deny(unreachable_pub)]
 #![deny(clippy::all)]
 #![deny(clippy::wrong_pub_self_convention)]
 // Clippy doesn't enable these with "all". Best to keep them warnings.

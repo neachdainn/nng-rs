@@ -595,7 +595,6 @@ impl From<AioResult> for Result<Option<Message>>
 mod state
 {
 	/// Represents the state of the AIO object.
-	#[allow(unreachable_pub)]
 	#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 	#[repr(usize)]
 	pub enum State
