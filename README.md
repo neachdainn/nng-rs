@@ -33,6 +33,7 @@ Any change that requires a newer Rustc version will always be considered a break
 * `build-nng` (default): Build NNG from source and statically link to the library.
 * `ffi-module`: Expose the raw FFI bindings via the `nng::ffi` module.
   This is useful for utilizing NNG features that are implemented in the base library but not this wrapper.
+  Note that this exposes some internal items of this library and it directly exposes the NNG library, so anything enabled by this can change without bumping versions.
 
 ### Examples
 

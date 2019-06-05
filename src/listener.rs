@@ -98,6 +98,16 @@ impl Listener
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Listener
+{
+	/// Returns the underlying `nng_listener` object.
+	pub fn nng_listener(&self) -> nng_sys::nng_listener
+	{
+		self.handle
+	}
+}
+
 impl PartialEq for Listener
 {
 	fn eq(&self, other: &Listener) -> bool
@@ -227,6 +237,16 @@ impl ListenerOptions
 			},
 			e => Err((self, Error::from_code(e as u32))),
 		}
+	}
+}
+
+#[cfg(feature = "ffi-module")]
+impl ListenerOptions
+{
+	/// Returns the underlying `nng_listener` object.
+	pub fn nng_listener(&self) -> nng_sys::nng_listener
+	{
+		self.handle
 	}
 }
 

@@ -439,6 +439,41 @@ impl Aio
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Aio
+{
+	/// Retrieves the `nng_aio` handle for this AIO object.
+	///
+	/// The Rust AIO wrapper internally keeps track of the state of the `nng_aio`
+	/// object in order to monitor whether or not there is a message owned by the
+	/// `nng_aio`. If the state of the `nng_aio` object is changed in any way other
+	/// than through the wrapper, then the wrapper will need to have its state
+	/// updated to match. Failing to do so and then using the wrapper can cause
+	/// segfaults.
+	// We don't expose a `from_nng_aio` function because we have a strict requirement
+	// on the callback function. This type fundamentally will not work without our
+	// wrapper around the callback.
+	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio
+	{
+		self.inner.handle.load(Ordering::Relaxed)
+	}
+
+	/// Retrieves the current state of the wrapper.
+	pub fn state(&self, ordering: Ordering) -> State
+	{
+		self.inner.state.load(ordering).into()
+	}
+
+	/// Sets the current state of the wrapper.
+	///
+	/// If the provided state does not actually match the state of the `nng_aio`
+	/// object, this can cause segfaults.
+	pub unsafe fn set_state(&self, state: State, ordering: Ordering)
+	{
+		self.inner.state.store(state as usize, Ordering)
+	}
+}
+
 impl Hash for Aio
 {
 	fn hash<H: Hasher>(&self, state: &mut H)
@@ -556,36 +591,47 @@ impl From<AioResult> for Result<Option<Message>>
 	}
 }
 
-/// Represents the state of the AIO object.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[repr(usize)]
-enum State
+/// Module used to allow the conditional visibility of the `State` type.
+mod state
 {
-	/// There is currently nothing happening on the AIO.
-	Inactive,
-
-	/// A send operation is currently in progress.
-	Sending,
-
-	/// A receive operation is currently in progress.
-	Receiving,
-
-	/// The AIO object is currently sleeping.
-	Sleeping,
-}
-
-impl From<usize> for State
-{
-	fn from(atm: usize) -> State
+	/// Represents the state of the AIO object.
+	#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+	#[repr(usize)]
+	pub enum State
 	{
-		// Fortunately, Godbolt says that this will compile to a compare, jump, and a
-		// subtract. Three instructions isn't that bad.
-		match atm {
-			x if x == State::Inactive as usize => State::Inactive,
-			x if x == State::Sending as usize => State::Sending,
-			x if x == State::Receiving as usize => State::Receiving,
-			x if x == State::Sleeping as usize => State::Sleeping,
-			_ => unreachable!(),
+		/// There is currently nothing happening on the AIO.
+		Inactive,
+
+		/// A send operation is currently in progress.
+		Sending,
+
+		/// A receive operation is currently in progress.
+		Receiving,
+
+		/// The AIO object is currently sleeping.
+		Sleeping,
+	}
+
+	#[cfg_attr(feature = "ffi-module", doc(hidden))]
+	impl From<usize> for State
+	{
+		fn from(atm: usize) -> State
+		{
+			// Fortunately, Godbolt says that this will compile to a compare, jump, and a
+			// subtract. Three instructions isn't that bad.
+			match atm {
+				x if x == State::Inactive as usize => State::Inactive,
+				x if x == State::Sending as usize => State::Sending,
+				x if x == State::Receiving as usize => State::Receiving,
+				x if x == State::Sleeping as usize => State::Sleeping,
+				_ => unreachable!(),
+			}
 		}
 	}
 }
+
+#[cfg(not(feature = "ffi-module"))]
+use state::State;
+
+#[cfg(feature = "ffi-module")]
+pub use state::State;

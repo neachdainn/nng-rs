@@ -338,6 +338,16 @@ impl Socket
 	}
 }
 
+#[cfg(feature = "ffi-module")]
+impl Socket
+{
+	/// Returns the handle to the underlying `nng_socket` object.
+	pub fn nng_socket(&self) -> nng_sys::nng_socket
+	{
+		self.inner.handle
+	}
+}
+
 impl PartialEq for Socket
 {
 	fn eq(&self, other: &Socket) -> bool
