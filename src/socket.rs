@@ -197,7 +197,7 @@ impl Socket
 			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
 
 			if rv != 0 {
-				Err((Message::from_ptr(msgp), Error::from_code(rv as u32)))
+				Err((Message::from_ptr(msgp), Error::from(rv as u32)))
 			}
 			else {
 				Ok(())

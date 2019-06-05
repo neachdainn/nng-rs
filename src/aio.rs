@@ -180,7 +180,7 @@ impl Aio
 					(State::Sending, e) => {
 						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-						AioResult::SendErr(msg, Error::from_code(e))
+						AioResult::SendErr(msg, Error::from(e))
 					},
 
 					(State::Receiving, 0) => {
@@ -188,10 +188,10 @@ impl Aio
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::RecvOk(msg)
 					},
-					(State::Receiving, e) => AioResult::RecvErr(Error::from_code(e)),
+					(State::Receiving, e) => AioResult::RecvErr(Error::from(e)),
 
 					(State::Sleeping, 0) => AioResult::SleepOk,
-					(State::Sleeping, e) => AioResult::SleepErr(Error::from_code(e)),
+					(State::Sleeping, e) => AioResult::SleepErr(Error::from(e)),
 
 					// I am 99% sure that we will never get a callback in the Inactive state
 					(State::Inactive, _) => unreachable!(),
@@ -597,7 +597,7 @@ mod state
 	/// Represents the state of the AIO object.
 	#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 	#[repr(usize)]
-	pub enum State
+	pub(crate) enum State
 	{
 		/// There is currently nothing happening on the AIO.
 		Inactive,
@@ -631,7 +631,7 @@ mod state
 }
 
 #[cfg(not(feature = "ffi-module"))]
-use state::State;
+use self::state::State;
 
 #[cfg(feature = "ffi-module")]
-pub use state::State;
+pub(crate) use self::state::State;

@@ -21,6 +21,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Removed ===
 
+* Removed the "unsafe options" in favor of exposing the raw FFI types. (#33)
+
 === Fixed ===
 
 === Security ===

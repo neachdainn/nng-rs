@@ -238,7 +238,7 @@ impl DialerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e as u32))),
+			e => Err((self, Error::from(e as u32))),
 		}
 	}
 }

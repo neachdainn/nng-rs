@@ -235,7 +235,7 @@ impl ListenerOptions
 				std::mem::forget(self);
 				Ok(handle)
 			},
-			e => Err((self, Error::from_code(e as u32))),
+			e => Err((self, Error::from(e as u32))),
 		}
 	}
 }
@@ -282,15 +282,6 @@ expose_options!{
 	         transport::tls::CaFile,
 	         transport::tls::CertKeyFile,
 	         transport::websocket::ResponseHeaders];
-}
-
-#[cfg(windows)]
-mod windows_impls
-{
-	use super::*;
-	use crate::options::transport::ipc;
-
-	impl crate::options::UnsafeSetOpt<ipc::SecurityDescriptor> for ListenerOptions {}
 }
 
 #[cfg(unix)]
