@@ -8,22 +8,11 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
-* Reintroduced the `RefUnwindSafe` requirement on all callback functions.
-* The `ffi-module` feature is now available, which allows retrieving the underlying nng-sys types. (#33)
-* Added a `RawSocket` type that marks that the given socket is in "raw" mode. (#31)
-* Added forwarder and reflector devices. (#32)
-
 === Changed ===
-
-* The AIO callback is now `Fn(Aio, AioResult)` instead of `Fn(&Aio, AioResult)`. (#30)
-* The pipe notification callback is now `Fn(Pipe, PipeEvent)` instead of `FnMut(Pipe, PipeEvent)`.
-* The `Aio::try_clone` function was replaced with deriving `Clone`. (#30)
 
 === Deprecated ===
 
 === Removed ===
-
-* Removed the "unsafe options" in favor of exposing the raw FFI types. (#33)
 
 === Fixed ===
 
