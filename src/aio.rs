@@ -3,7 +3,6 @@ use std::{
 	hash::{Hash, Hasher},
 	num::NonZeroU32,
 	os::raw::c_void,
-	panic::{catch_unwind, RefUnwindSafe},
 	ptr::{self, NonNull},
 	sync::{
 		atomic::{AtomicPtr, AtomicUsize, Ordering},
@@ -17,12 +16,12 @@ use crate::{
 	error::{Error, Result, SendResult},
 	message::Message,
 	socket::Socket,
-	util::{duration_to_nng, validate_ptr},
+	util::{abort_unwind, duration_to_nng, validate_ptr},
 };
 use log::error;
 
 /// Represents the type of the inner "trampoline" callback function.
-type InnerCallback = Box<dyn Fn() + RefUnwindSafe + Send + Sync + 'static>;
+type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 
 /// An asynchronous I/O context.
 ///
@@ -146,8 +145,7 @@ impl Aio
 	/// catching and handling the panic within the callback.
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
-		F: Fn(Aio, AioResult),
-		F: RefUnwindSafe + Sync + Send + 'static,
+		F: Fn(Aio, AioResult) + Sync + Send + 'static,
 	{
 		// The shared inner needs to have a fixed location before we can do anything
 		// else, which complicates the process of building the AIO slightly. We need to
@@ -410,7 +408,7 @@ impl Aio
 	/// and a `c_void`, the type system does not enforce this for us.
 	extern "C" fn trampoline(arg: *mut c_void)
 	{
-		let res = catch_unwind(|| unsafe {
+		abort_unwind(|| unsafe {
 			let callback_ptr = arg as *const InnerCallback;
 			if callback_ptr.is_null() {
 				// This should never happen. It means we, Nng-rs, got something wrong in the
@@ -420,21 +418,6 @@ impl Aio
 
 			(*callback_ptr)()
 		});
-
-		// See #6 for "discussion" about why we abort here.
-		if let Err(e) = res {
-			if let Some(s) = e.downcast_ref::<String>() {
-				error!("Panic in AIO callback function: {}", s);
-			}
-			else if let Some(s) = e.downcast_ref::<&str>() {
-				error!("Panic in AIO callback function: {}", s);
-			}
-			else {
-				error!("Panic in AIO callback function.");
-			}
-
-			std::process::abort();
-		}
 	}
 }
 

@@ -5,7 +5,6 @@ use std::{
 	hash::{Hash, Hasher},
 	num::NonZeroU32,
 	os::raw::{c_int, c_void},
-	panic::{catch_unwind, RefUnwindSafe},
 	ptr,
 	sync::{Arc, Mutex},
 };
@@ -16,11 +15,10 @@ use crate::{
 	message::Message,
 	pipe::{Pipe, PipeEvent},
 	protocol::Protocol,
-	util::validate_ptr,
+	util::{abort_unwind, validate_ptr},
 };
-use log::error;
 
-type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + RefUnwindSafe + Send + Sync + 'static;
+type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 
 /// A nanomsg-next-generation socket.
 ///
@@ -242,8 +240,7 @@ impl Socket
 	/// catching and handling the panic within the callback.
 	pub fn pipe_notify<F>(&self, callback: F) -> Result<()>
 	where
-		F: Fn(Pipe, PipeEvent),
-		F: RefUnwindSafe + Send + Sync + 'static,
+		F: Fn(Pipe, PipeEvent) + Send + Sync + 'static,
 	{
 		// Place the new callback into the inner portion.
 		{
@@ -316,7 +313,7 @@ impl Socket
 	/// really do have a pointer to an `Inner` type.
 	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: i32, arg: *mut c_void)
 	{
-		let res = catch_unwind(|| unsafe {
+		abort_unwind(|| unsafe {
 			let pipe = Pipe::from_nng_sys(pipe);
 			let ev = PipeEvent::from_code(ev);
 
@@ -334,21 +331,6 @@ impl Socket
 
 			(*callback)(pipe, ev)
 		});
-
-		// See #6 for a "discussion" about why we abort.
-		if let Err(e) = res {
-			if let Some(s) = e.downcast_ref::<String>() {
-				error!("Panic in AIO callback function: {}", s);
-			}
-			else if let Some(s) = e.downcast_ref::<&str>() {
-				error!("Panic in AIO callback function: {}", s);
-			}
-			else {
-				error!("Panic in AIO callback function.");
-			}
-
-			std::process::abort();
-		}
 	}
 }
 
