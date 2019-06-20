@@ -20,6 +20,20 @@ before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
 
+# Make sure that the style is correct. Since we use unstable formatting
+# features, we use the nightly toolchain for this.
+format:
+  image: "rustlang/rust:nightly-slim"
+  stage: analysis
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --version
+    - cargo fmt --package nng -- --check
+  only:
+    - tags
+    - master
+    - merge_requests
+
 # Make sure that we're listening to Clippy. Use nightly so we get the latest
 # lints even if we're not updating the test version.
 clippy:
