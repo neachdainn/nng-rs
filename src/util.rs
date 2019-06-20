@@ -205,9 +205,9 @@ pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
 
 /// Aborts the program if the provided closure panics.
 ///
-/// This is meant to handle the fact that `UnwindSafe` is a little bit broken in Rust and catching
-/// an unwind does not necessarily mean that the things should be exception-safe. See #6 for a few
-/// examples of why this is fine.
+/// This is meant to handle the fact that `UnwindSafe` is a little bit broken in
+/// Rust and catching an unwind does not necessarily mean that the things should
+/// be exception-safe. See #6 for a few examples of why this is fine.
 pub fn abort_unwind<F: FnOnce() -> R, R>(f: F) -> R
 {
 	struct Guard;

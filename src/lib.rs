@@ -28,7 +28,8 @@
 //!
 //! ### Features
 //!
-//! * `build-nng` (default): Build NNG from source and statically link to the library.
+//! * `build-nng` (default): Build NNG from source and statically link to the
+//!   library.
 //! * `ffi-module`: Expose the raw FFI bindings via the `nng::ffi` module. This
 //!   is useful for utilizing NNG features that are implemented in the base
 //!   library but not this wrapper. Note that this exposes some internal items

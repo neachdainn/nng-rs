@@ -211,7 +211,7 @@ impl Aio
 
 		let mut aio: *mut nng_sys::nng_aio = ptr::null_mut();
 		let aiop: *mut *mut nng_sys::nng_aio = &mut aio as _;
-		let rv = unsafe{ nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline), callback_ptr as _) };
+		let rv = unsafe { nng_sys::nng_aio_alloc(aiop, Some(Aio::trampoline), callback_ptr as _) };
 
 		// NNG should never touch the pointer and return a non-zero code at the same
 		// time. That being said, I'm going to be a pessimist and double check. If we do
@@ -435,10 +435,7 @@ impl Aio
 	// We don't expose a `from_nng_aio` function because we have a strict
 	// requirement on the callback function. This type fundamentally will not work
 	// without our wrapper around the callback.
-	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio
-	{
-		self.inner.handle.load(Ordering::Relaxed)
-	}
+	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio { self.inner.handle.load(Ordering::Relaxed) }
 
 	/// Retrieves the current state of the wrapper.
 	pub fn state(&self, ordering: Ordering) -> State { self.inner.state.load(ordering).into() }
