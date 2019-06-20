@@ -187,10 +187,14 @@ impl Aio
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
 						AioResult::Recv(Ok(msg))
 					},
-					(State::Receiving, e) => AioResult::Recv(Err(NonZeroU32::new(e).unwrap().into())),
+					(State::Receiving, e) => {
+						AioResult::Recv(Err(NonZeroU32::new(e).unwrap().into()))
+					},
 
 					(State::Sleeping, 0) => AioResult::Sleep(Ok(())),
-					(State::Sleeping, e) => AioResult::Sleep(Err(NonZeroU32::new(e).unwrap().into())),
+					(State::Sleeping, e) => {
+						AioResult::Sleep(Err(NonZeroU32::new(e).unwrap().into()))
+					},
 
 					// I am 99% sure that we will never get a callback in the Inactive state
 					(State::Inactive, _) => unreachable!(),
