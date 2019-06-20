@@ -8,13 +8,17 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+* The `Socket::try_{send,recv}` and the `Socket::{dial,listen}_async` functions have been added. (#34)
+
 === Changed ===
 
-* The `AioResult` type has been changed to be three variants the standard `Result` type instead of six variants.
+* The `AioResult` type has been changed to be three variants the standard `Result` type instead of six variants. (#35)
 
 === Deprecated ===
 
 === Removed ===
+
+* The `Socket::set_nonblocking` function has been removed. (#34)
 
 === Fixed ===
 
