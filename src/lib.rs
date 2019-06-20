@@ -50,7 +50,7 @@
 //!
 //! fn request() -> Result<()> {
 //!     // Set up the client and connect to the specified address
-//!     let mut client = Socket::new(Protocol::Req0)?;
+//!     let client = Socket::new(Protocol::Req0)?;
 //!     # // Don't error if we hit here before the server does.
 //!     # client.dial_async(ADDRESS)?;
 //!     # if false {
