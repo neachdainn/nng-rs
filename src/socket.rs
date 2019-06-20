@@ -37,9 +37,6 @@ pub struct Socket
 {
 	/// The shared reference to the underlying nng socket.
 	inner: Arc<Inner>,
-
-	/// Whether or not this socket should block on sending and receiving
-	nonblocking: bool,
 }
 impl Socket
 {
@@ -68,26 +65,21 @@ impl Socket
 
 		rv2res!(rv, Socket {
 			inner:       Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
-			nonblocking: false,
 		})
 	}
 
 	/// Initiates a remote connection to a listener.
 	///
 	/// When the connection is closed, the underlying `Dialer` will attempt to
-	/// re-establish the connection. It will also periodically retry a
-	/// connection automatically if an attempt to connect asynchronously fails.
+	/// re-establish the connection.
 	///
-	/// Normally, the first attempt to connect to the address indicated by the
+	/// The first attempt to connect to the address indicated by the
 	/// provided _url_ is done synchronously, including any necessary name
 	/// resolution. As a result, a failure, such as if the connection is
 	/// refused, will be returned immediately and no further action will be
 	/// taken.
 	///
-	/// However, if the socket is set to `nonblocking`, then the connection
-	/// attempt is made asynchronously.
-	///
-	/// Furthermore, if the connection was closed for a synchronously dialed
+	/// If the connection was closed for a synchronously dialed
 	/// connection, the dialer will still attempt to redial asynchronously.
 	///
 	/// Because the dialer is started immediately, it is generally not possible
@@ -101,10 +93,8 @@ impl Socket
 	pub fn dial(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
 		let rv = unsafe {
-			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as c_int)
+			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0)
 		};
 
 		rv2res!(rv)
@@ -116,12 +106,10 @@ impl Socket
 	/// Unlike a dialer, listeners generally can have many connections open
 	/// concurrently.
 	///
-	/// Normally, the act of "binding" to the address indicated by _url_ is
+	/// The act of "binding" to the address indicated by _url_ is
 	/// done synchronously, including any necessary name resolution. As a
 	/// result, a failure, such as if the address is already in use, will be
-	/// returned immediately. However, if the socket is set to `nonblocking`
-	/// then this is done asynchronously; furthermore any failure to bind will
-	/// be periodically reattempted in the background.
+	/// returned immediately.
 	///
 	/// Because the listener is started immediately, it is generally not
 	/// possible to apply extra configuration. If that is needed, or if one
@@ -134,25 +122,66 @@ impl Socket
 	pub fn listen(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
 		let rv = unsafe {
-			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags as c_int)
+			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0)
 		};
 
 		rv2res!(rv)
 	}
 
-	/// Sets whether or not this socket should use nonblocking operations.
+	/// Asynchronously initiates a remote connection to a listener.
 	///
-	/// If the socket is set to nonblocking mode, then the send and receive
-	/// functions return immediately even if there are no messages available or
-	/// the message cannot be sent. Otherwise, the functions will wailt until
-	/// the operation can complete or any configured timer expires.
+	/// When the connection is closed, the underlying `Dialer` will attempt to re-establish the
+	/// connection. It will also periodically retry a connection automatically if an attempt to
+	/// connect asynchronously fails.
 	///
-	/// The default is blocking operations. This setting is _not_ propagated to
-	/// other handles cloned from this one.
-	pub fn set_nonblocking(&mut self, nonblocking: bool) { self.nonblocking = nonblocking; }
+	/// Because the dialer is started immediately, it is generally not possible
+	/// to apply extra configuration. If that is needed, or if one wishes to
+	/// close the dialer before the socket, applications should consider using
+	/// the `Dialer` type directly.
+	///
+	/// See the [nng documentation][1] for more information.
+	///
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	pub fn dial_async(&self, url: &str) -> Result<()>
+	{
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
+		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
+		let rv = unsafe {
+			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
+		};
+
+		rv2res!(rv)
+	}
+
+	/// Asynchronously initiates and starts a listener on the specified address.
+	///
+	/// Listeners are used to accept connections initiated by remote dialers.
+	/// Unlike a dialer, listeners generally can have many connections open
+	/// concurrently.
+	///
+	/// The act of "binding" to the address indicated by _url_ is done asynchronously, including any
+	/// necessary name resolution. Any failure to bind will be periodically reattempted in the
+	/// background.
+	///
+	/// Because the listener is started immediately, it is generally not
+	/// possible to apply extra configuration. If that is needed, or if one
+	/// wishes to close the dialer before the socket, applications should
+	/// consider using the `Listener` type directly.
+	///
+	/// See the [nng documentation][1] for more information.
+	///
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
+	pub fn listen_async(&self, url: &str) -> Result<()>
+	{
+		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
+		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
+		let rv = unsafe {
+			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
+		};
+
+		rv2res!(rv)
+	}
 
 	/// Receives a message from the socket.
 	///
@@ -164,9 +193,7 @@ impl Socket
 	pub fn recv(&self) -> Result<Message>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
-		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags as c_int) };
+		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, 0) };
 
 		let msgp = validate_ptr(rv, msgp)?;
 		Ok(Message::from_ptr(msgp))
@@ -189,11 +216,60 @@ impl Socket
 	{
 		let msg = msg.into();
 
-		let flags = if self.nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
+		unsafe {
+			let msgp = msg.into_ptr();
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), 0);
+
+			if let Some(e) = NonZeroU32::new(rv as u32) {
+				Err((Message::from_ptr(msgp), Error::from(e)))
+			}
+			else {
+				Ok(())
+			}
+		}
+	}
+
+	/// Attempts to receives a message from the socket.
+	///
+	/// The semantics of what receiving a message means vary from protocol to
+	/// protocol, so examination of the protocol documentation is encouraged.
+	/// For example, with a _req_ socket a message may only be received after a
+	/// request has been sent. Furthermore, some protocols may not support
+	/// receiving data at all, such as _pub_.
+	///
+	/// If no message is available, this function will immediately return.
+	pub fn try_recv(&self) -> Result<Message>
+	{
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
+		let rv = unsafe { nng_sys::nng_recvmsg(self.inner.handle, &mut msgp as _, flags) };
+
+		let msgp = validate_ptr(rv, msgp)?;
+		Ok(Message::from_ptr(msgp))
+	}
+
+	/// Attempts to sends a message on the socket.
+	///
+	/// The semantics of what sending a message means vary from protocol to
+	/// protocol, so examination of the protocol documentation is encouraged.
+	/// For example, with a _pub_ socket the data is broadcast so that any
+	/// peers who have a suitable subscription will be able to receive it.
+	/// Furthermore, some protocols may not support sending data (such as
+	/// _sub_) or may require other conditions. For example, _rep_sockets
+	/// cannot normally send data, which are responses to requests, until they
+	/// have first received a request.
+	///
+	/// If the message cannot be sent (e.g., there are no peers or there is backpressure from the
+	/// peers) then this function will return immediately. If the message cannot be sent, then it is
+	/// returned to the caller as a part of the `Error`.
+	pub fn try_send<M: Into<Message>>(&self, msg: M) -> SendResult<()>
+	{
+		let msg = msg.into();
+		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
 
 		unsafe {
 			let msgp = msg.into_ptr();
-			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags as c_int);
+			let rv = nng_sys::nng_sendmsg(self.inner.handle, msgp.as_ptr(), flags);
 
 			if let Some(e) = NonZeroU32::new(rv as u32) {
 				Err((Message::from_ptr(msgp), Error::from(e)))
@@ -517,7 +593,6 @@ impl RawSocket
 
 		let socket = Socket {
 			inner:       Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
-			nonblocking: false,
 		};
 
 		Ok(RawSocket { socket, _hidden: () })
