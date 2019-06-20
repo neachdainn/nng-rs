@@ -64,7 +64,7 @@ impl Socket
 		};
 
 		rv2res!(rv, Socket {
-			inner:       Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
+			inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
 		})
 	}
 
@@ -93,9 +93,7 @@ impl Socket
 	pub fn dial(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let rv = unsafe {
-			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0)
-		};
+		let rv = unsafe { nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0) };
 
 		rv2res!(rv)
 	}
@@ -122,18 +120,17 @@ impl Socket
 	pub fn listen(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let rv = unsafe {
-			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0)
-		};
+		let rv =
+			unsafe { nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), 0) };
 
 		rv2res!(rv)
 	}
 
 	/// Asynchronously initiates a remote connection to a listener.
 	///
-	/// When the connection is closed, the underlying `Dialer` will attempt to re-establish the
-	/// connection. It will also periodically retry a connection automatically if an attempt to
-	/// connect asynchronously fails.
+	/// When the connection is closed, the underlying `Dialer` will attempt to
+	/// re-establish the connection. It will also periodically retry a
+	/// connection automatically if an attempt to connect asynchronously fails.
 	///
 	/// Because the dialer is started immediately, it is generally not possible
 	/// to apply extra configuration. If that is needed, or if one wishes to
@@ -147,9 +144,8 @@ impl Socket
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
-		let rv = unsafe {
-			nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
-		};
+		let rv =
+			unsafe { nng_sys::nng_dial(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags) };
 
 		rv2res!(rv)
 	}
@@ -160,9 +156,9 @@ impl Socket
 	/// Unlike a dialer, listeners generally can have many connections open
 	/// concurrently.
 	///
-	/// The act of "binding" to the address indicated by _url_ is done asynchronously, including any
-	/// necessary name resolution. Any failure to bind will be periodically reattempted in the
-	/// background.
+	/// The act of "binding" to the address indicated by _url_ is done
+	/// asynchronously, including any necessary name resolution. Any failure to
+	/// bind will be periodically reattempted in the background.
 	///
 	/// Because the listener is started immediately, it is generally not
 	/// possible to apply extra configuration. If that is needed, or if one
@@ -259,9 +255,10 @@ impl Socket
 	/// cannot normally send data, which are responses to requests, until they
 	/// have first received a request.
 	///
-	/// If the message cannot be sent (e.g., there are no peers or there is backpressure from the
-	/// peers) then this function will return immediately. If the message cannot be sent, then it is
-	/// returned to the caller as a part of the `Error`.
+	/// If the message cannot be sent (e.g., there are no peers or there is
+	/// backpressure from the peers) then this function will return immediately.
+	/// If the message cannot be sent, then it is returned to the caller as a
+	/// part of the `Error`.
 	pub fn try_send<M: Into<Message>>(&self, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
@@ -591,9 +588,8 @@ impl RawSocket
 			return Err(Error::from(e));
 		}
 
-		let socket = Socket {
-			inner:       Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
-		};
+		let socket =
+			Socket { inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }) };
 
 		Ok(RawSocket { socket, _hidden: () })
 	}
