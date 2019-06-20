@@ -8,17 +8,11 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
-* The `Socket::try_{send,recv}` and the `Socket::{dial,listen}_async` functions have been added. (#34)
-
 === Changed ===
-
-* The `AioResult` type has been changed to be three variants the standard `Result` type instead of six variants. (#35)
 
 === Deprecated ===
 
 === Removed ===
-
-* The `Socket::set_nonblocking` function has been removed. (#34)
 
 === Fixed ===
 
@@ -28,51 +22,43 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 // Past Releases
 //------------------------------------------------------------------------------
 
-== [nng-rs v0.5.0-rc.3] - 2019-06-05 ==
+== [nng-rs v0.5.0] - 2019-06-20 ==
 
 === Added ===
 
-* Reintroduced the `RefUnwindSafe` requirement on all callback functions.
+* The `Socket::try_{send,recv}` and the `Socket::{dial,listen}_async` functions have been added. (#34)
 * The `ffi-module` feature is now available, which allows retrieving the underlying nng-sys types. (#33)
 * Added a `RawSocket` type that marks that the given socket is in "raw" mode. (#31)
 * Added forwarder and reflector devices. (#32)
-
-=== Changed ===
-
-* The AIO callback is now `Fn(Aio, AioResult)` instead of `Fn(&Aio, AioResult)`. (#30)
-* The pipe notification callback is now `Fn(Pipe, PipeEvent)` instead of `FnMut(Pipe, PipeEvent)`.
-* The `Aio::try_clone` function was replaced with deriving `Clone`. (#30)
-
-=== Removed ===
-
-* Removed the "unsafe options" in favor of exposing the raw FFI types. (#33)
-
-== [nng-rs v0.5.0-rc.2] - 2019-04-27 ==
-
-=== Added ===
-
 * The `Message` and `Header` types now implement `Write`.
 * The `Message` type received several new functions to make its API similar to that of a `Vec<u8>` or `VecDeque<u8>`.
-* Implemented additional common traits on types:
+* Implemented additional common traits on types: (#18, #23)
 	** All options: `Clone`, `Copy`, `Debug`, `Display`, `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 	** `Aio`: `Eq`, `Hash`, `PartialEq`
 	** `Context`: `Eq`, `Hash`, `Ord`, `PartialEq`, `PartialOrd`
 	** `Dialer`: `Copy`, `Hash`, `Ord`, `PartialOrd`
+	** `Error`: `Hash`
 	** `Header`: `Default`
 	** `Listener`: `Copy`, `Hash`, `Ord`, `PartialOrd`
 	** `Message`: `Default`, `FromIterator` for both values and references of `u8`
 	** `Pipe`: `Copy`, `Hash`, `Ord`, `PartialOrd`
-	** `Protocol`: `Ord`, `PartialOrd`
+	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
+	** `Protocol`: `Ord`, `PartialOrd`, `Eq`, `PartialEq`, `Hash`
 	** `Socket`: `Hash`, `Ord`, `PartialOrd`
-	** `SocketAddr`: `Ord`, `PartialOrd`
+	** `SocketAddr`: `Ord`, `PartialOrd`, `Eq`, `PartialEq`, `Hash`
 * Implemented several of the remaining options. (#5)
 	** `NNG_OPT_RECVFD`
 	** `NNG_OPT_SENDFD`
 	** `NNG_OPT_IPC_PERMISSIONS`
 	** `NNG_OPT_IPC_PEER_{GUP}ID`
+	** `NNG_OPT_PAIR1_POLY`
 
 === Changed ===
 
+* The `AioResult` type has been changed to be three variants the standard `Result` type instead of six variants. (#35)
+* The AIO callback is now `Fn(Aio, AioResult)` instead of `Fn(&Aio, AioResult)`. (#30)
+* The pipe notification callback is now `Fn(Pipe, PipeEvent)` instead of `FnMut(Pipe, PipeEvent)`.
+* The `Aio::try_clone` function was replaced with deriving `Clone`. (#30)
 * Renamed several methods to fit the Rust API guidelines:
 	** `Message::header` → `Message::as_header`
 	** `Message::header_mut` → `Message::as_mut_header`
@@ -81,45 +67,27 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * All of the "close" functions now take `&self` instead of `self`.
 * Renamed the `NNG_OPT_TLS_VERIFIED` option from `tls::TlsVerified` to `tls::Verified`.
 * Renamed the `NNG_OPT_IPC_SECURITY_DESCRIPTOR` option from `ipc::IpcSecurityDescriptor` to `ipc::SecurityDescriptor`.
-
-=== Removed ===
-
-* The `Body` type has been removed. Most applications do not need to touch the header, so it makes sense to mask the distinction between the body and header slightly.
-* `Pipe::socket_id` has been removed as well as all of the ID related functions. (#15)
-
-=== Fixed ===
-
-* The IPv4 address is now in the correct order. (#28)
-
-== [nng-rs v0.5.0-rc.1] - 2019-04-14 ==
-
-=== Added ===
-
-* A new "unsafe options" set of traits have been added in order to expose options that are currently not safely handled.
-	** Any of these options should be considered *unstable* as they will ideally be replaced with safe versions.
-* The `IPC_SECURITY_DESCRIPTOR` has been added as the first "unsafe option".
-* The `PAIR1_POLY` option has been added.
-* The following traits are now implemented: (#18, #23)
-	** `PipeEvent`: `Debug`, `Copy`, `Clone`, `Eq`, `PartialEq`, `Hash`
-	** `Protocol`: `Eq`, `PartialEq`, `Hash`
-	** `SocketAddr`: `Display`, `Eq`, `PartialEq`, `Hash`
-
-=== Changed ===
-
 * The `ErrorKind` type has been renamed to `Error` and the old `Error` type has been deleted.
-	** Additionally, the `Hash` trait has been derived for the new `Error` type.
 * `Error::ProtocolError` renamed to `Error::Protocol` in order to appease Clippy.
 * `Message::try_from` was renamed to `Message::from_slice`.
-* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that was (re)introduced in Rustc 1.33. (#6)
+* Uncaught panics in a callback now cause the application to abort, matching the behavior concerning FFI boundaries that is currently in development for Rustc. (#6)
 * The following functions now take `&self` instead of `&mut self` (#27):
 	** `Socket::{dial, listen, recv, send, recv_async, send_async, pipe_notify}`.
 	** `Context::{send, recv}`.
 
 === Removed ===
 
+* The `Socket::set_nonblocking` function has been removed. (#34)
+* Removed the "unsafe options" in favor of exposing the raw FFI types. (#33)
+* The `Body` type has been removed. Most applications do not need to touch the header, so it makes sense to mask the distinction between the body and header slightly.
+* `Pipe::socket_id` has been removed as well as all of the ID related functions. (#15)
 * The `nng-sys` crate has been moved to a new repository (#17).
 * The `Aio::new` function now requires a callback and the non-callback version has been removed. (#24)
 * The `Aio::result` function has been removed in favor of providing the result directly to the completion callback. (#24)
+
+=== Fixed ===
+
+* The IPv4 address is now in the correct order. (#28)
 
 == [nng-rs v0.4.0] - 2019-01-27 ==
 
@@ -145,21 +113,6 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Asynchronous I/O callbacks no longer can enter the same callback closure simultaneously.
 * `SocketAddr` now compiles on platforms where a `c_char` is unsigned. (#11)
 
-== [nng-sys v0.1.3] - 2019-01-27 ==
-
-=== Added ===
-
-* Handle types now derive `PartialEq` and `Eq`.
-
-=== Changed ===
-
-* The `build-nng` flag no longer builds _nng_ tests or tools. (#10)
-* Updated to support _nng_ v1.1.1. (#13)
-
 == [nng-rs v0.3.0] - 2018-11-02 ==
 
 First fully usable version.
-
-== [nng-sys v0.1.2] - 2018-11-02 ==
-
-First fully usable version
