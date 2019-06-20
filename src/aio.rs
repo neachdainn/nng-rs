@@ -80,16 +80,16 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 /// fn callback(aio: &Aio, ctx: &Context, res: AioResult) -> Result<()> {
 ///     match res {
 ///         // We successfully send the reply, wait for a new request.
-///         AioResult::SendOk => ctx.recv(aio),
+///         AioResult::Send(Ok(_)) => ctx.recv(aio),
 ///
 ///         // We successfully received a message.
-///         AioResult::RecvOk(m) => {
+///         AioResult::Recv(Ok(m)) => {
 ///             let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
 ///             aio.sleep(Duration::from_millis(ms))
 ///         },
 ///
 ///         // We successfully slept.
-///         AioResult::SleepOk => {
+///         AioResult::Sleep(Ok(_)) => {
 ///             // We could have hung on to the request `Message` to avoid an
 ///             let _ = ctx.send(aio, Message::new()?)?;
 ///             Ok(())
@@ -175,22 +175,26 @@ impl Aio
 				let rv = nng_sys::nng_aio_result(aiop) as u32;
 
 				let res = match (state, rv) {
-					(State::Sending, 0) => AioResult::SendOk,
+					(State::Sending, 0) => AioResult::Send(Ok(())),
 					(State::Sending, e) => {
 						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-						AioResult::SendErr(msg, NonZeroU32::new(e).unwrap().into())
+						AioResult::Send(Err((msg, NonZeroU32::new(e).unwrap().into())))
 					},
 
 					(State::Receiving, 0) => {
 						let msgp = nng_sys::nng_aio_get_msg(aiop);
 						let msg = Message::from_ptr(NonNull::new(msgp).unwrap());
-						AioResult::RecvOk(msg)
+						AioResult::Recv(Ok(msg))
 					},
-					(State::Receiving, e) => AioResult::RecvErr(NonZeroU32::new(e).unwrap().into()),
+					(State::Receiving, e) => {
+						AioResult::Recv(Err(NonZeroU32::new(e).unwrap().into()))
+					},
 
-					(State::Sleeping, 0) => AioResult::SleepOk,
-					(State::Sleeping, e) => AioResult::SleepErr(NonZeroU32::new(e).unwrap().into()),
+					(State::Sleeping, 0) => AioResult::Sleep(Ok(())),
+					(State::Sleeping, e) => {
+						AioResult::Sleep(Err(NonZeroU32::new(e).unwrap().into()))
+					},
 
 					// I am 99% sure that we will never get a callback in the Inactive state
 					(State::Inactive, _) => unreachable!(),
@@ -529,28 +533,14 @@ impl Drop for Inner
 #[must_use]
 pub enum AioResult
 {
-	/// The send operation was successful.
-	SendOk,
+	/// Result of a send operation.
+	Send(SendResult<()>),
 
-	/// The send operation failed.
-	///
-	/// This contains the message that was being sent.
-	SendErr(Message, Error),
+	/// The result of a receive operation.
+	Recv(Result<Message>),
 
-	/// The receive operation was successful.
-	RecvOk(Message),
-
-	/// The receive operation failed.
-	RecvErr(Error),
-
-	/// The sleep operation was successful.
-	SleepOk,
-
-	/// The sleep operation failed.
-	///
-	/// This is almost always because the sleep was canceled and the error will
-	/// usually be `Error::Canceled`.
-	SleepErr(Error),
+	/// The result of a sleep operation.
+	Sleep(Result<()>),
 }
 
 impl From<AioResult> for Result<Option<Message>>
@@ -560,9 +550,9 @@ impl From<AioResult> for Result<Option<Message>>
 		use self::AioResult::*;
 
 		match aio_res {
-			SendOk | SleepOk => Ok(None),
-			SendErr(_, e) | RecvErr(e) | SleepErr(e) => Err(e),
-			RecvOk(m) => Ok(Some(m)),
+			Recv(Ok(m)) => Ok(Some(m)),
+			Send(Ok(_)) | Sleep(Ok(_)) => Ok(None),
+			Send(Err((_, e))) | Recv(Err(e)) | Sleep(Err(e)) => Err(e),
 		}
 	}
 }

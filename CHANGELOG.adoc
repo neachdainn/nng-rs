@@ -10,6 +10,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Changed ===
 
+* The `AioResult` type has been changed to be three variants the standard `Result` type instead of six variants.
+
 === Deprecated ===
 
 === Removed ===

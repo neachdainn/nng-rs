@@ -92,22 +92,22 @@ fn server(url: &str) -> Result<(), nng::Error> {
 fn worker_callback(aio: Aio, ctx: &Context, res: AioResult) {
     match res {
         // We successfully sent the message, wait for a new one.
-        AioResult::SendOk => ctx.recv(&aio).unwrap(),
+        AioResult::Send(Ok(_)) => ctx.recv(&aio).unwrap(),
 
         // We successfully received a message.
-        AioResult::RecvOk(m) => {
+        AioResult::Recv(Ok(m)) => {
             let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
             aio.sleep(Duration::from_millis(ms)).unwrap();
         }
 
         // We successfully slept.
-        AioResult::SleepOk => {
+        AioResult::Sleep(Ok(_)) => {
             let msg = Message::new().unwrap();
             ctx.send(&aio, msg).unwrap();
         }
 
         // Anything else is an error and we will just panic.
-        AioResult::SendErr(_, e) | AioResult::RecvErr(e) | AioResult::SleepErr(e) => {
+        AioResult::Send(Err((_, e))) | AioResult::Recv(Err(e)) | AioResult::Sleep(Err(e)) => {
             panic!("Error: {}", e)
         }
     }
