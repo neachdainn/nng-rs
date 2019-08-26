@@ -10,17 +10,13 @@
 
 From the [NNG Github Repository][1]:
 
-> NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a lightweight, broker-less
-library, offering a simple API to solve common recurring messaging problems, such as
-publish/subscribe, RPC-style request/reply, or service discovery. The API frees the programmer
-from worrying about details like connection management, retries, and other common
-considerations, so that they can focus on the application instead of the plumbing.
+> NNG, like its predecessors nanomsg (and to some extent ZeroMQ), is a lightweight, broker-less library, offering a simple API to solve common recurring messaging problems, such as publish/subscribe, RPC-style request/reply, or service discovery.
+> The API frees the programmer from worrying about details like connection management, retries, and other common considerations, so that they can focus on the application instead of the plumbing.
 
 ## Nng-rs
 
-This crate provides a safe wrapper around the NNG library, seeking to maintain an API that is
-similar to the original library. As such, the majority of examples available online should be
-easy to apply to this crate.
+This crate provides a safe wrapper around the NNG library, seeking to maintain an API that is similar to the original library.
+As such, the majority of examples available online should be easy to apply to this crate.
 
 ### Rust Version Requirements
 
@@ -34,6 +30,21 @@ Any change that requires a newer Rustc version will always be considered a break
 * `ffi-module`: Expose the raw FFI bindings via the `nng::ffi` module.
   This is useful for utilizing NNG features that are implemented in the base library but not this wrapper.
   Note that this exposes some internal items of this library and it directly exposes the NNG library, so anything enabled by this can change without bumping versions.
+
+### Building NNG
+
+Enabling the `build-nng` feature will cause the NNG library to be built using the default settings and CMake generator.
+Most of the time, this should just work.
+However, in the case that the default are not the desired settings, there are three ways to change the build:
+
+1. [Patch][5] the `nng-sys` dependency and enable the desired build features.
+2. Disable the `build-nng` feature and directly depend on `nng-sys`.
+3. Disable the `build-nng` feature and manually compile NNG.
+
+The build features are not exposed in this crate because Cargo features are currently [strictly additive][6] and there is no way to specify mutually exclusive features (i.e., build settings).
+Additionally, it does not seem very ergonomic to have this crate expose all of the same build features as the binding crate, which could lead to feature pollution in any dependent crates.
+
+Merge requests for a better solution to this are more than welcome.
 
 ### Examples
 
@@ -88,3 +99,5 @@ Additional examples are in the `examples` directory.
 [2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
 [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
 [4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
+[5]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-patch-section
+[6]: https://github.com/rust-lang/cargo/issues/2980
