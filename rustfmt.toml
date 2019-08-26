@@ -58,7 +58,9 @@ type_punctuation_density = "Wide"
 unstable_features = true
 version = "Two"
 where_single_line = false
-wrap_comments = true
+
+# I would like this but it doesn't handle Markdown lists in doc comments very well.
+wrap_comments = false
 
 #color = "Auto"
 #ignore = [...]
