@@ -299,9 +299,7 @@ impl Socket
 	/// on the socket.
 	///
 	/// Only a single callback function can be supplied at a time. Registering a
-	/// new callback implicitly unregisters any previously registered. If an
-	/// error is returned, then the callback could have been registered for a
-	/// subset of the events.
+	/// new callback implicitly unregisters any previously registered.
 	///
 	/// ## Panicking
 	///
