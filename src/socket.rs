@@ -6,7 +6,7 @@ use std::{
 	num::NonZeroU32,
 	os::raw::{c_int, c_void},
 	ptr,
-	sync::{Arc, Mutex},
+	sync::{Arc, RwLock},
 };
 
 use crate::{
@@ -64,7 +64,7 @@ impl Socket
 		};
 
 		rv2res!(rv, Socket {
-			inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }),
+			inner: Arc::new(Inner { handle: socket, pipe_notify: RwLock::new(None) }),
 		})
 	}
 
@@ -299,9 +299,7 @@ impl Socket
 	/// on the socket.
 	///
 	/// Only a single callback function can be supplied at a time. Registering a
-	/// new callback implicitly unregisters any previously registered. If an
-	/// error is returned, then the callback could have been registered for a
-	/// subset of the events.
+	/// new callback implicitly unregisters any previously registered.
 	///
 	/// ## Panicking
 	///
@@ -317,8 +315,8 @@ impl Socket
 	{
 		// Place the new callback into the inner portion.
 		{
-			let mut l = self.inner.pipe_notify.lock().unwrap();
-			*l = Some(Arc::new(callback));
+			let mut l = self.inner.pipe_notify.write().unwrap();
+			*l = Some(Box::new(callback));
 		}
 
 		// Because we're going to override the stored closure, we absolutely need to try
@@ -333,6 +331,10 @@ impl Socket
 		// It is fine to pass in the pointer to the inner bits because the inner bits
 		// will not be freed until after both the socket is no longer creating pipes and
 		// there is no thread inside of the pipe notify callback.
+		//
+		// Also, at least since NNG v1.1.1, this can only fail if the socket is invalid
+		// (which we're pretty dang sure isn't the case here). However, I am keeping the
+		// return type as a `Result` for future-proofing reasons.
 		events
 			.iter()
 			.map(|&ev| unsafe {
@@ -384,25 +386,32 @@ impl Socket
 	///
 	/// This is unsafe because you have to be absolutely positive that you
 	/// really do have a pointer to an `Inner` type.
-	extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: i32, arg: *mut c_void)
+	unsafe extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: i32, arg: *mut c_void)
 	{
-		abort_unwind(|| unsafe {
+		abort_unwind(|| {
 			let pipe = Pipe::from_nng_sys(pipe);
 			let ev = PipeEvent::from_code(ev);
 
 			assert!(!arg.is_null(), "Null pointer passed as argument to trampoline");
 			let inner = &*(arg as *const _ as *const Inner);
-			let callback = {
-				// Don't hold the lock during the callback, just long enough to increment
-				// the Arc's counter.
-				let l = inner.pipe_notify.lock().unwrap();
-				match l.as_ref() {
-					Some(c) => Arc::clone(c),
-					None => return,
-				}
-			};
 
-			(*callback)(pipe, ev)
+			// There are three alternatives to holding this lock during the callback:
+			//
+			// 1. Changing the `Box` to an `Arc` and cloning it.
+			// 2. Pushing all callbacks into a `Vec` and only dropping them when the socket
+			//    is dropped, only needing the lock to add a new callback.
+			// 3. Leak the memory, requiring no locks.
+			//
+			// The first option seems a little gross and requires extra atomic operations
+			// which may or may not be cheap. The second seems like it might be counter
+			// intuitive to the user as to when the closure is dropped. The third seems very
+			// unprofessional. In contrast, doing this version will only block setting a new
+			// callback (which is probably indicative of bad design).
+			//
+			// If people disagree, feel free to open a Gitlab issue.
+			if let Some(callback) = &*inner.pipe_notify.read().unwrap() {
+				(*callback)(pipe, ev)
+			}
 		});
 	}
 }
@@ -515,7 +524,7 @@ struct Inner
 	handle: nng_sys::nng_socket,
 
 	/// The current pipe event callback.
-	pipe_notify: Mutex<Option<Arc<PipeNotifyFn>>>,
+	pipe_notify: RwLock<Option<Box<PipeNotifyFn>>>,
 }
 impl Inner
 {
@@ -540,7 +549,7 @@ impl fmt::Debug for Inner
 	{
 		f.debug_struct("Inner")
 			.field("handle", &self.handle)
-			.field("pipe_notify", &self.pipe_notify.lock().unwrap().is_some())
+			.field("pipe_notify", &self.pipe_notify.read().unwrap().is_some())
 			.finish()
 	}
 }
@@ -589,7 +598,7 @@ impl RawSocket
 		}
 
 		let socket =
-			Socket { inner: Arc::new(Inner { handle: socket, pipe_notify: Mutex::new(None) }) };
+			Socket { inner: Arc::new(Inner { handle: socket, pipe_notify: RwLock::new(None) }) };
 
 		Ok(RawSocket { socket, _hidden: () })
 	}
