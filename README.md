@@ -69,8 +69,7 @@ fn request() -> Result<()> {
 
     // Wait for the response from the server.
     let msg = client.recv()?;
-    let reply = String::from_utf8_lossy(&msg);
-    assert_eq!(reply, "Hello, Ferris!");
+    assert_eq!(&msg[..], b"Hello, Ferris");
     Ok(())
 }
 
@@ -81,12 +80,10 @@ fn reply() -> Result<()> {
 
     // Receive the message from the client.
     let mut msg = server.recv()?;
-    let name = String::from_utf8_lossy(&msg).into_owned();
-    assert_eq!(name, "Ferris");
+    assert_eq!(&msg[..], b"Ferris");
 
     // Reuse the message to be more efficient.
-    msg.clear();
-    write!(msg, "Hello, {}!", name).unwrap();
+    msg.push_front(b"Hello, ")?;
 
     server.send(msg)?;
     Ok(())
