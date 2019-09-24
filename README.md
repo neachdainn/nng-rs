@@ -52,7 +52,6 @@ The following example uses the [intra-process][2] transport to set up a [request
 socket pair. The "client" sends a String to the "server" which responds with a nice phrase.
 
 ```rust
-use std::io::Write;
 use nng::*;
 
 const ADDRESS: &'static str = "inproc://nng/example";

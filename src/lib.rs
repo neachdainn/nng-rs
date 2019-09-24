@@ -63,7 +63,6 @@
 //! "server" which responds with a nice phrase.
 //!
 //! ```
-//! use std::io::Write;
 //! use nng::*;
 //!
 //! const ADDRESS: &'static str = "inproc://nng/example";
