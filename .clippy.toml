@@ -1,1 +1,1 @@
-doc-valid-idents = ["WebSocket", "ZeroMQ"]
+doc-valid-idents = ["WebSocket", "ZeroMQ", "CMake"]
