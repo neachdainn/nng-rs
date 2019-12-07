@@ -508,10 +508,10 @@ expose_options!{
 mod unix_impls
 {
 	use super::*;
-	use crate::options::{RecvFd, SendFd, SetOpt};
+	use crate::options::{GetOpt, RecvFd, SendFd};
 
-	impl SetOpt<RecvFd> for Socket {}
-	impl SetOpt<SendFd> for Socket {}
+	impl GetOpt<RecvFd> for Socket {}
+	impl GetOpt<SendFd> for Socket {}
 }
 
 /// A wrapper type around the underlying `nng_socket`.
