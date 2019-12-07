@@ -22,6 +22,12 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 // Past Releases
 //------------------------------------------------------------------------------
 
+== [nng-rs v0.5.1] - 2019-12-07 ==
+
+=== Fixed ===
+
+* Made the `RecvFd` and `SendFd` readable instead of writable. (#45)
+
 == [nng-rs v0.5.0] - 2019-06-20 ==
 
 === Added ===
