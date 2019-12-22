@@ -148,7 +148,7 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_dialer_get_int;
 	GETOPT_MS = nng_sys::nng_dialer_get_ms;
 	GETOPT_SIZE = nng_sys::nng_dialer_get_size;
-	GETOPT_SOCKADDR = nng_sys::nng_dialer_get_sockaddr;
+	GETOPT_SOCKADDR = nng_sys::nng_dialer_get_addr;
 	GETOPT_STRING = nng_sys::nng_dialer_get_string;
 	GETOPT_UINT64 = nng_sys::nng_dialer_get_uint64;
 
@@ -253,21 +253,21 @@ impl DialerOptions
 expose_options!{
 	DialerOptions :: handle -> nng_sys::nng_dialer;
 
-	GETOPT_BOOL = nng_sys::nng_dialer_getopt_bool;
-	GETOPT_INT = nng_sys::nng_dialer_getopt_int;
-	GETOPT_MS = nng_sys::nng_dialer_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_dialer_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_dialer_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_dialer_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_dialer_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_dialer_get_bool;
+	GETOPT_INT = nng_sys::nng_dialer_get_int;
+	GETOPT_MS = nng_sys::nng_dialer_get_ms;
+	GETOPT_SIZE = nng_sys::nng_dialer_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_dialer_get_addr;
+	GETOPT_STRING = nng_sys::nng_dialer_get_string;
+	GETOPT_UINT64 = nng_sys::nng_dialer_get_uint64;
 
-	SETOPT = nng_sys::nng_dialer_setopt;
-	SETOPT_BOOL = nng_sys::nng_dialer_setopt_bool;
-	SETOPT_INT = nng_sys::nng_dialer_setopt_int;
-	SETOPT_MS = nng_sys::nng_dialer_setopt_ms;
-	SETOPT_PTR = nng_sys::nng_dialer_setopt_ptr;
-	SETOPT_SIZE = nng_sys::nng_dialer_setopt_size;
-	SETOPT_STRING = nng_sys::nng_dialer_setopt_string;
+	SETOPT = nng_sys::nng_dialer_set;
+	SETOPT_BOOL = nng_sys::nng_dialer_set_bool;
+	SETOPT_INT = nng_sys::nng_dialer_set_int;
+	SETOPT_MS = nng_sys::nng_dialer_set_ms;
+	SETOPT_PTR = nng_sys::nng_dialer_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_dialer_set_size;
+	SETOPT_STRING = nng_sys::nng_dialer_set_string;
 
 	Gets -> [LocalAddr, Raw, ReconnectMinTime,
 	         ReconnectMaxTime, RecvBufferSize,

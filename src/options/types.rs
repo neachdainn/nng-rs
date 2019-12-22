@@ -562,7 +562,7 @@ pub mod transport
 			///
 			/// * Listeners using the TCP or TLS transports.
 			BoundPort -> u16:
-			Get s = s.getopt_int(nng_sys::NNG_OPT_TCP_BOUND_PORT as *const _ as _) as u16;
+			Get s = s.getopt_int(nng_sys::NNG_OPT_TCP_BOUND_PORT as *const _ as _).map(|v| v as u16);
 		}
 	}
 

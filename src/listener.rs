@@ -149,7 +149,7 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_listener_get_int;
 	GETOPT_MS = nng_sys::nng_listener_get_ms;
 	GETOPT_SIZE = nng_sys::nng_listener_get_size;
-	GETOPT_SOCKADDR = nng_sys::nng_listener_get_sockaddr;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_get_addr;
 	GETOPT_STRING = nng_sys::nng_listener_get_string;
 	GETOPT_UINT64 = nng_sys::nng_listener_get_uint64;
 
@@ -217,7 +217,7 @@ impl ListenerOptions
 		// If there is an error starting the listener, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe { nng_sys::nng_listener_start(self.handle, flags as i32) };
+		let rv = unsafe { nng_sys::nng_listener_start(self.handle, 0) };
 
 		if let Some(e) = NonZeroU32::new(rv as u32) {
 			Err((self, Error::from(e)))
@@ -241,13 +241,13 @@ impl ListenerOptions
 expose_options!{
 	ListenerOptions :: handle -> nng_sys::nng_listener;
 
-	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
-	GETOPT_INT = nng_sys::nng_listener_getopt_int;
-	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_listener_get_bool;
+	GETOPT_INT = nng_sys::nng_listener_get_int;
+	GETOPT_MS = nng_sys::nng_listener_get_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_get_addr;
+	GETOPT_STRING = nng_sys::nng_listener_get_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_get_uint64;
 
 	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;

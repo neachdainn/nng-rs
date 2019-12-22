@@ -1,6 +1,7 @@
 //! Implementation details about implementing options.
 use std::{
 	ffi::{CStr, CString},
+	mem::MaybeUninit,
 	os::raw::{c_char, c_int, c_void},
 	ptr,
 	time::Duration,
@@ -121,10 +122,10 @@ pub trait HasOpts: Sized
 	fn getopt_sockaddr(&self, opt: *const c_char) -> Result<SocketAddr>
 	{
 		unsafe {
-			let mut addr: nng_sys::nng_sockaddr = std::mem::uninitialized();
-			let rv = (Self::GETOPT_SOCKADDR)(self.handle(), opt, &mut addr as _);
+			let mut addr: MaybeUninit<nng_sys::nng_sockaddr> = MaybeUninit::uninit();
+			let rv = (Self::GETOPT_SOCKADDR)(self.handle(), opt, addr.as_mut_ptr());
 
-			rv2res!(rv, addr.into())
+			rv2res!(rv, addr.assume_init().into())
 		}
 	}
 

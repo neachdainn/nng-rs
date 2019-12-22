@@ -134,7 +134,7 @@ expose_options!{
 	GETOPT_INT = nng_sys::nng_pipe_get_int;
 	GETOPT_MS = nng_sys::nng_pipe_get_ms;
 	GETOPT_SIZE = nng_sys::nng_pipe_get_size;
-	GETOPT_SOCKADDR = nng_sys::nng_pipe_get_sockaddr;
+	GETOPT_SOCKADDR = nng_sys::nng_pipe_get_addr;
 	GETOPT_STRING = nng_sys::nng_pipe_get_string;
 	GETOPT_UINT64 = nng_sys::nng_pipe_get_uint64;
 
@@ -200,11 +200,11 @@ impl PipeEvent
 	/// Converts the nng code into a PipeEvent.
 	pub(crate) fn from_code(event: i32) -> Self
 	{
-		match nng_sys::nng_pipe_ev::try_from(event) {
-			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE) => PipeEvent::AddPre,
-			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST) => PipeEvent::AddPost,
-			Ok(nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST) => PipeEvent::RemovePost,
-			Err(_) => PipeEvent::Unknown(event),
+		match event {
+			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE as i32 => PipeEvent::AddPre,
+			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST as i32 => PipeEvent::AddPost,
+			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST as i32 => PipeEvent::RemovePost,
+			_ => PipeEvent::Unknown(event),
 		}
 	}
 }
