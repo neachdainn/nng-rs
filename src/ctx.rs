@@ -126,21 +126,21 @@ impl Hash for Context
 expose_options!{
 	Context :: inner.ctx -> nng_sys::nng_ctx;
 
-	GETOPT_BOOL = nng_sys::nng_ctx_getopt_bool;
-	GETOPT_INT = nng_sys::nng_ctx_getopt_int;
-	GETOPT_MS = nng_sys::nng_ctx_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
-	GETOPT_SOCKADDR = crate::util::fake_opt;
-	GETOPT_STRING = crate::util::fake_opt;
-	GETOPT_UINT64 = crate::util::fake_opt;
+	GETOPT_BOOL = nng_sys::nng_ctx_get_bool;
+	GETOPT_INT = nng_sys::nng_ctx_get_int;
+	GETOPT_MS = nng_sys::nng_ctx_get_ms;
+	GETOPT_SIZE = nng_sys::nng_ctx_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_ctx_get_addr;
+	GETOPT_STRING = nng_sys::nng_ctx_get_string;
+	GETOPT_UINT64 = nng_sys::nng_ctx_get_uint64;
 
-	SETOPT = nng_sys::nng_ctx_setopt;
-	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
-	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
-	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
-	SETOPT_PTR = crate::util::fake_opt;
-	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
-	SETOPT_STRING = crate::util::fake_opt;
+	SETOPT = nng_sys::nng_ctx_set;
+	SETOPT_BOOL = nng_sys::nng_ctx_set_bool;
+	SETOPT_INT = nng_sys::nng_ctx_set_int;
+	SETOPT_MS = nng_sys::nng_ctx_set_ms;
+	SETOPT_PTR = nng_sys::nng_ctx_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_ctx_set_size;
+	SETOPT_STRING = nng_sys::nng_ctx_set_string;
 
 	Gets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];

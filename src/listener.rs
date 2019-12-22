@@ -47,7 +47,7 @@ impl Listener
 	/// Note that this will immediately start the listener so no configuration
 	/// will be possible. Use `ListenerOptions` to change the listener options
 	/// before starting it.
-	pub fn new(socket: &Socket, url: &str, nonblocking: bool) -> Result<Self>
+	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
 		// creating the listener will far outweigh the cost of allocating a
@@ -55,10 +55,9 @@ impl Listener
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let mut handle = nng_sys::nng_listener::NNG_LISTENER_INITIALIZER;
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags as i32)
+			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, 0)
 		};
 
 		rv2res!(rv, Listener { handle })
@@ -146,21 +145,21 @@ impl Hash for Listener
 expose_options!{
 	Listener :: handle -> nng_sys::nng_listener;
 
-	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
-	GETOPT_INT = nng_sys::nng_listener_getopt_int;
-	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_listener_get_bool;
+	GETOPT_INT = nng_sys::nng_listener_get_int;
+	GETOPT_MS = nng_sys::nng_listener_get_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_get_sockaddr;
+	GETOPT_STRING = nng_sys::nng_listener_get_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_get_uint64;
 
-	SETOPT = nng_sys::nng_listener_setopt;
-	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
-	SETOPT_INT = nng_sys::nng_listener_setopt_int;
-	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
-	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
-	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
-	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
+	SETOPT = nng_sys::nng_listener_set;
+	SETOPT_BOOL = nng_sys::nng_listener_set_bool;
+	SETOPT_INT = nng_sys::nng_listener_set_int;
+	SETOPT_MS = nng_sys::nng_listener_set_ms;
+	SETOPT_PTR = nng_sys::nng_listener_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_listener_set_size;
+	SETOPT_STRING = nng_sys::nng_listener_set_string;
 
 	Gets -> [LocalAddr, Raw, RecvBufferSize,
 	         RecvTimeout, SendBufferSize, Url,
@@ -168,7 +167,9 @@ expose_options!{
 	         protocol::reqrep::ResendTime,
 	         protocol::survey::SurveyTime,
 	         transport::tcp::NoDelay,
-	         transport::tcp::KeepAlive];
+	         transport::tcp::KeepAlive,
+	         transport::tcp::BoundPort,
+	         transport::websocket::Protocol];
 	Sets -> [];
 }
 
@@ -208,20 +209,11 @@ impl ListenerOptions
 	/// Cause the listener to start listening on the address with which it was
 	/// created.
 	///
-	/// Normally, the act of "binding" to the address indicated by _url_ is
-	/// done synchronously, including any necessary name resolution. As a
-	/// result, a failure, such as if the address is already in use, will be
-	/// returned immediately. However, if `nonblocking` is specified then this
-	/// is done asynchronously; furthermore any failure to bind will be
-	/// periodically reattempted in the background.
-	///
 	/// The returned handle controls the life of the listener. If it is
 	/// dropped, the listener is shut down and no more messages will be
 	/// received on it.
-	pub fn start(self, nonblocking: bool) -> std::result::Result<Listener, (Self, Error)>
+	pub fn start(self) -> std::result::Result<Listener, (Self, Error)>
 	{
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
 		// If there is an error starting the listener, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
@@ -271,12 +263,14 @@ expose_options!{
 	         protocol::reqrep::ResendTime,
 	         protocol::survey::SurveyTime,
 	         transport::tcp::NoDelay,
-	         transport::tcp::KeepAlive];
+	         transport::tcp::KeepAlive,
+	         transport::websocket::Protocol];
 	Sets -> [RecvMaxSize, transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive,
 	         transport::tls::CaFile,
 	         transport::tls::CertKeyFile,
-	         transport::websocket::ResponseHeaders];
+	         transport::websocket::ResponseHeaders,
+	         transport::websocket::Protocol];
 }
 
 #[cfg(unix)]

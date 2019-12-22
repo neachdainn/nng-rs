@@ -8,11 +8,19 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+* Added the `tcp::BoundPort` and `websocket::Protocol` options.
+* A new `Error::ConnectionShutdown` variant.
+
 === Changed ===
+
+* Removed `nonblocking` argument from `Listener::new` as it is ignored in `libnng v1.2`.
+* Removed `nonblocking` argument from `ListenerOptions::new` to match `Listener::new`.
 
 === Deprecated ===
 
 === Removed ===
+
+* Deprecated `Socket::listen_async` as it is functionally equivalent to `Socket::listen` and will be removed at some point in the future.
 
 === Fixed ===
 

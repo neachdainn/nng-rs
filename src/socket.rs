@@ -150,33 +150,11 @@ impl Socket
 		rv2res!(rv)
 	}
 
-	/// Asynchronously initiates and starts a listener on the specified address.
-	///
-	/// Listeners are used to accept connections initiated by remote dialers.
-	/// Unlike a dialer, listeners generally can have many connections open
-	/// concurrently.
-	///
-	/// The act of "binding" to the address indicated by _url_ is done
-	/// asynchronously, including any necessary name resolution. Any failure to
-	/// bind will be periodically reattempted in the background.
-	///
-	/// Because the listener is started immediately, it is generally not
-	/// possible to apply extra configuration. If that is needed, or if one
-	/// wishes to close the dialer before the socket, applications should
-	/// consider using the `Listener` type directly.
-	///
-	/// See the [nng documentation][1] for more information.
-	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
+	#[doc(hidden)]
+	#[depricated(since = "v1.0.0-rc.1"), note = "This is equivalent to `Socket::listen`"]
 	pub fn listen_async(&self, url: &str) -> Result<()>
 	{
-		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
-		let flags = nng_sys::NNG_FLAG_NONBLOCK as c_int;
-		let rv = unsafe {
-			nng_sys::nng_listen(self.inner.handle, addr.as_ptr(), ptr::null_mut(), flags)
-		};
-
-		rv2res!(rv)
+		self.listen(url)
 	}
 
 	/// Receives a message from the socket.
@@ -465,21 +443,21 @@ impl Hash for Socket
 expose_options!{
 	Socket :: inner.handle -> nng_sys::nng_socket;
 
-	GETOPT_BOOL = nng_sys::nng_getopt_bool;
-	GETOPT_INT = nng_sys::nng_getopt_int;
-	GETOPT_MS = nng_sys::nng_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_getopt_size;
-	GETOPT_SOCKADDR = crate::util::fake_opt;
-	GETOPT_STRING = nng_sys::nng_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_socket_get_bool;
+	GETOPT_INT = nng_sys::nng_socket_get_int;
+	GETOPT_MS = nng_sys::nng_socket_get_ms;
+	GETOPT_SIZE = nng_sys::nng_socket_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_socket_get_addr;
+	GETOPT_STRING = nng_sys::nng_socket_get_string;
+	GETOPT_UINT64 = nng_sys::nng_socket_get_uint64;
 
-	SETOPT = nng_sys::nng_setopt;
-	SETOPT_BOOL = nng_sys::nng_setopt_bool;
-	SETOPT_INT = nng_sys::nng_setopt_int;
-	SETOPT_MS = nng_sys::nng_setopt_ms;
-	SETOPT_PTR = nng_sys::nng_setopt_ptr;
-	SETOPT_SIZE = nng_sys::nng_setopt_size;
-	SETOPT_STRING = nng_sys::nng_setopt_string;
+	SETOPT = nng_sys::nng_socket_set;
+	SETOPT_BOOL = nng_sys::nng_socket_set_bool;
+	SETOPT_INT = nng_sys::nng_socket_set_int;
+	SETOPT_MS = nng_sys::nng_socket_set_ms;
+	SETOPT_PTR = nng_sys::nng_socket_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_socket_set_size;
+	SETOPT_STRING = nng_sys::nng_socket_set_string;
 
 	Gets -> [Raw, MaxTtl, RecvBufferSize,
 	         RecvTimeout, SendBufferSize,

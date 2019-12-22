@@ -130,13 +130,13 @@ impl Hash for Pipe
 expose_options!{
 	Pipe :: handle -> nng_sys::nng_pipe;
 
-	GETOPT_BOOL = nng_sys::nng_pipe_getopt_bool;
-	GETOPT_INT = nng_sys::nng_pipe_getopt_int;
-	GETOPT_MS = nng_sys::nng_pipe_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_pipe_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_pipe_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_pipe_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_pipe_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_pipe_get_bool;
+	GETOPT_INT = nng_sys::nng_pipe_get_int;
+	GETOPT_MS = nng_sys::nng_pipe_get_ms;
+	GETOPT_SIZE = nng_sys::nng_pipe_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_pipe_get_sockaddr;
+	GETOPT_STRING = nng_sys::nng_pipe_get_string;
+	GETOPT_UINT64 = nng_sys::nng_pipe_get_uint64;
 
 	SETOPT = crate::util::fake_genopt;
 	SETOPT_BOOL = crate::util::fake_opt;

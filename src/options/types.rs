@@ -549,6 +549,21 @@ pub mod transport
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE as *const _ as _);
 			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE as *const _ as _, val);
 		}
+
+
+		create_option! {
+			/// Get the local TCP port number.
+			///
+			/// This is used on a listener and is inteded to be used after starting the listener on
+			/// a wildcard (0) local port. The returned value is the emphemeral port that was
+			/// selected and bound.
+			///
+			/// ## Support
+			///
+			/// * Listeners using the TCP or TLS transports.
+			BoundPort -> u16:
+			Get s = s.getopt_int(nng_sys::NNG_OPT_TCP_BOUND_PORT as *const _ as _) as u16;
+		}
 	}
 
 	/// Options related to the TLS transport.
@@ -638,6 +653,17 @@ pub mod transport
 			ResponseHeaders -> String:
 			Get s = s.getopt_string(nng_sys::NNG_OPT_WS_RESPONSE_HEADERS as *const _ as _);
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_WS_RESPONSE_HEADERS as *const _ as _, &val);
+		}
+
+		create_option! {
+			/// The Websocket protocol, also known as the Sec-WebSocket-Protocol header.
+			///
+			/// ## Support
+			///
+			/// * Listeners and dialers can get/set this when using the WebSocket protocol.
+			Protocol -> String:
+			Get s = s.getopt_string(nng_sys::NNG_OPT_WS_PROTOCOL as *const _ as _);
+			Set s val = s.setopt_string(nng_sys::NNG_OPT_WS_PROTOCOL as *const _ as _, &val);
 		}
 	}
 }
