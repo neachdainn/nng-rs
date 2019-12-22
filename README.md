@@ -20,7 +20,7 @@ As such, the majority of examples available online should be easy to apply to th
 
 ### Rust Version Requirements
 
-The current version requires **Rustc v1.31 or greater**.
+The current version requires **Rustc v1.36 or greater**.
 In general, this crate should always be able to compile with the Rustc version available on the oldest Ubuntu LTS release.
 Any change that requires a newer Rustc version will always be considered a breaking change and this crate's version number will be bumped accordingly.
 
