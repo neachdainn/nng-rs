@@ -193,17 +193,17 @@ pub enum PipeEvent
 	///
 	/// Should never happen - used for forward compatibility.
 	#[doc(hidden)]
-	Unknown(i32),
+	Unknown(u32),
 }
 impl PipeEvent
 {
 	/// Converts the nng code into a PipeEvent.
-	pub(crate) fn from_code(event: i32) -> Self
+	pub(crate) fn from_code(event: u32) -> Self
 	{
 		match event {
-			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE as i32 => PipeEvent::AddPre,
-			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST as i32 => PipeEvent::AddPost,
-			x if x == nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST as i32 => PipeEvent::RemovePost,
+			nng_sys::NNG_PIPE_EV_ADD_PRE => PipeEvent::AddPre,
+			nng_sys::NNG_PIPE_EV_ADD_POST => PipeEvent::AddPost,
+			nng_sys::NNG_PIPE_EV_REM_POST => PipeEvent::RemovePost,
 			_ => PipeEvent::Unknown(event),
 		}
 	}

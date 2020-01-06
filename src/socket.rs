@@ -301,9 +301,9 @@ impl Socket
 		// and set the callback function for every single event. We cannot return
 		// early or we risk nng trying to call into a closure that has been freed.
 		let events = [
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_PRE,
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_ADD_POST,
-			nng_sys::nng_pipe_ev::NNG_PIPE_EV_REM_POST,
+			nng_sys::NNG_PIPE_EV_ADD_PRE,
+			nng_sys::NNG_PIPE_EV_ADD_POST,
+			nng_sys::NNG_PIPE_EV_REM_POST,
 		];
 
 		// It is fine to pass in the pointer to the inner bits because the inner bits
@@ -368,7 +368,7 @@ impl Socket
 	{
 		abort_unwind(|| {
 			let pipe = Pipe::from_nng_sys(pipe);
-			let ev = PipeEvent::from_code(ev as i32);
+			let ev = PipeEvent::from_code(ev);
 
 			assert!(!arg.is_null(), "Null pointer passed as argument to trampoline");
 			let inner = &*(arg as *const _ as *const Inner);
