@@ -120,6 +120,7 @@
 
 // The following lints are of critical importance.
 #![forbid(improper_ctypes)]
+
 // Utilize Clippy to try and keep this crate clean. At some point (cargo#5034, I think?) this
 // specification should be possible in either the Clippy TOML file or in the Cargo TOML file. These
 // should be moved there once possible.
@@ -128,6 +129,7 @@
 #![deny(missing_docs)]
 #![deny(clippy::all)]
 #![deny(clippy::wrong_pub_self_convention)]
+
 // Clippy doesn't enable these with "all". Best to keep them warnings.
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
@@ -137,6 +139,10 @@
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unimplemented)]
 #![warn(clippy::use_debug)]
+
+// We allow this lint in order to develop against nightly Clippy but CI against stable Clippy
+#![warn(clippy::unknown_clippy_lints)]
+
 // I would like to be able to keep these on, but due to the nature of the crate it just isn't
 // feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
