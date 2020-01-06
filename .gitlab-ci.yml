@@ -34,10 +34,8 @@ format:
     - master
     - merge_requests
 
-# Make sure that we're listening to Clippy. Use nightly so we get the latest
-# lints even if we're not updating the test version.
+# We can't use the nightly image for Clippy since nightly sometimes doesn't have it.
 clippy:
-  image: "rustlang/rust:nightly"
   stage: analysis
   script:
     - rustup component add clippy
