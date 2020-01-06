@@ -37,6 +37,14 @@ pub struct Context
 impl Context
 {
 	/// Creates a new socket context.
+	///
+	/// # Errors
+	///
+	/// * [`NotSupported`]: The protocol does not support separate contexts or the socket was opened in raw mode.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	///
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket) -> Result<Context>
 	{
 		let mut ctx = nng_sys::nng_ctx::NNG_CTX_INITIALIZER;
@@ -45,22 +53,26 @@ impl Context
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
 	}
 
-	/// Send a message using the context asynchronously.
+	/// Start a send operation on the given `Aio` and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `ErrorKind::TryAgain`
-	/// and return the message to the caller.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn send<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
 		aio.send_ctx(self, msg)
 	}
 
-	/// Receive a message using the context asynchronously.
+	/// Start a receive operation using the given `Aio` and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress that is _not_ a receive operation, this function
-	/// will return `ErrorKind::TryAgain`.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn recv(&self, aio: &Aio) -> Result<()> { aio.recv_ctx(self) }
 
 	/// Closes the context.

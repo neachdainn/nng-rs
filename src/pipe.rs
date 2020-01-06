@@ -197,7 +197,7 @@ pub enum PipeEvent
 }
 impl PipeEvent
 {
-	/// Converts the nng code into a PipeEvent.
+	/// Converts the nng code into a `PipeEvent`.
 	pub(crate) fn from_code(event: u32) -> Self
 	{
 		match event {

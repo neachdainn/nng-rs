@@ -41,6 +41,13 @@ pub struct Message
 impl Message
 {
 	/// Create an empty message.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new() -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -54,6 +61,13 @@ impl Message
 	///
 	/// The returned buffer will have a capacity equal to `cap` but a length of
 	/// zero. To get a `Message` with a specified length, use `Message::zeros`.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn with_capacity(cap: usize) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -70,6 +84,13 @@ impl Message
 	}
 
 	/// Create a message that is filled to `size` with zeros.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn with_zeros(size: usize) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -83,6 +104,13 @@ impl Message
 	///
 	/// This is functionally equivalent to calling `From` but allows the user
 	/// to handle the case of `nng` being out of memory.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn from_slice(s: &[u8]) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -171,6 +199,13 @@ impl Message
 	}
 
 	/// Prepends the data to the message body.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
 		let rv =
@@ -180,6 +215,13 @@ impl Message
 	}
 
 	/// Appends the data to the back of the message body.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
 		let rv =
@@ -192,6 +234,13 @@ impl Message
 	///
 	/// This is functionally equivalent to calling `Clone` but allows the user
 	/// to handle the case of `nng` being out of memory.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn try_clone(&self) -> Result<Self>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -475,6 +524,13 @@ impl Header
 	}
 
 	/// Appends the data to the back of the message header.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
 	{
 		let rv = unsafe {
@@ -485,6 +541,13 @@ impl Header
 	}
 
 	/// Prepends the data to the message header.
+	///
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
 	{
 		let rv = unsafe {

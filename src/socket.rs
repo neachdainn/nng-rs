@@ -29,7 +29,7 @@ type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 /// associated with it and is responsible for any state machines or other
 /// application-specific logic.
 ///
-/// See the [nng documenatation][1] for more information.
+/// See the [nng documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
 #[derive(Clone, Debug)]
@@ -41,6 +41,14 @@ pub struct Socket
 impl Socket
 {
 	/// Creates a new socket which uses the specified protocol.
+	///
+	/// # Errors
+	///
+	/// * [`NotSupported`]: Protocol is not enabled.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	///
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(t: Protocol) -> Result<Socket>
 	{
 		// Create the uninitialized nng_socket
@@ -89,7 +97,27 @@ impl Socket
 	///
 	/// See the [nng documentation][1] for more information.
 	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`ConnectionRefused`]: The remote peer refused the connection.
+	/// * [`ConnectionReset`]: The remote peer reset the connection.
+	/// * [`DestUnreachable`]: The remote address is not reachable.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	/// * [`PeerAuth`]: Authentication or authorization failure.
+	/// * [`Protocol`]: A protocol error occurred.
+	///
+	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
+	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
+	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
+	/// [`Protocol`]: enum.Error.html#variant.Protocol
 	pub fn dial(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
@@ -116,7 +144,18 @@ impl Socket
 	///
 	/// See the [nng documentation][1] for more information.
 	///
+	/// # Errors
+	///
+	/// * [`AddressInUse`]: The address specified by _url_ is already in use.
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
+	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
+	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn listen(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
@@ -139,6 +178,29 @@ impl Socket
 	///
 	/// See the [nng documentation][1] for more information.
 	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`ConnectionRefused`]: The remote peer refused the connection.
+	/// * [`ConnectionReset`]: The remote peer reset the connection.
+	/// * [`DestUnreachable`]: The remote address is not reachable.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	/// * [`PeerAuth`]: Authentication or authorization failure.
+	/// * [`Protocol`]: A protocol error occurred.
+	///
+	///
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
+	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
+	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
+	/// [`Protocol`]: enum.Error.html#variant.Protocol
+	///
+	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
 	pub fn dial_async(&self, url: &str) -> Result<()>
 	{
@@ -151,7 +213,7 @@ impl Socket
 	}
 
 	#[doc(hidden)]
-	#[deprecated(since = "v1.0.0-rc.1", note = "This is equivalent to `Socket::listen`")]
+	#[deprecated(since = "1.0.0-rc.1", note = "This is equivalent to `Socket::listen`")]
 	pub fn listen_async(&self, url: &str) -> Result<()> { self.listen(url) }
 
 	/// Receives a message from the socket.
@@ -161,6 +223,20 @@ impl Socket
 	/// For example, with a _req_ socket a message may only be received after a
 	/// request has been sent. Furthermore, some protocols may not support
 	/// receiving data at all, such as _pub_.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	/// * [`IncorrectState`]: The socket cannot receive data in this state.
+	/// * [`NotSupported`]: The protocol does not support receiving.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	/// * [`TimedOut`]: The operation timed out.
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn recv(&self) -> Result<Message>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -177,12 +253,28 @@ impl Socket
 	/// For example, with a _pub_ socket the data is broadcast so that any
 	/// peers who have a suitable subscription will be able to receive it.
 	/// Furthermore, some protocols may not support sending data (such as
-	/// _sub_) or may require other conditions. For example, _rep_sockets
+	/// _sub_) or may require other conditions. For example, _rep_ sockets
 	/// cannot normally send data, which are responses to requests, until they
 	/// have first received a request.
 	///
 	/// If the message cannot be sent, then it is returned to the caller as a
 	/// part of the `Error`.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	/// * [`IncorrectState`]: The socket cannot send messages in this state.
+	/// * [`MessageTooLarge`]: The message is too large.
+	/// * [`NotSupported`]: The protocol does not support sending messages.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	/// * [`TimedOut`]: The operation timed out.
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`MessageTooLarge`]: enum.Error.html#variant.MessageTooLarge
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn send<M: Into<Message>>(&self, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
@@ -209,6 +301,20 @@ impl Socket
 	/// receiving data at all, such as _pub_.
 	///
 	/// If no message is available, this function will immediately return.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	/// * [`IncorrectState`]: The socket cannot receive data in this state.
+	/// * [`NotSupported`]: The protocol does not support receiving.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	/// * [`TryAgain`]: The operation would block.
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`TryAgain`]: enum.Error.html#variant.TryAgain
 	pub fn try_recv(&self) -> Result<Message>
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
@@ -226,7 +332,7 @@ impl Socket
 	/// For example, with a _pub_ socket the data is broadcast so that any
 	/// peers who have a suitable subscription will be able to receive it.
 	/// Furthermore, some protocols may not support sending data (such as
-	/// _sub_) or may require other conditions. For example, _rep_sockets
+	/// _sub_) or may require other conditions. For example, _rep_ sockets
 	/// cannot normally send data, which are responses to requests, until they
 	/// have first received a request.
 	///
@@ -234,6 +340,22 @@ impl Socket
 	/// backpressure from the peers) then this function will return immediately.
 	/// If the message cannot be sent, then it is returned to the caller as a
 	/// part of the `Error`.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	/// * [`IncorrectState`]: The socket cannot send messages in this state.
+	/// * [`MessageTooLarge`]: The message is too large.
+	/// * [`NotSupported`]: The protocol does not support sending messages.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	/// * [`TryAgain`]: The operation would block.
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`MessageTooLarge`]: enum.Error.html#variant.MessageTooLarge
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`TryAgain`]: enum.Error.html#variant.TryAgain
 	pub fn try_send<M: Into<Message>>(&self, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
@@ -252,18 +374,22 @@ impl Socket
 		}
 	}
 
-	/// Receive a message using the socket asynchronously.
+	/// Start a receive operation using the given `Aio` and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress that is _not_ a receive operation, this function
-	/// will return `Error::TryAgain`.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn recv_async(&self, aio: &Aio) -> Result<()> { aio.recv_socket(self) }
 
-	/// Send a message using the socket asynchronously.
+	/// Start a send operation on the given `Aio` and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`
-	/// and return the message to the caller.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn send_async<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
@@ -276,7 +402,11 @@ impl Socket
 	/// Only a single callback function can be supplied at a time. Registering a
 	/// new callback implicitly unregisters any previously registered.
 	///
-	/// ## Panicking
+	/// # Errors
+	///
+	/// None specified.
+	///
+	/// # Panicking
 	///
 	/// If the callback function panics, the program will log the panic if
 	/// possible and then abort. Future Rustc versions will likely do the
@@ -552,6 +682,14 @@ pub struct RawSocket
 impl RawSocket
 {
 	/// Creates a new "raw" socket of the specified protocol.
+	///
+	/// # Errors
+	///
+	/// * [`NotSupported`]: Protocol is not enabled.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	///
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(t: Protocol) -> Result<RawSocket>
 	{
 		// This code is largely copied from the Socket impl.

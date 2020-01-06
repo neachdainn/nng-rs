@@ -149,6 +149,7 @@
 #![allow(clippy::use_self)]
 #![allow(clippy::replace_consts)]
 #![allow(clippy::if_not_else)]
+#![allow(clippy::must_use_candidate)]
 
 #[macro_use]
 mod util;

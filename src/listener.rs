@@ -47,6 +47,19 @@ impl Listener
 	/// Note that this will immediately start the listener so no configuration
 	/// will be possible. Use `ListenerOptions` to change the listener options
 	/// before starting it.
+	///
+	/// # Errors
+	///
+	/// * [`AddressInUse`]: The address specified by _url_ is already in use.
+	/// * [`Addressinvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	///
+	///
+	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
+	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
@@ -191,6 +204,17 @@ impl ListenerOptions
 	///
 	/// Note that this does not start the listener. In order to start the
 	/// listener, this object must be consumed by `ListenerOptions::start`.
+	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
@@ -212,6 +236,13 @@ impl ListenerOptions
 	/// The returned handle controls the life of the listener. If it is
 	/// dropped, the listener is shut down and no more messages will be
 	/// received on it.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	///
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
 	pub fn start(self) -> std::result::Result<Listener, (Self, Error)>
 	{
 		// If there is an error starting the listener, we don't want to consume

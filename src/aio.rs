@@ -135,7 +135,11 @@ impl Aio
 	/// successful or not. It is possible that the callback will be entered
 	/// multiple times simultaneously.
 	///
-	/// ## Panicking
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	///
+	/// # Panicking
 	///
 	/// If the callback function panics, the program will log the panic if
 	/// possible and then abort. Future Rustc versions will likely do the
@@ -143,6 +147,8 @@ impl Aio
 	/// produce the abort in order to keep things consistent. As such, the user
 	/// is responsible for either having a callback that never panics or
 	/// catching and handling the panic within the callback.
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
 		F: Fn(Aio, AioResult) + Sync + Send + 'static,
@@ -239,14 +245,19 @@ impl Aio
 	///
 	/// This causes a timer to be started when the operation is actually
 	/// started. If the timer expires before the operation is completed, then it
-	/// is aborted with `Error::TimedOut`.
+	/// is aborted with [`TimedOut`].
 	///
 	/// As most operations involve some context switching, it is usually a good
 	/// idea to allow a least a few tens of milliseconds before timing them out
 	/// - a too small timeout might not allow the operation to properly begin
 	/// before giving up!
 	///
-	/// It is only valid to try and set this when no operations are active.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` currently has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn set_timeout(&self, dur: Option<Duration>) -> Result<()>
 	{
 		// We need to check that no operations are happening and then prevent them from
@@ -268,20 +279,23 @@ impl Aio
 			Ok(())
 		}
 		else {
-			// Should this be `Error::TryAgain`?
 			Err(Error::IncorrectState)
 		}
 	}
 
-	/// Performs and asynchronous sleep operation.
+	/// Begins a sleep operation on the `Aio` and returns immediately.
 	///
 	/// If the sleep finishes completely, it will never return an error. If a
 	/// timeout has been set and it is shorter than the duration of the sleep
 	/// operation, the sleep operation will end early with
-	/// `Error::TimedOut`.
+	/// [`TimedOut`].
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn sleep(&self, dur: Duration) -> Result<()>
 	{
 		let sleeping = State::Sleeping as usize;
@@ -298,7 +312,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 
@@ -341,7 +355,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err((msg, Error::TryAgain))
+			Err((msg, Error::IncorrectState))
 		}
 	}
 
@@ -360,7 +374,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 
@@ -382,7 +396,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err((msg, Error::TryAgain))
+			Err((msg, Error::IncorrectState))
 		}
 	}
 
@@ -401,7 +415,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 

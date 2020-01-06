@@ -24,7 +24,19 @@ use crate::{
 /// This function does not return unless one of the sockets encounters an
 /// error or is closed. For more information see the [NNG documentation][1].
 ///
+/// # Errors
+///
+/// In addition to returning any error that the underlying sockets can encounter, this function also
+/// has the following error conditions:
+///
+/// * [`Closed`]: At least one of the sockets is not open.
+/// * [`InvalidInput`]: Sockets are not compatible or both are invalid.
+/// * [`OutOfMemory`]: Insufficient memory available.
+///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
+/// [`Closed`]: enum.Error.html#variant.Closed
+/// [`InvalidInput`]: enum.Error.html#variant.InvalidInput
+/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 {
 	let rv = unsafe { nng_sys::nng_device(s1.socket.handle(), s2.socket.handle()) };
@@ -51,7 +63,19 @@ pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 /// This function does not return unless the socket encounters an error or is
 /// closed. For more information, see the [NNG documentation][1].
 ///
+/// # Errors
+///
+/// In addition to returning any error that the underlying sockets can encounter, this function also
+/// has the following error conditions:
+///
+/// * [`Closed`]: The socket is not open.
+/// * [`InvalidInput`]: The socket is not capable of sending messages to itself.
+/// * [`OutOfMemory`]: Insufficient memory available.
+///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
+/// [`Closed`]: enum.Error.html#variant.Closed
+/// [`InvalidInput`]: enum.Error.html#variant.InvalidInput
+/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 pub fn reflector(s1: RawSocket) -> Result<()>
 {
 	let rv = unsafe {

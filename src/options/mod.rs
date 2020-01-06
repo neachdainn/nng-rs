@@ -42,6 +42,7 @@ pub(crate) mod private;
 pub trait Options: private::HasOpts
 {
 	/// Reads the specified option from the object.
+	#[allow(clippy::missing_errors_doc)]
 	fn get_opt<T: private::OptOps>(&self) -> Result<T::OptType>
 	where
 		Self: GetOpt<T>,
@@ -50,6 +51,7 @@ pub trait Options: private::HasOpts
 	}
 
 	/// Writes the specified option to the object.
+	#[allow(clippy::missing_errors_doc)]
 	fn set_opt<T: private::OptOps>(&self, val: T::OptType) -> Result<()>
 	where
 		Self: SetOpt<T>,

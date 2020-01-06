@@ -48,6 +48,28 @@ impl Dialer
 	/// Note that this will immediately start the dialer so no configuration
 	/// will be possible. Use `DialerOptions` to change the dialer options
 	/// before starting it.
+	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`ConnectionRefused`]: The remote peer refused the connection.
+	/// * [`ConnectionReset`]: The remote peer reset the connection.
+	/// * [`DestUnreachable`]: The remote address is not reachable.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	/// * [`PeerAuth`]: Authentication or authorization failure.
+	/// * [`Protocol`]: A protocol error occurred.
+	///
+	///
+	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
+	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
+	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
+	/// [`Protocol`]: enum.Error.html#variant.Protocol
 	pub fn new(socket: &Socket, url: &str, nonblocking: bool) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
@@ -191,6 +213,17 @@ impl DialerOptions
 	///
 	/// Note that this does not start the dialer. In order to start the dialer,
 	/// this object must be consumed by `DialerOptions::start`.
+	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	///
+	///
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
@@ -222,6 +255,25 @@ impl DialerOptions
 	///
 	/// The returned handle controls the life of the dialer. If it is dropped,
 	/// the dialer is shut down and no more messages will be received on it.
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	/// * [`ConnectionRefused`]: The remote peer refused the connection.
+	/// * [`ConnectionReset`]: The remote peer reset the connection.
+	/// * [`DestUnreachable`]: The remote address is not reachable.
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	/// * [`PeerAuth`]: Authentication or authorization failure.
+	/// * [`Protocol`]: A protocol error occurred.
+	///
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
+	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
+	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
+	/// [`Protocol`]: enum.Error.html#variant.Protocol
 	pub fn start(self, nonblocking: bool) -> std::result::Result<Dialer, (Self, Error)>
 	{
 		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
