@@ -1,4 +1,3 @@
-/// Protocols available for use by sockets.
 use std::fmt;
 
 /// Describes a relationship between a socket and all sockets to which it is

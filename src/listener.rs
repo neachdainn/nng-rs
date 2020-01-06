@@ -1,22 +1,3 @@
-//! Nanomsg-next-generation listeners.
-//!
-//! A listener is the object that is responsible for accepting incoming
-//! connections. A given listener can have many connections to multiple clients
-//! simultaneously.
-//!  Directly creating a listener object is only necessary when one wishes to
-//! configure the listener before opening it or if one wants to close the
-//! connections without closing the socket. Otherwise, `Socket::listen` can be
-//! used.
-//!
-//! Note that the client/server relationship described by a dialer/listener is
-//! completely orthogonal to any similar relationship in the protocols. For
-//! example, a _rep_ socket may use a dialer to connect to a listener on a
-//! _req_ socket. This orthogonality can lead to innovative solutions to
-//! otherwise challenging communications problems.
-//!
-//! See the [nng documentation][1] for more information.
-//!
-//! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::{
 	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
 	ffi::CString,
@@ -29,11 +10,26 @@ use crate::{
 	socket::Socket,
 };
 
-/// A constructed and running listener.
+/// Active listener for incoming connections.
 ///
-/// This listener has already been started on the socket and will continue
-/// serving the connection until either it is explicitly close or the owning
-/// socket is closed.
+/// A `Listener` is the object that is responsible for accepting incoming
+/// connections. A given `Listener` can have many connections to multiple clients
+/// simultaneously. Directly creating a listener object is only necessary when one wishes to
+/// configure the listener before opening it or if one wants to close the
+/// connections without closing the socket. Otherwise, [`Socket::listen`] can be
+/// used.
+///
+/// Note that the client/server relationship described by a dialer/listener is
+/// completely orthogonal to any similar relationship in the protocols. For
+/// example, a _rep_ socket may use a dialer to connect to a listener on a
+/// _req_ socket. This orthogonality can lead to innovative solutions to
+/// otherwise challenging communications problems.
+///
+/// See the [NNG documentation][1] for more information.
+///
+///
+/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
+/// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Clone, Copy, Debug)]
 pub struct Listener
 {
@@ -45,7 +41,7 @@ impl Listener
 	/// Creates a new listener object associated with the given socket.
 	///
 	/// Note that this will immediately start the listener so no configuration
-	/// will be possible. Use `ListenerOptions` to change the listener options
+	/// will be possible. Use [`ListenerOptions`] to change the listener options
 	/// before starting it.
 	///
 	/// # Errors
@@ -59,6 +55,7 @@ impl Listener
 	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
 	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ListenerOptions`]: struct.ListenerOptions.html
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
@@ -78,7 +75,7 @@ impl Listener
 
 	/// Closes the listener.
 	///
-	/// This also closes any `Pipe` objects that have been created by the
+	/// This also closes any [`Pipe`] objects that have been created by the
 	/// listener. Once this function returns, the listener has been closed and
 	/// all of its resources have been deallocated. Therefore, any attempt to
 	/// utilize the listener (with this or any other handle) will result in an
@@ -86,6 +83,9 @@ impl Listener
 	///
 	/// Listeners are implicitly closed when the socket they are associated with
 	/// is closed. Listeners are _not_ closed when all handles are dropped.
+	///
+	///
+	/// [`Pipe`]: struct.Pipe.html
 	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
@@ -98,7 +98,7 @@ impl Listener
 		);
 	}
 
-	/// Create a new Listener handle from a libnng handle.
+	/// Create a new `Listener` handle from a NNG handle.
 	///
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_listener) -> Self
@@ -190,8 +190,11 @@ expose_options!{
 ///
 /// This object allows for the configuration of listeners before they are
 /// started. If it is not necessary to change listener settings or to close the
-/// listener without closing the socket, then `Socket::listen` provides a
-/// simpler interface and does not require tracking an object.
+/// listener without closing the socket, then [`Socket::listen`] provides a
+/// simpler interface.
+///
+///
+/// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Debug)]
 pub struct ListenerOptions
 {
@@ -200,10 +203,10 @@ pub struct ListenerOptions
 }
 impl ListenerOptions
 {
-	/// Creates a new listener object associated with the given socket.
+	/// Creates a new [`Listener`] object associated with the given socket.
 	///
-	/// Note that this does not start the listener. In order to start the
-	/// listener, this object must be consumed by `ListenerOptions::start`.
+	/// Note that this does not start the [`Listener`] In order to start the
+	/// listener, this object must be consumed by [`ListenerOptions::start`].
 	///
 	/// # Errors
 	///
@@ -214,6 +217,8 @@ impl ListenerOptions
 	///
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`Listener`]: struct.Listener.html
+	/// [`ListenerOptions::start`]: struct.ListenerOptions.html#method.start
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
@@ -230,11 +235,11 @@ impl ListenerOptions
 		rv2res!(rv, ListenerOptions { handle })
 	}
 
-	/// Cause the listener to start listening on the address with which it was
+	/// Cause the [`Listener`] to start listening on the address with which it was
 	/// created.
 	///
-	/// The returned handle controls the life of the listener. If it is
-	/// dropped, the listener is shut down and no more messages will be
+	/// The returned handle controls the life of the [`Listener`]. If it is
+	/// dropped, the [`Listener`] is shut down and no more messages will be
 	/// received on it.
 	///
 	/// # Errors
@@ -243,6 +248,7 @@ impl ListenerOptions
 	///
 	///
 	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`Listener`]: struct.Listener.html
 	pub fn start(self) -> std::result::Result<Listener, (Self, Error)>
 	{
 		// If there is an error starting the listener, we don't want to consume

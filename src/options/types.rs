@@ -1,4 +1,3 @@
-//! Types of options available.
 use std::time::Duration;
 
 #[cfg(unix)]

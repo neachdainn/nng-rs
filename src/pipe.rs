@@ -5,7 +5,7 @@ use std::{
 
 use crate::{dialer::Dialer, listener::Listener};
 
-/// A nanomsg-next-generation pipe.
+/// A NNG communication pipe.
 ///
 /// A pipe can be thought of as a single connection and are associated with
 /// either the listener or dialer that created them. Therefore, they are
@@ -16,13 +16,13 @@ use crate::{dialer::Dialer, listener::Listener};
 /// source of the message is needed or when more control is required over
 /// message delivery.
 ///
-/// See the [nng documentation][1] for more information.
+/// See the [NNG documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
 #[derive(Clone, Copy, Debug)]
 pub struct Pipe
 {
-	/// The underlying nng pipe.
+	/// The underlying NNG pipe.
 	handle: nng_sys::nng_pipe,
 }
 impl Pipe
@@ -70,10 +70,10 @@ impl Pipe
 		);
 	}
 
-	/// Returns the underlying nng handle for the pipe.
+	/// Returns the underlying NNG handle for the pipe.
 	pub(crate) const fn handle(self) -> nng_sys::nng_pipe { self.handle }
 
-	/// Create a new Pipe handle from a libnng handle.
+	/// Create a new Pipe handle from a NNG handle.
 	///
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_pipe) -> Self
@@ -166,7 +166,10 @@ mod unix_impls
 	impl SetOpt<ipc::PeerGid> for Pipe {}
 }
 
-/// An event that happens on a Pipe instance.
+/// An event that happens on a [`Pipe`] instance.
+///
+///
+/// [`Pipe`]: struct.Pipe.html
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PipeEvent
 {
@@ -197,7 +200,7 @@ pub enum PipeEvent
 }
 impl PipeEvent
 {
-	/// Converts the nng code into a `PipeEvent`.
+	/// Converts the NNG code into a `PipeEvent`.
 	pub(crate) fn from_code(event: u32) -> Self
 	{
 		match event {

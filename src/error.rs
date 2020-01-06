@@ -2,7 +2,7 @@ use std::{error, fmt, io, num::NonZeroU32};
 
 use crate::message::Message;
 
-/// Specialized `Result` type for use with nng.
+/// Specialized `Result` type for use with NNG.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Specialized `Result` type for use with send operations.

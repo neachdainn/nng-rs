@@ -59,7 +59,7 @@
 //! ### Examples
 //!
 //! The following example uses the [intra-process][2] transport to set up a
-//! [request][3]/[reply][4] socket pair. The "client" sends a String to the
+//! [request][3]/[reply][4] socket pair. The "client" sends a string to the
 //! "server" which responds with a nice phrase.
 //!
 //! ```
@@ -115,6 +115,8 @@
 //! [2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
 //! [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
 //! [4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
+//! [5]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-patch-section
+//! [6]: https://github.com/rust-lang/cargo/issues/2980
 
 // The following lints are of critical importance.
 #![forbid(improper_ctypes)]

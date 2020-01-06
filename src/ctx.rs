@@ -22,8 +22,11 @@ use crate::{
 ///
 /// ## Examples
 ///
-/// See the documentation of the `Aio` type for examples on how to use Socket
-/// Contexts.
+/// See the documentation of the [`Aio`] type for examples on how to use socket
+/// contexts.
+///
+///
+/// [`Aio`]: struct.Aio.html
 #[derive(Clone, Debug)]
 pub struct Context
 {
@@ -53,12 +56,13 @@ impl Context
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
 	}
 
-	/// Start a send operation on the given `Aio` and return immediately.
+	/// Start a send operation on the given [`Aio`] and return immediately.
 	///
 	/// # Errors
 	///
 	/// * [`IncorrectState`]: The `Aio` already has a running operation.
 	///
+	/// [`Aio`]: struct.Aio.html
 	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn send<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
 	{
@@ -66,12 +70,13 @@ impl Context
 		aio.send_ctx(self, msg)
 	}
 
-	/// Start a receive operation using the given `Aio` and return immediately.
+	/// Start a receive operation using the given [`Aio`] and return immediately.
 	///
 	/// # Errors
 	///
 	/// * [`IncorrectState`]: The `Aio` already has a running operation.
 	///
+	/// [`Aio`]: struct.Aio.html
 	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn recv(&self, aio: &Aio) -> Result<()> { aio.recv_ctx(self) }
 

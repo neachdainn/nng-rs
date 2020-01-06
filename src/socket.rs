@@ -29,13 +29,13 @@ type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 /// associated with it and is responsible for any state machines or other
 /// application-specific logic.
 ///
-/// See the [nng documentation][1] for more information.
+/// See the [NNG documentation][1] for more information.
 ///
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
 #[derive(Clone, Debug)]
 pub struct Socket
 {
-	/// The shared reference to the underlying nng socket.
+	/// The shared reference to the underlying NNG socket.
 	inner: Arc<Inner>,
 }
 impl Socket
@@ -95,7 +95,7 @@ impl Socket
 	/// close the dialer before the socket, applications should consider using
 	/// the `Dialer` type directly.
 	///
-	/// See the [nng documentation][1] for more information.
+	/// See the [NNG documentation][1] for more information.
 	///
 	/// # Errors
 	///
@@ -142,7 +142,7 @@ impl Socket
 	/// wishes to close the dialer before the socket, applications should
 	/// consider using the `Listener` type directly.
 	///
-	/// See the [nng documentation][1] for more information.
+	/// See the [NNG documentation][1] for more information.
 	///
 	/// # Errors
 	///
@@ -176,7 +176,7 @@ impl Socket
 	/// close the dialer before the socket, applications should consider using
 	/// the `Dialer` type directly.
 	///
-	/// See the [nng documentation][1] for more information.
+	/// See the [NNG documentation][1] for more information.
 	///
 	/// # Errors
 	///
@@ -426,7 +426,7 @@ impl Socket
 
 		// Because we're going to override the stored closure, we absolutely need to try
 		// and set the callback function for every single event. We cannot return
-		// early or we risk nng trying to call into a closure that has been freed.
+		// early or we risk NNG trying to call into a closure that has been freed.
 		let events = [
 			nng_sys::NNG_PIPE_EV_ADD_PRE,
 			nng_sys::NNG_PIPE_EV_ADD_POST,
@@ -629,7 +629,7 @@ mod unix_impls
 /// socket type before Rust is done with it.
 struct Inner
 {
-	/// Handle to the underlying nng socket.
+	/// Handle to the underlying NNG socket.
 	handle: nng_sys::nng_socket,
 
 	/// The current pipe event callback.

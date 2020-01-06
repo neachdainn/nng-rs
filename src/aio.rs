@@ -1,4 +1,3 @@
-//! Asynchonous I/O operaions.
 use std::{
 	hash::{Hash, Hasher},
 	num::NonZeroU32,
@@ -249,7 +248,7 @@ impl Aio
 	///
 	/// As most operations involve some context switching, it is usually a good
 	/// idea to allow a least a few tens of milliseconds before timing them out
-	/// - a too small timeout might not allow the operation to properly begin
+	/// as a too small timeout might not allow the operation to properly begin
 	/// before giving up!
 	///
 	/// # Errors
@@ -538,7 +537,10 @@ impl Drop for Inner
 	}
 }
 
-/// The result of an AIO operation.
+/// The result of an [`Aio`] operation.
+///
+///
+/// [`Aio`]: struct.Aio.html
 // There are no "Inactive" results as I don't think there is a valid way to get any type of callback
 // trigger when there are no operations running. All of the "user forced" errors, such as
 // cancellation or timeouts, don't happen if there are no running operations. If there are no

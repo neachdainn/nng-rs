@@ -5,7 +5,7 @@ use crate::{
 	socket::RawSocket,
 };
 
-/// Forwards messages from socket _s1_ to socket _s2_ and vice versa.
+/// Forwards messages between two sockets.
 ///
 /// This function is used to create forwarders, which can be used to create
 /// complex network topologies to provide for improved horizontal scalability,
@@ -19,7 +19,7 @@ use crate::{
 /// default limit (usually 8), ensures that messages will self-terminate when
 /// they have passed through too many forwarders, protecting the network from
 /// unlimited message amplification that can arise through misconfiguration.
-/// This is controlled by the `MaxTtl` option.
+/// This is controlled by the [`MaxTtl`] option.
 ///
 /// This function does not return unless one of the sockets encounters an
 /// error or is closed. For more information see the [NNG documentation][1].
@@ -36,6 +36,7 @@ use crate::{
 /// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
 /// [`Closed`]: enum.Error.html#variant.Closed
 /// [`InvalidInput`]: enum.Error.html#variant.InvalidInput
+/// [`MaxTtl`]: options/enum.MaxTtl.html
 /// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 {

@@ -1,4 +1,3 @@
-//! Message handling utilities
 use std::{
 	io::{self, Write},
 	iter::FromIterator,
@@ -9,18 +8,15 @@ use std::{
 
 use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 
-/// An `nng` message type.
+/// An NNG message type.
 ///
-/// Applications desiring to use the richest part of `nng` will want to use the
+/// Applications desiring to use the richest part of NNG will want to use the
 /// message API, where the message structure is passed between functions. This
 /// API provides the most powerful support for zero-copy.
 ///
 /// In addition to the regular portion of the message there is a header that
 /// carries protocol specific header information. Most applications will not
 /// need to touch the header and will only interact with the regular message.
-// TODO(#29): We could implement many other common traits, we just have to figure out if the header
-// should be included in those or not. Maybe sometimes people will care about that. Also, make sure
-// those changes also get applied to `Header`.
 #[derive(Debug)]
 pub struct Message
 {
@@ -74,7 +70,7 @@ impl Message
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, cap) };
 		let msgp = validate_ptr(rv, msgp)?;
 
-		// When nng allocates a message, it fills the body and sets the size to
+		// When NNG allocates a message, it fills the body and sets the size to
 		// whatever you requested. It makes sense in a C context, less so here.
 		unsafe {
 			nng_sys::nng_msg_clear(msgp.as_ptr());
@@ -103,7 +99,7 @@ impl Message
 	/// Attempts to convert a buffer into a message.
 	///
 	/// This is functionally equivalent to calling `From` but allows the user
-	/// to handle the case of `nng` being out of memory.
+	/// to handle the case of NNG being out of memory.
 	///
 	/// # Errors
 	///
@@ -118,7 +114,7 @@ impl Message
 
 		let msgp = validate_ptr(rv, msgp)?;
 
-		// At this point, `nng` thinks we have the requested amount of memory.
+		// At this point, NNG thinks we have the requested amount of memory.
 		// There is no more validation we can try to do.
 		unsafe {
 			ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp.as_ptr()) as _, s.len())
@@ -233,7 +229,7 @@ impl Message
 	/// Attempts to duplicate the message.
 	///
 	/// This is functionally equivalent to calling `Clone` but allows the user
-	/// to handle the case of `nng` being out of memory.
+	/// to handle the case of NNG being out of memory.
 	///
 	/// # Errors
 	///
@@ -324,7 +320,7 @@ impl Clone for Message
 	{
 		// This is a section of code that disagrees with the rest of this
 		// library. At the time of writing, I let the `ENOMEM` error propagate
-		// to the caller when `nng` doesn't have enough memory. However,
+		// to the caller when NNG doesn't have enough memory. However,
 		// cloning is such a well-used part of Rust that we're going to panic
 		// if the clone fails.
 		self.try_clone().expect("Nng failed to duplicate the message")
@@ -446,10 +442,13 @@ impl<I: SliceIndex<[u8]>> IndexMut<I> for Message
 	fn index_mut(&mut self, index: I) -> &mut Self::Output { self.as_mut_slice().index_mut(index) }
 }
 
-/// The header of a `Message`.
+/// The header of a [`Message`].
 ///
 /// Most normal applications will never have to touch the message header. The
 /// only time it will be necessary is if the socket is in "raw" mode.
+///
+///
+/// [`Message`]: struct.Message.html
 #[derive(Debug)]
 pub struct Header
 {

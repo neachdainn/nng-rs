@@ -49,7 +49,7 @@ Merge requests for a better solution to this are more than welcome.
 ### Examples
 
 The following example uses the [intra-process][2] transport to set up a [request][3]/[reply][4]
-socket pair. The "client" sends a String to the "server" which responds with a nice phrase.
+socket pair. The "client" sends a string to the "server" which responds with a nice phrase.
 
 ```rust
 use nng::*;

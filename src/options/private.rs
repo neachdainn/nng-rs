@@ -1,4 +1,3 @@
-//! Implementation details about implementing options.
 use std::{
 	ffi::{CStr, CString},
 	mem::MaybeUninit,
@@ -16,7 +15,7 @@ use crate::{
 /// Exposes the ability to get and set the option.
 ///
 /// This trait does not enforce the availability of any specific options on
-/// any specific type. Calling these methods incorrectly will result in `nng`
+/// any specific type. Calling these methods incorrectly will result in NNG
 /// returning an error code.
 pub trait OptOps: super::Opt
 {
@@ -27,59 +26,59 @@ pub trait OptOps: super::Opt
 	fn set<T: HasOpts>(s: &T, val: Self::OptType) -> Result<()>;
 }
 
-/// Marks a type that can get and set `nng` options.
+/// Marks a type that can get and set NNG options.
 pub trait HasOpts: Sized
 {
-	/// Underlying `nng` type.
+	/// Underlying NNG type.
 	type Handle;
 
-	/// Raw `nng` function for getting a boolean option.
+	/// Raw NNG function for getting a boolean option.
 	const GETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const c_char, *mut bool) -> c_int;
-	/// Rawn `nng` funcion for getting an integer otion.
+	/// Rawn NNG funcion for getting an integer otion.
 	const GETOPT_INT: unsafe extern "C" fn(Self::Handle, *const c_char, *mut c_int) -> c_int;
-	/// Raw `nng` function to get an `nng_duration`.
+	/// Raw NNG function to get an `nng_duration`.
 	const GETOPT_MS: unsafe extern "C" fn(
 		Self::Handle,
 		*const c_char,
 		*mut nng_sys::nng_duration,
 	) -> c_int;
-	/// Raw `nng` function for getting a `size_t` option.
+	/// Raw NNG function for getting a `size_t` option.
 	const GETOPT_SIZE: unsafe extern "C" fn(Self::Handle, *const c_char, *mut usize) -> c_int;
-	/// Raw `nng` function for getting an `nng_sockaddr` option.
+	/// Raw NNG function for getting an `nng_sockaddr` option.
 	const GETOPT_SOCKADDR: unsafe extern "C" fn(
 		Self::Handle,
 		*const c_char,
 		*mut nng_sys::nng_sockaddr,
 	) -> c_int;
-	/// Raw `nng` function for getting a string value.
+	/// Raw NNG function for getting a string value.
 	const GETOPT_STRING: unsafe extern "C" fn(
 		Self::Handle,
 		*const c_char,
 		*mut *mut c_char,
 	) -> c_int;
-	/// Raw `nng` function for getting a u64.
+	/// Raw NNG function for getting a u64.
 	const GETOPT_UINT64: unsafe extern "C" fn(Self::Handle, *const c_char, *mut u64) -> c_int;
 
-	/// Raw `nng` function for setting opaque data.
+	/// Raw NNG function for setting opaque data.
 	const SETOPT: unsafe extern "C" fn(Self::Handle, *const c_char, *const c_void, usize) -> c_int;
-	/// Raw `nng` function for setting a boolean.
+	/// Raw NNG function for setting a boolean.
 	const SETOPT_BOOL: unsafe extern "C" fn(Self::Handle, *const c_char, bool) -> c_int;
-	/// Raw `nng` function to set an integer.
+	/// Raw NNG function to set an integer.
 	const SETOPT_INT: unsafe extern "C" fn(Self::Handle, *const c_char, c_int) -> c_int;
-	/// Raw `nng` function to set an `nng_duration`.
+	/// Raw NNG function to set an `nng_duration`.
 	const SETOPT_MS: unsafe extern "C" fn(
 		Self::Handle,
 		*const c_char,
 		nng_sys::nng_duration,
 	) -> c_int;
-	/// Raw `nng` function to set a pointer option.
+	/// Raw NNG function to set a pointer option.
 	const SETOPT_PTR: unsafe extern "C" fn(Self::Handle, *const c_char, *mut c_void) -> c_int;
-	/// Raw `nng` function to set a `size_t` option.
+	/// Raw NNG function to set a `size_t` option.
 	const SETOPT_SIZE: unsafe extern "C" fn(Self::Handle, *const c_char, usize) -> c_int;
-	/// Raw `nng` function to set a string value.
+	/// Raw NNG function to set a string value.
 	const SETOPT_STRING: unsafe extern "C" fn(Self::Handle, *const c_char, *const c_char) -> c_int;
 
-	/// Returns the underlying `nng` type.
+	/// Returns the underlying NNG type.
 	fn handle(&self) -> Self::Handle;
 
 	/// Get the boolean option.

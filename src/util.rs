@@ -1,6 +1,3 @@
-//! Utility code.
-//!
-//! Things that make developing this crate slightly easier.
 use std::{
 	os::raw::{c_char, c_int, c_void},
 	ptr::NonNull,
@@ -9,7 +6,7 @@ use std::{
 
 use crate::error::{Error, Result};
 
-/// Converts a `nng` return code into a Rust `Result`.
+/// Converts an NNG return code into a Rust `Result`.
 macro_rules! rv2res {
 	($rv:expr, $ok:expr) => {
 		match std::num::NonZeroU32::new($rv as u32) {
@@ -156,7 +153,7 @@ pub(crate) unsafe extern "C" fn fake_genopt<H>(
 	unimplemented!("{} does not support the generic option operation", stringify!(H))
 }
 
-/// Converts a Rust Duration into an `nng_duration`.
+/// Converts a Rust `Duration` into an `nng_duration`.
 #[allow(clippy::cast_possible_truncation)]
 pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 {
@@ -176,7 +173,7 @@ pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 	}
 }
 
-/// Converts an `nng_duration` into a Rust Duration.
+/// Converts an `nng_duration` into a Rust `Duration`.
 pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 {
 	if ms == nng_sys::NNG_DURATION_INFINITE {
@@ -190,7 +187,7 @@ pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 	}
 }
 
-/// Checks an `nng` return code and validates the pointer, returning a
+/// Checks an NNG return code and validates the pointer, returning a
 /// `NonNull`.
 #[inline]
 pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>

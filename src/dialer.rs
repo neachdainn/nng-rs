@@ -1,23 +1,3 @@
-//! Nanomsg-next-generation dialers.
-//!
-//! A dialer is responsible for establishing and maintaining outgoing
-//! connections. If a connection is ever broken, or fails, the dialer object
-//! automatically attempts to reconnect.
-//!
-//! Directly creating a dialer object is only necessary when one wishes to
-//! configure the connection before opening it or if one wants to close the
-//! outgoing connection without closing the socket. Otherwise, `Socket::dial`
-//! can be used.
-//!
-//! Note that the client/server relationship described by a dialer/listener is
-//! completely orthogonal to any similar relationship in the protocols. For
-//! example, a _rep_ socket may use a dialer to connect to a listener on a
-//! _req_ socket. This orthogonality can lead to innovative solutions to
-//! otherwise challenging communications problems.
-//!
-//! See the [nng documentation][1] for more information.
-//!
-//! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
 use std::{
 	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
 	ffi::CString,
@@ -30,11 +10,28 @@ use crate::{
 	socket::Socket,
 };
 
-/// A constructed and running dialer.
+/// An active outgoing connection.
 ///
-/// This dialer has already been started on the socket and will continue
-/// serving the connection until either it is explicitly closed or the owning
-/// socket is closed.
+/// A `Dialer` is responsible for establishing and maintaining outgoing
+/// connections. If a connection is ever broken, or fails, the `Dialer` object
+/// automatically attempts to reconnect.
+///
+/// Directly creating a `Dialer` is only necessary when one wishes to
+/// configure the connection before opening it or if one wants to close the
+/// outgoing connection without closing the socket. Otherwise, [`Socket::dial`]
+/// can be used.
+///
+/// Note that the client/server relationship described by a dialer/listener is
+/// completely orthogonal to any similar relationship in the protocols. For
+/// example, a _rep_ socket may use a dialer to connect to a listener on a
+/// _req_ socket. This orthogonality can lead to innovative solutions to
+/// otherwise challenging communications problems.
+///
+/// See the [NNG documentation][1] for more information.
+///
+///
+/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
+/// [`Socket::dial`]: struct.Socket.html#method.dial
 #[derive(Clone, Copy, Debug)]
 pub struct Dialer
 {
@@ -46,7 +43,7 @@ impl Dialer
 	/// Creates a new dialer object associated with the given socket.
 	///
 	/// Note that this will immediately start the dialer so no configuration
-	/// will be possible. Use `DialerOptions` to change the dialer options
+	/// will be possible. Use [`DialerOptions`] to change the dialer options
 	/// before starting it.
 	///
 	/// # Errors
@@ -67,6 +64,7 @@ impl Dialer
 	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
 	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
 	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
+	/// [`DialerOptions`]: struct.DailerOptions.html
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
 	/// [`Protocol`]: enum.Error.html#variant.Protocol
@@ -89,7 +87,7 @@ impl Dialer
 
 	/// Closes the dialer.
 	///
-	/// This also closes any `Pipe` objects that have been created by the
+	/// This also closes any [`Pipe`] objects that have been created by the
 	/// dialer. Once this function returns, the dialer has been closed and all
 	/// of its resources have been deallocated. Therefore, any attempt to
 	/// utilize the dialer (with this or any other handle) will result in
@@ -97,6 +95,9 @@ impl Dialer
 	///
 	/// Dialers are implicitly closed when the socket they are associated with
 	/// is closed. Dialers are _not_ closed when all handles are dropped.
+	///
+	///
+	/// [`Pipe`]: struct.Pipe.html
 	pub fn close(self)
 	{
 		// Closing the dialer should only ever result in success or ECLOSED and
@@ -109,7 +110,7 @@ impl Dialer
 		);
 	}
 
-	/// Create a new Dialer handle from a libnng handle.
+	/// Create a new Dialer handle from an NNG handle.
 	///
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_dialer) -> Self
@@ -199,8 +200,11 @@ expose_options!{
 ///
 /// This object allows for the configuration of dialers before they are
 /// started. If it is not necessary to change dialer settings or to close the
-/// dialer without closing the socket, then `Socket::dial` provides a simpler
-/// interface and does not require tracking an object.
+/// dialer without closing the socket, then [`Socket::dial`] provides a simpler
+/// interface.
+///
+///
+/// [`Socket::dial`]: struct.Socket.html#method.dial
 #[derive(Debug)]
 pub struct DialerOptions
 {
@@ -212,7 +216,7 @@ impl DialerOptions
 	/// Creates a new dialer object associated with the given socket.
 	///
 	/// Note that this does not start the dialer. In order to start the dialer,
-	/// this object must be consumed by `DialerOptions::start`.
+	/// this object must be consumed by [`DialerOptions::start`].
 	///
 	/// # Errors
 	///
@@ -223,6 +227,7 @@ impl DialerOptions
 	///
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`DialerOptions::start`]: struct.DialerOptions.html#method.start
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
