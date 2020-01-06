@@ -449,10 +449,23 @@ impl Aio
 	/// in any way other than through the wrapper, then the wrapper will need to
 	/// have its state updated to match. Failing to do so and then using the
 	/// wrapper can cause segfaults.
+	///
+	/// # Safety
+	///
+	/// Because the underlying `nng_aio` object does not track whether or not it owns an `nng_msg`,
+	/// the Rust `Aio` type utilizes a state variable to keep track of that information. This
+	/// function is marked as `unsafe` as it provides a way for the validity of the `nng_msg`
+	/// pointer to change without updating the tracking variable. See [`Aio::set_state`].
+	///
+	///
+	/// [`Aio::set_state`]: struct.Aio.html#method.set_state
 	// We don't expose a `from_nng_aio` function because we have a strict
 	// requirement on the callback function. This type fundamentally will not work
 	// without our wrapper around the callback.
-	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio { self.inner.handle.load(Ordering::Relaxed) }
+	pub unsafe fn nng_aio(&self) -> *mut nng_sys::nng_aio
+	{
+		self.inner.handle.load(Ordering::Relaxed)
+	}
 
 	/// Retrieves the current state of the wrapper.
 	pub fn state(&self, ordering: Ordering) -> State { self.inner.state.load(ordering).into() }
@@ -461,6 +474,12 @@ impl Aio
 	///
 	/// If the provided state does not actually match the state of the `nng_aio`
 	/// object, this can cause segfaults.
+	///
+	/// # Safety
+	///
+	/// The provided state must actually match the state of the Rust side `Aio` object. That
+	/// information is used to track whether or not the `nng_aio` contains a valid message pointer
+	/// and any inconsistency might result in issues .
 	pub unsafe fn set_state(&self, state: State, ordering: Ordering)
 	{
 		self.inner.state.store(state as usize, ordering)
