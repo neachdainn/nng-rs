@@ -152,10 +152,7 @@ impl Socket
 
 	#[doc(hidden)]
 	#[deprecated(since = "v1.0.0-rc.1", note = "This is equivalent to `Socket::listen`")]
-	pub fn listen_async(&self, url: &str) -> Result<()>
-	{
-		self.listen(url)
-	}
+	pub fn listen_async(&self, url: &str) -> Result<()> { self.listen(url) }
 
 	/// Receives a message from the socket.
 	///
@@ -364,7 +361,11 @@ impl Socket
 	///
 	/// This is unsafe because you have to be absolutely positive that you
 	/// really do have a pointer to an `Inner` type.
-	unsafe extern "C" fn trampoline(pipe: nng_sys::nng_pipe, ev: nng_sys::nng_pipe_ev, arg: *mut c_void)
+	unsafe extern "C" fn trampoline(
+		pipe: nng_sys::nng_pipe,
+		ev: nng_sys::nng_pipe_ev,
+		arg: *mut c_void,
+	)
 	{
 		abort_unwind(|| {
 			let pipe = Pipe::from_nng_sys(pipe);

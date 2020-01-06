@@ -550,7 +550,6 @@ pub mod transport
 			Set s val = s.setopt_bool(nng_sys::NNG_OPT_TCP_KEEPALIVE as *const _ as _, val);
 		}
 
-
 		create_option! {
 			/// Get the local TCP port number.
 			///
