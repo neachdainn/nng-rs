@@ -41,7 +41,7 @@ impl Listener
 	/// Creates a new listener object associated with the given socket.
 	///
 	/// Note that this will immediately start the listener so no configuration
-	/// will be possible. Use [`ListenerOptions`] to change the listener options
+	/// will be possible. Use [`ListenerBuilder`] to change the listener options
 	/// before starting it.
 	///
 	/// # Errors
@@ -55,7 +55,7 @@ impl Listener
 	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
 	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
-	/// [`ListenerOptions`]: struct.ListenerOptions.html
+	/// [`ListenerBuilder`]: struct.ListenerBuilder.html
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
@@ -196,17 +196,17 @@ expose_options!{
 ///
 /// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Debug)]
-pub struct ListenerOptions
+pub struct ListenerBuilder
 {
 	/// The underlying listener object that we are configuring
 	handle: nng_sys::nng_listener,
 }
-impl ListenerOptions
+impl ListenerBuilder
 {
 	/// Creates a new [`Listener`] object associated with the given socket.
 	///
 	/// Note that this does not start the [`Listener`] In order to start the
-	/// listener, this object must be consumed by [`ListenerOptions::start`].
+	/// listener, this object must be consumed by [`ListenerBuilder::start`].
 	///
 	/// # Errors
 	///
@@ -218,7 +218,7 @@ impl ListenerOptions
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
 	/// [`Listener`]: struct.Listener.html
-	/// [`ListenerOptions::start`]: struct.ListenerOptions.html#method.start
+	/// [`ListenerBuilder::start`]: struct.ListenerBuilder.html#method.start
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
@@ -232,7 +232,7 @@ impl ListenerOptions
 			nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
 		};
 
-		rv2res!(rv, ListenerOptions { handle })
+		rv2res!(rv, ListenerBuilder { handle })
 	}
 
 	/// Cause the [`Listener`] to start listening on the address with which it was
@@ -268,7 +268,7 @@ impl ListenerOptions
 }
 
 #[cfg(feature = "ffi-module")]
-impl ListenerOptions
+impl ListenerBuilder
 {
 	/// Returns the underlying `nng_listener` object.
 	pub fn nng_listener(&self) -> nng_sys::nng_listener { self.handle }
@@ -276,7 +276,7 @@ impl ListenerOptions
 
 #[rustfmt::skip]
 expose_options!{
-	ListenerOptions :: handle -> nng_sys::nng_listener;
+	ListenerBuilder :: handle -> nng_sys::nng_listener;
 
 	GETOPT_BOOL = nng_sys::nng_listener_get_bool;
 	GETOPT_INT = nng_sys::nng_listener_get_int;
@@ -316,10 +316,10 @@ mod unix_impls
 	use super::*;
 	use crate::options::transport::ipc;
 
-	impl crate::options::SetOpt<ipc::Permissions> for ListenerOptions {}
+	impl crate::options::SetOpt<ipc::Permissions> for ListenerBuilder {}
 }
 
-impl Drop for ListenerOptions
+impl Drop for ListenerBuilder
 {
 	fn drop(&mut self)
 	{

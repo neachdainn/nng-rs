@@ -43,7 +43,7 @@ impl Dialer
 	/// Creates a new dialer object associated with the given socket.
 	///
 	/// Note that this will immediately start the dialer so no configuration
-	/// will be possible. Use [`DialerOptions`] to change the dialer options
+	/// will be possible. Use [`DialerBuilder`] to change the dialer options
 	/// before starting it.
 	///
 	/// # Errors
@@ -64,7 +64,7 @@ impl Dialer
 	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
 	/// [`ConnectionReset`]: enum.Error.html#variant.ConnectionReset
 	/// [`DestUnreachable`]: enum.Error.html#variant.DestUnreachable
-	/// [`DialerOptions`]: struct.DailerOptions.html
+	/// [`DialerBuilder`]: struct.DailerOptions.html
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	/// [`PeerAuth`]: enum.Error.html#variant.PeerAuth
 	/// [`Protocol`]: enum.Error.html#variant.Protocol
@@ -196,7 +196,7 @@ expose_options!{
 	Sets -> [];
 }
 
-/// Configuration utility for nanomsg-next-generation dialers.
+/// Configuration utility for NNG dialers.
 ///
 /// This object allows for the configuration of dialers before they are
 /// started. If it is not necessary to change dialer settings or to close the
@@ -206,17 +206,17 @@ expose_options!{
 ///
 /// [`Socket::dial`]: struct.Socket.html#method.dial
 #[derive(Debug)]
-pub struct DialerOptions
+pub struct DialerBuilder
 {
 	/// The underlying dialer object that we are configuring
 	handle: nng_sys::nng_dialer,
 }
-impl DialerOptions
+impl DialerBuilder
 {
 	/// Creates a new dialer object associated with the given socket.
 	///
 	/// Note that this does not start the dialer. In order to start the dialer,
-	/// this object must be consumed by [`DialerOptions::start`].
+	/// this object must be consumed by [`DialerBuilder::start`].
 	///
 	/// # Errors
 	///
@@ -227,7 +227,7 @@ impl DialerOptions
 	///
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
-	/// [`DialerOptions::start`]: struct.DialerOptions.html#method.start
+	/// [`DialerBuilder::start`]: struct.DialerBuilder.html#method.start
 	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
@@ -241,7 +241,7 @@ impl DialerOptions
 			nng_sys::nng_dialer_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
 		};
 
-		rv2res!(rv, DialerOptions { handle })
+		rv2res!(rv, DialerBuilder { handle })
 	}
 
 	/// Cause the dialer to start connecting to the address with which it was
@@ -300,7 +300,7 @@ impl DialerOptions
 }
 
 #[cfg(feature = "ffi-module")]
-impl DialerOptions
+impl DialerBuilder
 {
 	/// Returns the underlying `nng_dialer` object.
 	pub fn nng_dialer(&self) -> nng_sys::nng_dialer { self.handle }
@@ -308,7 +308,7 @@ impl DialerOptions
 
 #[rustfmt::skip]
 expose_options!{
-	DialerOptions :: handle -> nng_sys::nng_dialer;
+	DialerBuilder :: handle -> nng_sys::nng_dialer;
 
 	GETOPT_BOOL = nng_sys::nng_dialer_get_bool;
 	GETOPT_INT = nng_sys::nng_dialer_get_int;
@@ -345,7 +345,7 @@ expose_options!{
 	         transport::websocket::Protocol];
 }
 
-impl Drop for DialerOptions
+impl Drop for DialerBuilder
 {
 	fn drop(&mut self)
 	{

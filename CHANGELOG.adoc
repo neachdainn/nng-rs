@@ -15,6 +15,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * Removed `nonblocking` argument from `Listener::new` as it is ignored in `libnng v1.2`.
 * Removed `nonblocking` argument from `ListenerOptions::new` to match `Listener::new`.
+* Renamed `{Dialer,Listener}Options` to `{Dialer,Listener}Builder` to better match the builder pattern.
 
 === Deprecated ===
 
