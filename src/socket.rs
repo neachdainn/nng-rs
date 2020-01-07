@@ -22,7 +22,7 @@ use crate::{
 
 type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 
-/// A nanomsg-next-generation socket.
+/// An NNG socket.
 ///
 /// All communication between application and remote Scalability Protocol peers
 /// is done through sockets. A given socket can have multiple dialers,
@@ -662,6 +662,21 @@ impl Drop for Inner
 }
 
 /// A socket that is open in "raw" mode.
+///
+/// Most NNG applications will interact with sockets in "cooked" mode. This mode will automatically
+/// handle the full semantics of the protocol, such as _req_ sockets automatically matching a reply
+/// to a request or resenting a request periodically if no reply was received.
+///
+/// However, there are situations, such as with [proxies][1], where it is desirable to bypass these
+/// semantics and pass messages without any extra handling. This is possible with "raw" mode
+/// sockets.
+///
+/// When using these sockets, the user is responsible for applying any additional socket semantics
+/// which typically means inspecting the message [`Header`] on incoming messages and supplying them
+/// on outgoing messages.
+///
+/// [1]: fn.forwarder.html
+/// [`Header`]: struct.Header.html
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct RawSocket
 {
@@ -716,7 +731,7 @@ impl RawSocket
 
 impl TryFrom<Socket> for RawSocket
 {
-	type Error = BakedSocketError;
+	type Error = CookedSocketError;
 
 	fn try_from(socket: Socket) -> std::result::Result<Self, Self::Error>
 	{
@@ -726,24 +741,24 @@ impl TryFrom<Socket> for RawSocket
 			Ok(RawSocket { socket, _hidden: () })
 		}
 		else {
-			Err(BakedSocketError)
+			Err(CookedSocketError)
 		}
 	}
 }
 
 /// Indicates that the socket is not in "raw" mode.
 #[derive(Debug)]
-pub struct BakedSocketError;
+pub struct CookedSocketError;
 
-impl fmt::Display for BakedSocketError
+impl fmt::Display for CookedSocketError
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
 	{
-		write!(f, "Socket is in \"baked\" (not \"raw\") mode")
+		write!(f, "Socket is in \"cooked\" (not \"raw\") mode")
 	}
 }
 
-impl error::Error for BakedSocketError
+impl error::Error for CookedSocketError
 {
-	fn description(&self) -> &str { "Socket is in \"baked\" (not \"raw\") mode" }
+	fn description(&self) -> &str { "Socket is in \"cooked\" (not \"raw\") mode" }
 }

@@ -5,7 +5,7 @@ use std::{
 
 use crate::{dialer::Dialer, listener::Listener};
 
-/// A NNG communication pipe.
+/// An NNG communication pipe.
 ///
 /// A pipe can be thought of as a single connection and are associated with
 /// either the listener or dialer that created them. Therefore, they are
