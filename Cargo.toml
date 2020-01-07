@@ -21,11 +21,11 @@ gitlab = { repository = "neachdainn/nng-rs", branch = "master" }
 
 [features]
 default = ["build-nng"]
-build-nng = ["nng-sys/build-nng"]
+build-nng = ["nng-sys/build-nng", "nng-sys/nng-stats"]
 ffi-module = []
 
 [dependencies]
-nng-sys = { git = "https://github.com/jeikabu/nng-rust", branch = "feature/nng_1.2", default-features = false, features = ["build-nng", "nng-stats"] }
+nng-sys = "1.2.3-rc.1"
 log = "0.4"
 
 [dev-dependencies]

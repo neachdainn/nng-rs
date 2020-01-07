@@ -33,6 +33,8 @@ Any change that requires a newer Rustc version will always be considered a break
 
 ### Building NNG
 
+**NOTE:** Due to a [bug](https://github.com/nanomsg/nng/commit/3890f856068542c6ddb7b498a2e313b026450bd2) in NNG v1.2.3, building NNG currently requires enabling the statistics feature.
+
 Enabling the `build-nng` feature will cause the NNG library to be built using the default settings and CMake generator.
 Most of the time, this should just work.
 However, in the case that the default are not the desired settings, there are three ways to change the build:
