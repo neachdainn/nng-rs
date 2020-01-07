@@ -35,7 +35,7 @@ fn client(url: &str) -> Result<(), nng::Error> {
     s.dial(url)?;
 
     println!("CLIENT: SENDING DATE REQUEST");
-    let mut req = Message::new()?;
+    let mut req = Message::new();
     req.write_u64::<LittleEndian>(DATE_REQUEST).unwrap();
     s.send(req)?;
 

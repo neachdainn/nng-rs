@@ -97,7 +97,7 @@
 //!     assert_eq!(&msg[..], b"Ferris");
 //!
 //!     // Reuse the message to be more efficient.
-//!     msg.push_front(b"Hello, ")?;
+//!     msg.push_front(b"Hello, ");
 //!
 //!     server.send(msg)?;
 //!     Ok(())

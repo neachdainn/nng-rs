@@ -16,6 +16,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Removed `nonblocking` argument from `Listener::new` as it is ignored in `libnng v1.2`.
 * Removed `nonblocking` argument from `ListenerOptions::new` to match `Listener::new`.
 * Renamed `{Dialer,Listener}Options` to `{Dialer,Listener}Builder` to better match the builder pattern.
+* All `Message` and `Header` methods now panic on allocation failure instead of returning a `Result`.
 
 === Deprecated ===
 
@@ -23,6 +24,8 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Deprecated `Socket::into_raw` in favor of the `TryFrom` trait. (#43)
 
 === Removed ===
+
+* `Message::from_slice` and `Message::try_clone` as the entire `Message` type now panics on allocation failure.
 
 === Fixed ===
 

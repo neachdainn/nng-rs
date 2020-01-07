@@ -6,7 +6,10 @@ use std::{
 	slice::{self, SliceIndex},
 };
 
-use crate::{error::Result, pipe::Pipe, util::validate_ptr};
+use crate::{pipe::Pipe, util::validate_ptr};
+
+/// Error string to unwrap if allocation fails.
+const ALLOC_FAIL_MSG: &str = "NNG failed to allocate memory";
 
 /// An NNG message type.
 ///
@@ -17,6 +20,11 @@ use crate::{error::Result, pipe::Pipe, util::validate_ptr};
 /// In addition to the regular portion of the message there is a header that
 /// carries protocol specific header information. Most applications will not
 /// need to touch the header and will only interact with the regular message.
+// None of these methods will report failure. As of this writing (NNG v1.2.3) the only possible
+// error condition in any of the message functions is if allocation, which is a regular `malloc` or
+// `calloc` call), fails. Both of the platforms this crate really supports do overcommit, which
+// means those will never fail. Also, Rust normally panics on allocation failure, so this fits the
+// ecosystem better.
 #[derive(Debug)]
 pub struct Message
 {
@@ -37,38 +45,24 @@ pub struct Message
 impl Message
 {
 	/// Create an empty message.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn new() -> Result<Self>
+	pub fn new() -> Self
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, 0) };
 
-		let msgp = validate_ptr(rv, msgp)?;
-		Ok(Message::from_ptr(msgp))
+		let msgp = validate_ptr(rv, msgp).expect(ALLOC_FAIL_MSG);
+		Message::from_ptr(msgp)
 	}
 
 	/// Create an empty message with a pre-allocated body buffer.
 	///
 	/// The returned buffer will have a capacity equal to `cap` but a length of
 	/// zero. To get a `Message` with a specified length, use `Message::zeros`.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn with_capacity(cap: usize) -> Result<Self>
+	pub fn with_capacity(cap: usize) -> Self
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, cap) };
-		let msgp = validate_ptr(rv, msgp)?;
+		let msgp = validate_ptr(rv, msgp).expect(ALLOC_FAIL_MSG);
 
 		// When NNG allocates a message, it fills the body and sets the size to
 		// whatever you requested. It makes sense in a C context, less so here.
@@ -76,51 +70,17 @@ impl Message
 			nng_sys::nng_msg_clear(msgp.as_ptr());
 		}
 
-		Ok(Message::from_ptr(msgp))
+		Message::from_ptr(msgp)
 	}
 
 	/// Create a message that is filled to `size` with zeros.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn with_zeros(size: usize) -> Result<Self>
+	pub fn with_zeros(size: usize) -> Self
 	{
 		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
 		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, size) };
 
-		let msgp = validate_ptr(rv, msgp)?;
-		Ok(Message::from_ptr(msgp))
-	}
-
-	/// Attempts to convert a buffer into a message.
-	///
-	/// This is functionally equivalent to calling `From` but allows the user
-	/// to handle the case of NNG being out of memory.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn from_slice(s: &[u8]) -> Result<Self>
-	{
-		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, s.len()) };
-
-		let msgp = validate_ptr(rv, msgp)?;
-
-		// At this point, NNG thinks we have the requested amount of memory.
-		// There is no more validation we can try to do.
-		unsafe {
-			ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp.as_ptr()) as _, s.len())
-		}
-
-		Ok(Message::from_ptr(msgp))
+		let msgp = validate_ptr(rv, msgp).expect(ALLOC_FAIL_MSG);
+		Message::from_ptr(msgp)
 	}
 
 	/// Shortens the message, dropping excess elements from the back.
@@ -195,56 +155,21 @@ impl Message
 	}
 
 	/// Prepends the data to the message body.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
+	pub fn push_front(&mut self, data: &[u8])
 	{
 		let rv =
 			unsafe { nng_sys::nng_msg_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
-		rv2res!(rv)
+		rv2res!(rv).expect(ALLOC_FAIL_MSG)
 	}
 
 	/// Appends the data to the back of the message body.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
+	pub fn push_back(&mut self, data: &[u8])
 	{
 		let rv =
 			unsafe { nng_sys::nng_msg_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len()) };
 
-		rv2res!(rv)
-	}
-
-	/// Attempts to duplicate the message.
-	///
-	/// This is functionally equivalent to calling `Clone` but allows the user
-	/// to handle the case of NNG being out of memory.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn try_clone(&self) -> Result<Self>
-	{
-		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
-
-		let rv = unsafe { nng_sys::nng_msg_dup(&mut msgp as _, self.msgp.as_ptr()) };
-
-		let msgp = validate_ptr(rv, msgp)?;
-		Ok(Message::from_ptr(msgp))
+		rv2res!(rv).expect(ALLOC_FAIL_MSG)
 	}
 
 	/// Returns the pipe object associated with the message.
@@ -318,29 +243,36 @@ impl Clone for Message
 {
 	fn clone(&self) -> Self
 	{
-		// This is a section of code that disagrees with the rest of this
-		// library. At the time of writing, I let the `ENOMEM` error propagate
-		// to the caller when NNG doesn't have enough memory. However,
-		// cloning is such a well-used part of Rust that we're going to panic
-		// if the clone fails.
-		self.try_clone().expect("Nng failed to duplicate the message")
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+
+		let rv = unsafe { nng_sys::nng_msg_dup(&mut msgp as _, self.msgp.as_ptr()) };
+
+		let msgp = validate_ptr(rv, msgp).expect(ALLOC_FAIL_MSG);
+		Message::from_ptr(msgp)
 	}
 }
 
 impl Default for Message
 {
-	fn default() -> Message { Message::new().unwrap() }
+	fn default() -> Message { Message::new() }
 }
 
 impl<'a> From<&'a [u8]> for Message
 {
 	fn from(s: &[u8]) -> Message
 	{
-		// As with `Clone`, this section is different than the rest of this
-		// wrapper. Since the message allocation function only ever returns
-		// `ENOMEM`, we're going to provide a more Rust-like interface by
-		// panicking in the same way all other Rust allocations panic.
-		Message::from_slice(s).expect("Nng failed to allocate the memory")
+		let mut msgp: *mut nng_sys::nng_msg = ptr::null_mut();
+		let rv = unsafe { nng_sys::nng_msg_alloc(&mut msgp as _, s.len()) };
+
+		let msgp = validate_ptr(rv, msgp).expect(ALLOC_FAIL_MSG);
+
+		// At this point, NNG thinks we have the requested amount of memory.
+		// There is no more validation we can try to do.
+		unsafe {
+			ptr::copy_nonoverlapping(s.as_ptr(), nng_sys::nng_msg_body(msgp.as_ptr()) as _, s.len())
+		}
+
+		Message::from_ptr(msgp)
 	}
 }
 
@@ -357,7 +289,7 @@ impl FromIterator<u8> for Message
 	{
 		let iter = iter.into_iter();
 		let (lower, _) = iter.size_hint();
-		let mut msg = Message::with_capacity(lower).expect("Failed to allocate memory");
+		let mut msg = Message::with_capacity(lower);
 		msg.extend(iter);
 		msg
 	}
@@ -371,7 +303,7 @@ impl<'a> FromIterator<&'a u8> for Message
 	{
 		let iter = iter.into_iter();
 		let (lower, _) = iter.size_hint();
-		let mut msg = Message::with_capacity(lower).expect("Failed to allocate memory");
+		let mut msg = Message::with_capacity(lower);
 		msg.extend(iter);
 		msg
 	}
@@ -393,14 +325,14 @@ impl Write for Message
 	#[inline]
 	fn write(&mut self, buf: &[u8]) -> io::Result<usize>
 	{
-		self.push_back(buf)?;
+		self.push_back(buf);
 		Ok(buf.len())
 	}
 
 	#[inline]
 	fn write_all(&mut self, buf: &[u8]) -> io::Result<()>
 	{
-		self.push_back(buf)?;
+		self.push_back(buf);
 		Ok(())
 	}
 
@@ -413,7 +345,7 @@ impl Extend<u8> for Message
 	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I)
 	{
 		for byte in iter {
-			self.push_back(slice::from_ref(&byte)).expect("Failed to push to Message");
+			self.push_back(slice::from_ref(&byte));
 		}
 	}
 }
@@ -423,7 +355,7 @@ impl<'a> Extend<&'a u8> for Message
 	fn extend<I: IntoIterator<Item = &'a u8>>(&mut self, iter: I)
 	{
 		for byte in iter {
-			self.push_back(slice::from_ref(byte)).expect("Failed to push to Message");
+			self.push_back(slice::from_ref(byte));
 		}
 	}
 }
@@ -445,10 +377,11 @@ impl<I: SliceIndex<[u8]>> IndexMut<I> for Message
 /// The header of a [`Message`].
 ///
 /// Most normal applications will never have to touch the message header. The
-/// only time it will be necessary is if the socket is in "raw" mode.
+/// only time it will be necessary is if the socket is in "raw" mode ([`RawSocket`]).
 ///
 ///
 /// [`Message`]: struct.Message.html
+/// [`RawSocket`]: struct.RawSocket.html
 #[derive(Debug)]
 pub struct Header
 {
@@ -523,37 +456,23 @@ impl Header
 	}
 
 	/// Appends the data to the back of the message header.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn push_back(&mut self, data: &[u8]) -> Result<()>
+	pub fn push_back(&mut self, data: &[u8])
 	{
 		let rv = unsafe {
 			nng_sys::nng_msg_header_append(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
 		};
 
-		rv2res!(rv)
+		rv2res!(rv).expect(ALLOC_FAIL_MSG)
 	}
 
 	/// Prepends the data to the message header.
-	///
-	/// # Errors
-	///
-	/// * [`OutOfMemory`]: Insufficient memory.
-	///
-	///
-	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
-	pub fn push_front(&mut self, data: &[u8]) -> Result<()>
+	pub fn push_front(&mut self, data: &[u8])
 	{
 		let rv = unsafe {
 			nng_sys::nng_msg_header_insert(self.msgp.as_ptr(), data.as_ptr() as _, data.len())
 		};
 
-		rv2res!(rv)
+		rv2res!(rv).expect(ALLOC_FAIL_MSG)
 	}
 }
 unsafe impl Send for Header {}
@@ -575,14 +494,14 @@ impl Write for Header
 	#[inline]
 	fn write(&mut self, buf: &[u8]) -> io::Result<usize>
 	{
-		self.push_back(buf)?;
+		self.push_back(buf);
 		Ok(buf.len())
 	}
 
 	#[inline]
 	fn write_all(&mut self, buf: &[u8]) -> io::Result<()>
 	{
-		self.push_back(buf)?;
+		self.push_back(buf);
 		Ok(())
 	}
 
@@ -595,7 +514,7 @@ impl Extend<u8> for Header
 	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I)
 	{
 		for byte in iter {
-			self.push_back(slice::from_ref(&byte)).expect("Failed to push to Message");
+			self.push_back(slice::from_ref(&byte));
 		}
 	}
 }
@@ -605,7 +524,7 @@ impl<'a> Extend<&'a u8> for Header
 	fn extend<I: IntoIterator<Item = &'a u8>>(&mut self, iter: I)
 	{
 		for byte in iter {
-			self.push_back(slice::from_ref(byte)).expect("Failed to push to Message");
+			self.push_back(slice::from_ref(byte));
 		}
 	}
 }

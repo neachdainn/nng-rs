@@ -89,8 +89,8 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///
 ///         // We successfully slept.
 ///         AioResult::Sleep(Ok(_)) => {
-///             // We could have hung on to the request `Message` to avoid an
-///             let _ = ctx.send(aio, Message::new()?)?;
+///             // We could have hung on to the request `Message` to avoid an allocation
+///             let _ = ctx.send(aio, Message::new())?;
 ///             Ok(())
 ///         },
 ///
@@ -104,7 +104,7 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///     let client = Socket::new(Protocol::Req0)?;
 ///     client.dial(ADDRESS)?;
 ///     // Create the message containing the number of milliseconds to sleep.
-///     let mut req = Message::new()?;
+///     let mut req = Message::new();
 ///     req.write_u64::<LittleEndian>(ms).unwrap();
 ///
 ///     // Send the request to the server and wait for a response.

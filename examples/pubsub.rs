@@ -50,7 +50,7 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
 
         // Load the number of subscribers and send the value across
         let data = count.load(Ordering::Relaxed) as u64;
-        let mut msg = Message::new()?;
+        let mut msg = Message::new();
         msg.write_u64::<LittleEndian>(data).unwrap();
 
         println!("PUBLISHER: SENDING {}", data);

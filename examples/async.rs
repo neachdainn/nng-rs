@@ -43,7 +43,7 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error> {
     let s = Socket::new(Protocol::Req0)?;
     s.dial(url)?;
 
-    let mut req = Message::new()?;
+    let mut req = Message::new();
     req.write_u64::<LittleEndian>(ms).unwrap();
 
     let start = Instant::now();
@@ -102,7 +102,7 @@ fn worker_callback(aio: Aio, ctx: &Context, res: AioResult) {
 
         // We successfully slept.
         AioResult::Sleep(Ok(_)) => {
-            let msg = Message::new().unwrap();
+            let msg = Message::new();
             ctx.send(&aio, msg).unwrap();
         }
 
