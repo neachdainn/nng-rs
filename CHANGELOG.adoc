@@ -18,9 +18,10 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Deprecated ===
 
-=== Removed ===
-
 * Deprecated `Socket::listen_async` as it is functionally equivalent to `Socket::listen` and will be removed at some point in the future.
+* Deprecated `Socket::into_raw` in favor of the `TryFrom` trait. (#43)
+
+=== Removed ===
 
 === Fixed ===
 

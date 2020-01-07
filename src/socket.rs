@@ -1,5 +1,7 @@
 use std::{
 	cmp::{Eq, Ordering, PartialEq, PartialOrd},
+	convert::TryFrom,
+	error,
 	ffi::CString,
 	fmt,
 	hash::{Hash, Hasher},
@@ -454,18 +456,9 @@ impl Socket
 			.fold(Ok(()), std::result::Result::and)
 	}
 
-	/// Creates a `RawSocket` object if this socket is in "raw" mode.
-	pub fn into_raw(self) -> Option<RawSocket>
-	{
-		use crate::options::{Options, Raw};
-
-		if self.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
-			Some(RawSocket { socket: self, _hidden: () })
-		}
-		else {
-			None
-		}
-	}
+	#[doc(hidden)]
+	#[deprecated(since = "1.0.0-rc.1", note = "Use `TryFrom` instead")]
+	pub fn into_raw(self) -> Option<RawSocket> { RawSocket::try_from(self).ok() }
 
 	/// Close the underlying socket.
 	///
@@ -719,4 +712,38 @@ impl RawSocket
 
 		Ok(RawSocket { socket, _hidden: () })
 	}
+}
+
+impl TryFrom<Socket> for RawSocket
+{
+	type Error = BakedSocketError;
+
+	fn try_from(socket: Socket) -> std::result::Result<Self, Self::Error>
+	{
+		use crate::options::{Options, Raw};
+
+		if socket.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
+			Ok(RawSocket { socket, _hidden: () })
+		}
+		else {
+			Err(BakedSocketError)
+		}
+	}
+}
+
+/// Indicates that the socket is not in "raw" mode.
+#[derive(Debug)]
+pub struct BakedSocketError;
+
+impl fmt::Display for BakedSocketError
+{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(f, "Socket is in \"baked\" (not \"raw\") mode")
+	}
+}
+
+impl error::Error for BakedSocketError
+{
+	fn description(&self) -> &str { "Socket is in \"baked\" (not \"raw\") mode" }
 }
