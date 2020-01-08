@@ -18,7 +18,7 @@ use crate::{dialer::Dialer, listener::Listener};
 ///
 /// See the [NNG documentation][1] for more information.
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pipe.5
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pipe.5
 #[derive(Clone, Copy, Debug)]
 pub struct Pipe
 {

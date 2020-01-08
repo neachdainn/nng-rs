@@ -12,7 +12,7 @@ pub enum Protocol
 	/// by a node is sent to every one of its directly connected peers. See
 	/// the [bus documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_bus.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_bus.7.html
 	Bus0,
 
 	/// Version 0 of the pair protocol.
@@ -21,7 +21,7 @@ pub enum Protocol
 	/// relationships between peers are one-to-one. See the
 	/// [pair documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pair.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pair.7.html
 	Pair0,
 
 	/// Version 1 of the pair protocol.
@@ -31,7 +31,7 @@ pub enum Protocol
 	/// supports and optional _polyamorous_ mode. See the [pair
 	/// documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pair.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pair.7.html
 	Pair1,
 
 	/// Version 0 of the publisher protocol.
@@ -42,7 +42,7 @@ pub enum Protocol
 	/// they have subscribed. See the [publisher/subscriber documentation][1]
 	/// for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pub.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pub.7.html
 	Pub0,
 
 	/// Version 0 of the pull protocol.
@@ -56,7 +56,7 @@ pub enum Protocol
 	///
 	/// See the [pipeline documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_pull.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pull.7.html
 	Pull0,
 
 	/// Version 0 of the push protocol.
@@ -70,7 +70,7 @@ pub enum Protocol
 	///
 	/// See the [pipeline documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_push.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_push.7.html
 	Push0,
 
 	/// Version 0 of the reply protocol.
@@ -82,7 +82,7 @@ pub enum Protocol
 	///
 	/// See the [request/reply documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_rep.7.html
 	Rep0,
 
 	/// Version 0 of the request protocol.
@@ -94,7 +94,7 @@ pub enum Protocol
 	///
 	/// See the [request/reply documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_req.7.html
 	Req0,
 
 	/// Version 0 of the respondent protocol.
@@ -107,7 +107,7 @@ pub enum Protocol
 	///
 	/// See the [survery documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_respondent.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_respondent.7.html
 	Respondent0,
 
 	/// Version 0 of the subscriber protocol.
@@ -119,7 +119,7 @@ pub enum Protocol
 	///
 	/// See the [publisher/subscriber documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_sub.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_sub.7.html
 	Sub0,
 
 	/// Version 0 of the surveyor protocol.
@@ -132,7 +132,7 @@ pub enum Protocol
 	///
 	/// See the [survey documentation][1] for more information.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_surveyor.7.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_surveyor.7.html
 	Surveyor0,
 }
 

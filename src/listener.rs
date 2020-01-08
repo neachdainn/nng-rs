@@ -28,7 +28,7 @@ use crate::{
 /// See the [NNG documentation][1] for more information.
 ///
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_listener.5.html
 /// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Clone, Copy, Debug)]
 pub struct Listener

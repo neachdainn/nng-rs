@@ -61,7 +61,7 @@ create_option! {
 	/// * Sockets can read this option.
 	/// * Dialers and Listeners can retrieve this from their owning Socket.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng.7.html#raw_mode
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng.7.html#raw_mode
 	Raw -> bool:
 	Get s = s.getopt_bool(nng_sys::NNG_OPT_RAW as *const _ as _);
 }
@@ -273,7 +273,7 @@ create_option! {
 	///     * Respondent v0
 	/// * Dialers and Listeners can retrieve it from their owning Socket, if applicable.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_device.3.html
 	MaxTtl -> u8:
 	Get s = s.getopt_int(nng_sys::NNG_OPT_MAXTTL as *const _ as _).map(|v| v as u8);
 	Set s val = s.setopt_int(nng_sys::NNG_OPT_MAXTTL as *const _ as _, val.into());
@@ -580,7 +580,7 @@ pub mod transport
 			///     * WebSocket (Secure)
 			/// * Sockets can set this to set a default value.
 			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
+			/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_tls.7.html
 			CaFile -> String:
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CA_FILE as *const _ as _, &val);
 		}
@@ -599,7 +599,7 @@ pub mod transport
 			///     * WebSocket (Secure)
 			/// * Sockets can use this to set a default value.
 			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
+			/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_tls.7.html
 			CertKeyFile -> String:
 			Set s val = s.setopt_string(nng_sys::NNG_OPT_TLS_CERT_KEY_FILE as *const _ as _, &val);
 		}
@@ -616,7 +616,7 @@ pub mod transport
 			///     * WebSocket
 			///     * TLS
 			///
-			/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_tls.7.html
+			/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_tls.7.html
 			Verified -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_TLS_VERIFIED as *const _ as _);
 		}

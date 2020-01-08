@@ -33,7 +33,7 @@ type PipeNotifyFn = dyn Fn(Pipe, PipeEvent) + Send + Sync + 'static;
 ///
 /// See the [NNG documentation][1] for more information.
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_socket.5.html
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_socket.5.html
 #[derive(Clone, Debug)]
 pub struct Socket
 {
@@ -111,7 +111,7 @@ impl Socket
 	/// * [`Protocol`]: A protocol error occurred.
 	///
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_dial.3.html
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
 	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
@@ -153,7 +153,7 @@ impl Socket
 	/// * [`Closed`]: The socket is not open.
 	/// * [`OutOfMemory`]: Insufficient memory is available.
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listen.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_listen.3.html
 	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
 	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
@@ -192,7 +192,7 @@ impl Socket
 	/// * [`Protocol`]: A protocol error occurred.
 	///
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_dial.3.html
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
 	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused
@@ -203,7 +203,7 @@ impl Socket
 	/// [`Protocol`]: enum.Error.html#variant.Protocol
 	///
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_dial.3.html
 	pub fn dial_async(&self, url: &str) -> Result<()>
 	{
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;

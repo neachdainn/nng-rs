@@ -30,7 +30,7 @@ use crate::{
 /// See the [NNG documentation][1] for more information.
 ///
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dialer.5.html
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_dialer.5.html
 /// [`Socket::dial`]: struct.Socket.html#method.dial
 #[derive(Clone, Copy, Debug)]
 pub struct Dialer
@@ -58,7 +58,7 @@ impl Dialer
 	/// * [`Protocol`]: A protocol error occurred.
 	///
 	///
-	/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_dial.3.html
+	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_dial.3.html
 	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
 	/// [`Closed`]: enum.Error.html#variant.Closed
 	/// [`ConnectionRefused`]: enum.Error.html#variant.ConnectionRefused

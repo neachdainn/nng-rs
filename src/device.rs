@@ -33,7 +33,7 @@ use crate::{
 /// * [`InvalidInput`]: Sockets are not compatible or both are invalid.
 /// * [`OutOfMemory`]: Insufficient memory available.
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_device.3
 /// [`Closed`]: enum.Error.html#variant.Closed
 /// [`InvalidInput`]: enum.Error.html#variant.InvalidInput
 /// [`MaxTtl`]: options/enum.MaxTtl.html
@@ -73,7 +73,7 @@ pub fn forwarder(s1: RawSocket, s2: RawSocket) -> Result<()>
 /// * [`InvalidInput`]: The socket is not capable of sending messages to itself.
 /// * [`OutOfMemory`]: Insufficient memory available.
 ///
-/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_device.3
+/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_device.3
 /// [`Closed`]: enum.Error.html#variant.Closed
 /// [`InvalidInput`]: enum.Error.html#variant.InvalidInput
 /// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory

@@ -112,9 +112,9 @@
 //! Additional examples are in the `examples` directory.
 //!
 //! [1]: https://github.com/nanomsg/nng
-//! [2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
-//! [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
-//! [4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
+//! [2]: https://nanomsg.github.io/nng/man/v1.2.2/nng_inproc.7
+//! [3]: https://nanomsg.github.io/nng/man/v1.2.2/nng_req.7
+//! [4]: https://nanomsg.github.io/nng/man/v1.2.2/nng_rep.7
 //! [5]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-patch-section
 //! [6]: https://github.com/rust-lang/cargo/issues/2980
 
