@@ -40,7 +40,6 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///
 /// ```
 /// use std::time::Duration;
-/// use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 /// use nng::*;
 ///
 /// const ADDRESS: &'static str = "inproc://nng/aio/example";
@@ -83,7 +82,7 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///
 ///         // We successfully received a message.
 ///         AioResult::Recv(Ok(m)) => {
-///             let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
+///             let ms = u64::from_le_bytes(m[..].try_into().unwrap());
 ///             aio.sleep(Duration::from_millis(ms))
 ///         },
 ///
@@ -103,12 +102,9 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///     // Set up the client socket and connect to the server.
 ///     let client = Socket::new(Protocol::Req0)?;
 ///     client.dial(ADDRESS)?;
-///     // Create the message containing the number of milliseconds to sleep.
-///     let mut req = Message::new();
-///     req.write_u64::<LittleEndian>(ms).unwrap();
 ///
 ///     // Send the request to the server and wait for a response.
-///     client.send(req)?;
+///     client.send(ms.to_le_bytes())?;
 ///
 ///     // This should block for approximately `ms` milliseconds as we wait for the
 ///     // server to sleep.

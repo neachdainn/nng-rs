@@ -2,15 +2,21 @@
 //!
 //! This application simply publishes current number of subscribers every few
 //! seconds.
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-use std::{env, process, thread};
+use std::{
+    convert::TryInto,
+    env, process,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    thread,
+    time::Duration,
+};
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use nng::options::protocol::pubsub::Subscribe;
-use nng::options::Options;
-use nng::{Message, PipeEvent, Protocol, Socket};
+use nng::{
+    options::{protocol::pubsub::Subscribe, Options},
+    PipeEvent, Protocol, Socket,
+};
 
 /// Entry point of the application.
 fn main() -> Result<(), nng::Error> {
@@ -50,11 +56,8 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
 
         // Load the number of subscribers and send the value across
         let data = count.load(Ordering::Relaxed) as u64;
-        let mut msg = Message::new();
-        msg.write_u64::<LittleEndian>(data).unwrap();
-
         println!("PUBLISHER: SENDING {}", data);
-        s.send(msg)?;
+        s.send(data.to_le_bytes())?;
     }
 }
 
@@ -69,7 +72,7 @@ fn subscriber(url: &str) -> Result<(), nng::Error> {
 
     loop {
         let msg = s.recv()?;
-        let subs = msg.as_slice().read_u64::<LittleEndian>().unwrap();
+        let subs = usize::from_le_bytes(msg[..].try_into().unwrap());
         println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
     }
 }

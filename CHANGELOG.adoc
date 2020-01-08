@@ -10,6 +10,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 * Added the `tcp::BoundPort` and `websocket::Protocol` options.
 * A new `Error::ConnectionShutdown` variant.
+* Implemented `From<[u8; x]> for Message` for all arrays of length 32 or smaller.
 
 === Changed ===
 

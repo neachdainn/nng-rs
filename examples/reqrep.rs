@@ -4,11 +4,9 @@
 //! derived from the legacy nanomsg demonstration program. The program
 //! implements a simple RPC style service, which just returns the number of
 //! seconds since the Unix epoch.
-use std::time::SystemTime;
-use std::{env, process};
+use std::{convert::TryInto, env, process, time::SystemTime};
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use nng::{Message, Protocol, Socket};
+use nng::{Protocol, Socket};
 
 /// Message representing a date request
 const DATE_REQUEST: u64 = 1;
@@ -35,12 +33,11 @@ fn client(url: &str) -> Result<(), nng::Error> {
     s.dial(url)?;
 
     println!("CLIENT: SENDING DATE REQUEST");
-    let mut req = Message::new();
-    req.write_u64::<LittleEndian>(DATE_REQUEST).unwrap();
-    s.send(req)?;
+    s.send(DATE_REQUEST.to_le_bytes())?;
 
     println!("CLIENT: WAITING FOR RESPONSE");
-    let epoch = s.recv()?.as_slice().read_u64::<LittleEndian>().unwrap();
+    let msg = s.recv()?;
+    let epoch = u64::from_le_bytes(msg[..].try_into().unwrap());
 
     println!("CLIENT: UNIX EPOCH WAS {} SECONDS AGO", epoch);
 
@@ -56,7 +53,7 @@ fn server(url: &str) -> Result<(), nng::Error> {
         println!("SERVER: WAITING FOR COMMAND");
         let mut msg = s.recv()?;
 
-        let cmd = msg.as_slice().read_u64::<LittleEndian>().unwrap();
+        let cmd = u64::from_le_bytes(msg[..].try_into().unwrap());
         if cmd != DATE_REQUEST {
             println!("SERVER: UNKNOWN COMMAND");
             continue;
@@ -69,7 +66,7 @@ fn server(url: &str) -> Result<(), nng::Error> {
             .as_secs();
 
         msg.clear();
-        msg.write_u64::<LittleEndian>(rep).unwrap();
+        msg.push_back(&rep.to_le_bytes());
 
         println!("SERVER: SENDING {}", rep);
         s.send(msg)?;

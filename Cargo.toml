@@ -27,6 +27,3 @@ ffi-module = []
 [dependencies]
 nng-sys = "1.2.3-rc.1"
 log = "0.4"
-
-[dev-dependencies]
-byteorder = "1.2"
