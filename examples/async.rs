@@ -6,11 +6,12 @@
 //! The protocol is simple: the client sends a request with the number of
 //! milliseconds to wait, the server waits that long and sends back an empty
 //! reply.
-use std::time::{Duration, Instant};
-use std::{env, process, thread};
-
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use nng::{Aio, AioResult, Context, Message, Protocol, Socket};
+use std::{
+    convert::TryInto,
+    env, process, thread,
+    time::{Duration, Instant},
+};
 
 /// Number of outstanding requests that we can handle at a given time.
 ///
@@ -43,11 +44,8 @@ fn client(url: &str, ms: u64) -> Result<(), nng::Error> {
     let s = Socket::new(Protocol::Req0)?;
     s.dial(url)?;
 
-    let mut req = Message::new()?;
-    req.write_u64::<LittleEndian>(ms).unwrap();
-
     let start = Instant::now();
-    s.send(req)?;
+    s.send(ms.to_le_bytes())?;
     s.recv()?;
 
     let dur = Instant::now().duration_since(start);
@@ -96,14 +94,13 @@ fn worker_callback(aio: Aio, ctx: &Context, res: AioResult) {
 
         // We successfully received a message.
         AioResult::Recv(Ok(m)) => {
-            let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
+            let ms = u64::from_le_bytes(m[..].try_into().unwrap());
             aio.sleep(Duration::from_millis(ms)).unwrap();
         }
 
         // We successfully slept.
         AioResult::Sleep(Ok(_)) => {
-            let msg = Message::new().unwrap();
-            ctx.send(&aio, msg).unwrap();
+            ctx.send(&aio, Message::new()).unwrap();
         }
 
         // Anything else is an error and we will just panic.

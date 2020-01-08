@@ -1,22 +1,3 @@
-//! Nanomsg-next-generation listeners.
-//!
-//! A listener is the object that is responsible for accepting incoming
-//! connections. A given listener can have many connections to multiple clients
-//! simultaneously.
-//!  Directly creating a listener object is only necessary when one wishes to
-//! configure the listener before opening it or if one wants to close the
-//! connections without closing the socket. Otherwise, `Socket::listen` can be
-//! used.
-//!
-//! Note that the client/server relationship described by a dialer/listener is
-//! completely orthogonal to any similar relationship in the protocols. For
-//! example, a _rep_ socket may use a dialer to connect to a listener on a
-//! _req_ socket. This orthogonality can lead to innovative solutions to
-//! otherwise challenging communications problems.
-//!
-//! See the [nng documentation][1] for more information.
-//!
-//! [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
 use std::{
 	cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
 	ffi::CString,
@@ -29,11 +10,26 @@ use crate::{
 	socket::Socket,
 };
 
-/// A constructed and running listener.
+/// Active listener for incoming connections.
 ///
-/// This listener has already been started on the socket and will continue
-/// serving the connection until either it is explicitly close or the owning
-/// socket is closed.
+/// A `Listener` is the object that is responsible for accepting incoming
+/// connections. A given `Listener` can have many connections to multiple clients
+/// simultaneously. Directly creating a listener object is only necessary when one wishes to
+/// configure the listener before opening it or if one wants to close the
+/// connections without closing the socket. Otherwise, [`Socket::listen`] can be
+/// used.
+///
+/// Note that the client/server relationship described by a dialer/listener is
+/// completely orthogonal to any similar relationship in the protocols. For
+/// example, a _rep_ socket may use a dialer to connect to a listener on a
+/// _req_ socket. This orthogonality can lead to innovative solutions to
+/// otherwise challenging communications problems.
+///
+/// See the [NNG documentation][1] for more information.
+///
+///
+/// [1]: https://nanomsg.github.io/nng/man/v1.1.0/nng_listener.5.html
+/// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Clone, Copy, Debug)]
 pub struct Listener
 {
@@ -45,9 +41,23 @@ impl Listener
 	/// Creates a new listener object associated with the given socket.
 	///
 	/// Note that this will immediately start the listener so no configuration
-	/// will be possible. Use `ListenerOptions` to change the listener options
+	/// will be possible. Use [`ListenerBuilder`] to change the listener options
 	/// before starting it.
-	pub fn new(socket: &Socket, url: &str, nonblocking: bool) -> Result<Self>
+	///
+	/// # Errors
+	///
+	/// * [`AddressInUse`]: The address specified by _url_ is already in use.
+	/// * [`Addressinvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	///
+	///
+	/// [`AddressInUse`]: enum.Error.html#variant.AddressInUse
+	/// [`Addressinvalid`]: enum.Error.html#variant.Addressinvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`ListenerBuilder`]: struct.ListenerBuilder.html
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
+	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
 		// creating the listener will far outweigh the cost of allocating a
@@ -55,10 +65,9 @@ impl Listener
 		// work with.
 		let addr = CString::new(url).map_err(|_| Error::AddressInvalid)?;
 		let mut handle = nng_sys::nng_listener::NNG_LISTENER_INITIALIZER;
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
 
 		let rv = unsafe {
-			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, flags as i32)
+			nng_sys::nng_listen(socket.handle(), addr.as_ptr(), &mut handle as *mut _, 0)
 		};
 
 		rv2res!(rv, Listener { handle })
@@ -66,7 +75,7 @@ impl Listener
 
 	/// Closes the listener.
 	///
-	/// This also closes any `Pipe` objects that have been created by the
+	/// This also closes any [`Pipe`] objects that have been created by the
 	/// listener. Once this function returns, the listener has been closed and
 	/// all of its resources have been deallocated. Therefore, any attempt to
 	/// utilize the listener (with this or any other handle) will result in an
@@ -74,6 +83,9 @@ impl Listener
 	///
 	/// Listeners are implicitly closed when the socket they are associated with
 	/// is closed. Listeners are _not_ closed when all handles are dropped.
+	///
+	///
+	/// [`Pipe`]: struct.Pipe.html
 	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED
@@ -86,7 +98,7 @@ impl Listener
 		);
 	}
 
-	/// Create a new Listener handle from a libnng handle.
+	/// Create a new `Listener` handle from a NNG handle.
 	///
 	/// This function will panic if the handle is not valid.
 	pub(crate) fn from_nng_sys(handle: nng_sys::nng_listener) -> Self
@@ -146,21 +158,21 @@ impl Hash for Listener
 expose_options!{
 	Listener :: handle -> nng_sys::nng_listener;
 
-	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
-	GETOPT_INT = nng_sys::nng_listener_getopt_int;
-	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_listener_get_bool;
+	GETOPT_INT = nng_sys::nng_listener_get_int;
+	GETOPT_MS = nng_sys::nng_listener_get_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_get_addr;
+	GETOPT_STRING = nng_sys::nng_listener_get_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_get_uint64;
 
-	SETOPT = nng_sys::nng_listener_setopt;
-	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
-	SETOPT_INT = nng_sys::nng_listener_setopt_int;
-	SETOPT_MS = nng_sys::nng_listener_setopt_ms;
-	SETOPT_PTR = nng_sys::nng_listener_setopt_ptr;
-	SETOPT_SIZE = nng_sys::nng_listener_setopt_size;
-	SETOPT_STRING = nng_sys::nng_listener_setopt_string;
+	SETOPT = nng_sys::nng_listener_set;
+	SETOPT_BOOL = nng_sys::nng_listener_set_bool;
+	SETOPT_INT = nng_sys::nng_listener_set_int;
+	SETOPT_MS = nng_sys::nng_listener_set_ms;
+	SETOPT_PTR = nng_sys::nng_listener_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_listener_set_size;
+	SETOPT_STRING = nng_sys::nng_listener_set_string;
 
 	Gets -> [LocalAddr, Raw, RecvBufferSize,
 	         RecvTimeout, SendBufferSize, Url,
@@ -168,7 +180,9 @@ expose_options!{
 	         protocol::reqrep::ResendTime,
 	         protocol::survey::SurveyTime,
 	         transport::tcp::NoDelay,
-	         transport::tcp::KeepAlive];
+	         transport::tcp::KeepAlive,
+	         transport::tcp::BoundPort,
+	         transport::websocket::Protocol];
 	Sets -> [];
 }
 
@@ -176,20 +190,36 @@ expose_options!{
 ///
 /// This object allows for the configuration of listeners before they are
 /// started. If it is not necessary to change listener settings or to close the
-/// listener without closing the socket, then `Socket::listen` provides a
-/// simpler interface and does not require tracking an object.
+/// listener without closing the socket, then [`Socket::listen`] provides a
+/// simpler interface.
+///
+///
+/// [`Socket::listen`]: struct.Socket.html#method.listen
 #[derive(Debug)]
-pub struct ListenerOptions
+pub struct ListenerBuilder
 {
 	/// The underlying listener object that we are configuring
 	handle: nng_sys::nng_listener,
 }
-impl ListenerOptions
+impl ListenerBuilder
 {
-	/// Creates a new listener object associated with the given socket.
+	/// Creates a new [`Listener`] object associated with the given socket.
 	///
-	/// Note that this does not start the listener. In order to start the
-	/// listener, this object must be consumed by `ListenerOptions::start`.
+	/// Note that this does not start the [`Listener`] In order to start the
+	/// listener, this object must be consumed by [`ListenerBuilder::start`].
+	///
+	/// # Errors
+	///
+	/// * [`AddressInvalid`]: An invalid _url_ was specified.
+	/// * [`Closed`]: The socket is not open.
+	/// * [`OutOfMemory`]: Insufficient memory.
+	///
+	///
+	/// [`AddressInvalid`]: enum.Error.html#variant.AddressInvalid
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`Listener`]: struct.Listener.html
+	/// [`ListenerBuilder::start`]: struct.ListenerBuilder.html#method.start
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket, url: &str) -> Result<Self>
 	{
 		// We take a Rust string instead of a c-string because the cost of
@@ -202,30 +232,29 @@ impl ListenerOptions
 			nng_sys::nng_listener_create(&mut handle as *mut _, socket.handle(), addr.as_ptr())
 		};
 
-		rv2res!(rv, ListenerOptions { handle })
+		rv2res!(rv, ListenerBuilder { handle })
 	}
 
-	/// Cause the listener to start listening on the address with which it was
+	/// Cause the [`Listener`] to start listening on the address with which it was
 	/// created.
 	///
-	/// Normally, the act of "binding" to the address indicated by _url_ is
-	/// done synchronously, including any necessary name resolution. As a
-	/// result, a failure, such as if the address is already in use, will be
-	/// returned immediately. However, if `nonblocking` is specified then this
-	/// is done asynchronously; furthermore any failure to bind will be
-	/// periodically reattempted in the background.
-	///
-	/// The returned handle controls the life of the listener. If it is
-	/// dropped, the listener is shut down and no more messages will be
+	/// The returned handle controls the life of the [`Listener`]. If it is
+	/// dropped, the [`Listener`] is shut down and no more messages will be
 	/// received on it.
-	pub fn start(self, nonblocking: bool) -> std::result::Result<Listener, (Self, Error)>
+	///
+	/// # Errors
+	///
+	/// * [`Closed`]: The socket is not open.
+	///
+	///
+	/// [`Closed`]: enum.Error.html#variant.Closed
+	/// [`Listener`]: struct.Listener.html
+	pub fn start(self) -> std::result::Result<Listener, (Self, Error)>
 	{
-		let flags = if nonblocking { nng_sys::NNG_FLAG_NONBLOCK } else { 0 };
-
 		// If there is an error starting the listener, we don't want to consume
 		// it. Instead, we'll return it to the user and they can decide what to
 		// do.
-		let rv = unsafe { nng_sys::nng_listener_start(self.handle, flags as i32) };
+		let rv = unsafe { nng_sys::nng_listener_start(self.handle, 0) };
 
 		if let Some(e) = NonZeroU32::new(rv as u32) {
 			Err((self, Error::from(e)))
@@ -239,7 +268,7 @@ impl ListenerOptions
 }
 
 #[cfg(feature = "ffi-module")]
-impl ListenerOptions
+impl ListenerBuilder
 {
 	/// Returns the underlying `nng_listener` object.
 	pub fn nng_listener(&self) -> nng_sys::nng_listener { self.handle }
@@ -247,15 +276,15 @@ impl ListenerOptions
 
 #[rustfmt::skip]
 expose_options!{
-	ListenerOptions :: handle -> nng_sys::nng_listener;
+	ListenerBuilder :: handle -> nng_sys::nng_listener;
 
-	GETOPT_BOOL = nng_sys::nng_listener_getopt_bool;
-	GETOPT_INT = nng_sys::nng_listener_getopt_int;
-	GETOPT_MS = nng_sys::nng_listener_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_listener_getopt_size;
-	GETOPT_SOCKADDR = nng_sys::nng_listener_getopt_sockaddr;
-	GETOPT_STRING = nng_sys::nng_listener_getopt_string;
-	GETOPT_UINT64 = nng_sys::nng_listener_getopt_uint64;
+	GETOPT_BOOL = nng_sys::nng_listener_get_bool;
+	GETOPT_INT = nng_sys::nng_listener_get_int;
+	GETOPT_MS = nng_sys::nng_listener_get_ms;
+	GETOPT_SIZE = nng_sys::nng_listener_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_listener_get_addr;
+	GETOPT_STRING = nng_sys::nng_listener_get_string;
+	GETOPT_UINT64 = nng_sys::nng_listener_get_uint64;
 
 	SETOPT = nng_sys::nng_listener_setopt;
 	SETOPT_BOOL = nng_sys::nng_listener_setopt_bool;
@@ -271,12 +300,14 @@ expose_options!{
 	         protocol::reqrep::ResendTime,
 	         protocol::survey::SurveyTime,
 	         transport::tcp::NoDelay,
-	         transport::tcp::KeepAlive];
+	         transport::tcp::KeepAlive,
+	         transport::websocket::Protocol];
 	Sets -> [RecvMaxSize, transport::tcp::NoDelay,
 	         transport::tcp::KeepAlive,
 	         transport::tls::CaFile,
 	         transport::tls::CertKeyFile,
-	         transport::websocket::ResponseHeaders];
+	         transport::websocket::ResponseHeaders,
+	         transport::websocket::Protocol];
 }
 
 #[cfg(unix)]
@@ -285,10 +316,10 @@ mod unix_impls
 	use super::*;
 	use crate::options::transport::ipc;
 
-	impl crate::options::SetOpt<ipc::Permissions> for ListenerOptions {}
+	impl crate::options::SetOpt<ipc::Permissions> for ListenerBuilder {}
 }
 
-impl Drop for ListenerOptions
+impl Drop for ListenerBuilder
 {
 	fn drop(&mut self)
 	{

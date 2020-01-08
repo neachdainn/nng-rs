@@ -2,7 +2,7 @@ use std::{error, fmt, io, num::NonZeroU32};
 
 use crate::message::Message;
 
-/// Specialized `Result` type for use with nng.
+/// Specialized `Result` type for use with NNG.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Specialized `Result` type for use with send operations.
@@ -106,6 +106,9 @@ pub enum Error
 	/// Incorrect type used for option
 	BadType,
 
+	/// Connection shut down.
+	ConnectionShutdown,
+
 	/// An internal error occurred.
 	Internal,
 
@@ -162,6 +165,7 @@ impl From<NonZeroU32> for Error
 			nng_sys::NNG_ENOARG       => Error::NoArgument,
 			nng_sys::NNG_EAMBIGUOUS   => Error::Ambiguous,
 			nng_sys::NNG_EBADTYPE     => Error::BadType,
+			nng_sys::NNG_ECONNSHUT    => Error::ConnectionShutdown,
 			nng_sys::NNG_EINTERNAL    => Error::Internal,
 			c if c & nng_sys::NNG_ESYSERR != 0 => Error::SystemErr(c & !nng_sys::NNG_ESYSERR),
 			c if c & nng_sys::NNG_ETRANERR != 0 => Error::TransportErr(c & !nng_sys::NNG_ETRANERR),
@@ -196,6 +200,7 @@ impl From<Error> for io::Error
 				Error::ConnectionReset => io::ErrorKind::ConnectionReset,
 				Error::ResourceExists => io::ErrorKind::AlreadyExists,
 				Error::BadType => io::ErrorKind::InvalidData,
+				Error::ConnectionShutdown => io::ErrorKind::NotConnected,
 				_ => io::ErrorKind::Other,
 			};
 
@@ -221,40 +226,41 @@ impl fmt::Display for Error
 		// to produce the output message for us. I am fairly certain that
 		// creating one is not a heavy operation, so this should be fine.
 		match *self {
-			Error::Interrupted       => write!(f, "Interrupted"),
-			Error::OutOfMemory       => write!(f, "Out of memory"),
-			Error::InvalidInput      => write!(f, "Invalid argument"),
-			Error::Busy              => write!(f, "Resource busy"),
-			Error::TimedOut          => write!(f, "Timed out"),
-			Error::ConnectionRefused => write!(f, "Connection refused"),
-			Error::Closed            => write!(f, "Object closed"),
-			Error::TryAgain          => write!(f, "Try again"),
-			Error::NotSupported      => write!(f, "Not supported"),
-			Error::AddressInUse      => write!(f, "Address in use"),
-			Error::IncorrectState    => write!(f, "Incorrect state"),
-			Error::EntryNotFound     => write!(f, "Entry not found"),
-			Error::Protocol          => write!(f, "Protocol error"),
-			Error::DestUnreachable   => write!(f, "Destination unreachable"),
-			Error::AddressInvalid    => write!(f, "Address invalid"),
-			Error::PermissionDenied  => write!(f, "Permission denied"),
-			Error::MessageTooLarge   => write!(f, "Message too large"),
-			Error::ConnectionReset   => write!(f, "Connection reset"),
-			Error::ConnectionAborted => write!(f, "Connection aborted"),
-			Error::Canceled          => write!(f, "Operation canceled"),
-			Error::OutOfFiles        => write!(f, "Out of files"),
-			Error::OutOfSpace        => write!(f, "Out of space"),
-			Error::ResourceExists    => write!(f, "Resource already exists"),
-			Error::ReadOnly          => write!(f, "Read only resource"),
-			Error::WriteOnly         => write!(f, "Write only resource"),
-			Error::Crypto            => write!(f, "Cryptographic error"),
-			Error::PeerAuth          => write!(f, "Peer could not be authenticated"),
-			Error::NoArgument        => write!(f, "Option requires argument"),
-			Error::Ambiguous         => write!(f, "Ambiguous option"),
-			Error::BadType           => write!(f, "Incorrect type"),
-			Error::Internal          => write!(f, "Internal error detected"),
-			Error::SystemErr(c)      => write!(f, "{}", io::Error::from_raw_os_error(c as i32)),
-			Error::TransportErr(c)   => write!(f, "Transport error #{}", c),
-			Error::Unknown(c)        => write!(f, "Unknown error code #{}", c),
+			Error::Interrupted        => write!(f, "Interrupted"),
+			Error::OutOfMemory        => write!(f, "Out of memory"),
+			Error::InvalidInput       => write!(f, "Invalid argument"),
+			Error::Busy               => write!(f, "Resource busy"),
+			Error::TimedOut           => write!(f, "Timed out"),
+			Error::ConnectionRefused  => write!(f, "Connection refused"),
+			Error::Closed             => write!(f, "Object closed"),
+			Error::TryAgain           => write!(f, "Try again"),
+			Error::NotSupported       => write!(f, "Not supported"),
+			Error::AddressInUse       => write!(f, "Address in use"),
+			Error::IncorrectState     => write!(f, "Incorrect state"),
+			Error::EntryNotFound      => write!(f, "Entry not found"),
+			Error::Protocol           => write!(f, "Protocol error"),
+			Error::DestUnreachable    => write!(f, "Destination unreachable"),
+			Error::AddressInvalid     => write!(f, "Address invalid"),
+			Error::PermissionDenied   => write!(f, "Permission denied"),
+			Error::MessageTooLarge    => write!(f, "Message too large"),
+			Error::ConnectionReset    => write!(f, "Connection reset"),
+			Error::ConnectionAborted  => write!(f, "Connection aborted"),
+			Error::Canceled           => write!(f, "Operation canceled"),
+			Error::OutOfFiles         => write!(f, "Out of files"),
+			Error::OutOfSpace         => write!(f, "Out of space"),
+			Error::ResourceExists     => write!(f, "Resource already exists"),
+			Error::ReadOnly           => write!(f, "Read only resource"),
+			Error::WriteOnly          => write!(f, "Write only resource"),
+			Error::Crypto             => write!(f, "Cryptographic error"),
+			Error::PeerAuth           => write!(f, "Peer could not be authenticated"),
+			Error::NoArgument         => write!(f, "Option requires argument"),
+			Error::Ambiguous          => write!(f, "Ambiguous option"),
+			Error::BadType            => write!(f, "Incorrect type"),
+			Error::ConnectionShutdown => write!(f, "Connection shutdown"),
+			Error::Internal           => write!(f, "Internal error detected"),
+			Error::SystemErr(c)       => write!(f, "{}", io::Error::from_raw_os_error(c as i32)),
+			Error::TransportErr(c)    => write!(f, "Transport error #{}", c),
+			Error::Unknown(c)         => write!(f, "Unknown error code #{}", c),
 		}
 	}
 }

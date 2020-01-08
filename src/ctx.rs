@@ -22,8 +22,11 @@ use crate::{
 ///
 /// ## Examples
 ///
-/// See the documentation of the `Aio` type for examples on how to use Socket
-/// Contexts.
+/// See the documentation of the [`Aio`] type for examples on how to use socket
+/// contexts.
+///
+///
+/// [`Aio`]: struct.Aio.html
 #[derive(Clone, Debug)]
 pub struct Context
 {
@@ -37,6 +40,14 @@ pub struct Context
 impl Context
 {
 	/// Creates a new socket context.
+	///
+	/// # Errors
+	///
+	/// * [`NotSupported`]: The protocol does not support separate contexts or the socket was opened in raw mode.
+	/// * [`OutOfMemory`]: Insufficient memory is available.
+	///
+	/// [`NotSupported`]: enum.Error.html#variant.NotSupported
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new(socket: &Socket) -> Result<Context>
 	{
 		let mut ctx = nng_sys::nng_ctx::NNG_CTX_INITIALIZER;
@@ -45,22 +56,28 @@ impl Context
 		rv2res!(rv, Context { inner: Arc::new(Inner { ctx }) })
 	}
 
-	/// Send a message using the context asynchronously.
+	/// Start a send operation on the given [`Aio`] and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `ErrorKind::TryAgain`
-	/// and return the message to the caller.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`Aio`]: struct.Aio.html
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn send<M: Into<Message>>(&self, aio: &Aio, msg: M) -> SendResult<()>
 	{
 		let msg = msg.into();
 		aio.send_ctx(self, msg)
 	}
 
-	/// Receive a message using the context asynchronously.
+	/// Start a receive operation using the given [`Aio`] and return immediately.
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress that is _not_ a receive operation, this function
-	/// will return `ErrorKind::TryAgain`.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`Aio`]: struct.Aio.html
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
 	pub fn recv(&self, aio: &Aio) -> Result<()> { aio.recv_ctx(self) }
 
 	/// Closes the context.
@@ -126,21 +143,21 @@ impl Hash for Context
 expose_options!{
 	Context :: inner.ctx -> nng_sys::nng_ctx;
 
-	GETOPT_BOOL = nng_sys::nng_ctx_getopt_bool;
-	GETOPT_INT = nng_sys::nng_ctx_getopt_int;
-	GETOPT_MS = nng_sys::nng_ctx_getopt_ms;
-	GETOPT_SIZE = nng_sys::nng_ctx_getopt_size;
-	GETOPT_SOCKADDR = crate::util::fake_opt;
-	GETOPT_STRING = crate::util::fake_opt;
-	GETOPT_UINT64 = crate::util::fake_opt;
+	GETOPT_BOOL = nng_sys::nng_ctx_get_bool;
+	GETOPT_INT = nng_sys::nng_ctx_get_int;
+	GETOPT_MS = nng_sys::nng_ctx_get_ms;
+	GETOPT_SIZE = nng_sys::nng_ctx_get_size;
+	GETOPT_SOCKADDR = nng_sys::nng_ctx_get_addr;
+	GETOPT_STRING = nng_sys::nng_ctx_get_string;
+	GETOPT_UINT64 = nng_sys::nng_ctx_get_uint64;
 
-	SETOPT = nng_sys::nng_ctx_setopt;
-	SETOPT_BOOL = nng_sys::nng_ctx_setopt_bool;
-	SETOPT_INT = nng_sys::nng_ctx_setopt_int;
-	SETOPT_MS = nng_sys::nng_ctx_setopt_ms;
-	SETOPT_PTR = crate::util::fake_opt;
-	SETOPT_SIZE = nng_sys::nng_ctx_setopt_size;
-	SETOPT_STRING = crate::util::fake_opt;
+	SETOPT = nng_sys::nng_ctx_set;
+	SETOPT_BOOL = nng_sys::nng_ctx_set_bool;
+	SETOPT_INT = nng_sys::nng_ctx_set_int;
+	SETOPT_MS = nng_sys::nng_ctx_set_ms;
+	SETOPT_PTR = nng_sys::nng_ctx_set_ptr;
+	SETOPT_SIZE = nng_sys::nng_ctx_set_size;
+	SETOPT_STRING = nng_sys::nng_ctx_set_string;
 
 	Gets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];
 	Sets -> [protocol::reqrep::ResendTime, protocol::survey::SurveyTime];

@@ -1,4 +1,3 @@
-//! Asynchonous I/O operaions.
 use std::{
 	hash::{Hash, Hasher},
 	num::NonZeroU32,
@@ -40,8 +39,7 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 /// before responding:
 ///
 /// ```
-/// use std::time::Duration;
-/// use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+/// use std::{convert::TryInto, time::Duration};
 /// use nng::*;
 ///
 /// const ADDRESS: &'static str = "inproc://nng/aio/example";
@@ -84,14 +82,14 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///
 ///         // We successfully received a message.
 ///         AioResult::Recv(Ok(m)) => {
-///             let ms = m.as_slice().read_u64::<LittleEndian>().unwrap();
+///             let ms = u64::from_le_bytes(m[..].try_into().unwrap());
 ///             aio.sleep(Duration::from_millis(ms))
 ///         },
 ///
 ///         // We successfully slept.
 ///         AioResult::Sleep(Ok(_)) => {
-///             // We could have hung on to the request `Message` to avoid an
-///             let _ = ctx.send(aio, Message::new()?)?;
+///             // We could have hung on to the request `Message` to avoid an allocation
+///             let _ = ctx.send(aio, Message::new())?;
 ///             Ok(())
 ///         },
 ///
@@ -104,12 +102,9 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 ///     // Set up the client socket and connect to the server.
 ///     let client = Socket::new(Protocol::Req0)?;
 ///     client.dial(ADDRESS)?;
-///     // Create the message containing the number of milliseconds to sleep.
-///     let mut req = Message::new()?;
-///     req.write_u64::<LittleEndian>(ms).unwrap();
 ///
 ///     // Send the request to the server and wait for a response.
-///     client.send(req)?;
+///     client.send(ms.to_le_bytes())?;
 ///
 ///     // This should block for approximately `ms` milliseconds as we wait for the
 ///     // server to sleep.
@@ -135,7 +130,11 @@ impl Aio
 	/// successful or not. It is possible that the callback will be entered
 	/// multiple times simultaneously.
 	///
-	/// ## Panicking
+	/// # Errors
+	///
+	/// * [`OutOfMemory`]: Insufficient memory available.
+	///
+	/// # Panicking
 	///
 	/// If the callback function panics, the program will log the panic if
 	/// possible and then abort. Future Rustc versions will likely do the
@@ -143,6 +142,8 @@ impl Aio
 	/// produce the abort in order to keep things consistent. As such, the user
 	/// is responsible for either having a callback that never panics or
 	/// catching and handling the panic within the callback.
+	///
+	/// [`OutOfMemory`]: enum.Error.html#variant.OutOfMemory
 	pub fn new<F>(callback: F) -> Result<Self>
 	where
 		F: Fn(Aio, AioResult) + Sync + Send + 'static,
@@ -239,14 +240,19 @@ impl Aio
 	///
 	/// This causes a timer to be started when the operation is actually
 	/// started. If the timer expires before the operation is completed, then it
-	/// is aborted with `Error::TimedOut`.
+	/// is aborted with [`TimedOut`].
 	///
 	/// As most operations involve some context switching, it is usually a good
 	/// idea to allow a least a few tens of milliseconds before timing them out
-	/// - a too small timeout might not allow the operation to properly begin
+	/// as a too small timeout might not allow the operation to properly begin
 	/// before giving up!
 	///
-	/// It is only valid to try and set this when no operations are active.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` currently has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn set_timeout(&self, dur: Option<Duration>) -> Result<()>
 	{
 		// We need to check that no operations are happening and then prevent them from
@@ -268,20 +274,23 @@ impl Aio
 			Ok(())
 		}
 		else {
-			// Should this be `Error::TryAgain`?
 			Err(Error::IncorrectState)
 		}
 	}
 
-	/// Performs and asynchronous sleep operation.
+	/// Begins a sleep operation on the `Aio` and returns immediately.
 	///
 	/// If the sleep finishes completely, it will never return an error. If a
 	/// timeout has been set and it is shorter than the duration of the sleep
 	/// operation, the sleep operation will end early with
-	/// `Error::TimedOut`.
+	/// [`TimedOut`].
 	///
-	/// This function will return immediately. If there is already an I/O
-	/// operation in progress, this function will return `Error::TryAgain`.
+	/// # Errors
+	///
+	/// * [`IncorrectState`]: The `Aio` already has a running operation.
+	///
+	/// [`IncorrectState`]: enum.Error.html#variant.IncorrectState
+	/// [`TimedOut`]: enum.Error.html#variant.TimedOut
 	pub fn sleep(&self, dur: Duration) -> Result<()>
 	{
 		let sleeping = State::Sleeping as usize;
@@ -298,7 +307,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 
@@ -341,7 +350,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err((msg, Error::TryAgain))
+			Err((msg, Error::IncorrectState))
 		}
 	}
 
@@ -360,7 +369,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 
@@ -382,7 +391,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err((msg, Error::TryAgain))
+			Err((msg, Error::IncorrectState))
 		}
 	}
 
@@ -401,7 +410,7 @@ impl Aio
 			Ok(())
 		}
 		else {
-			Err(Error::TryAgain)
+			Err(Error::IncorrectState)
 		}
 	}
 
@@ -436,10 +445,23 @@ impl Aio
 	/// in any way other than through the wrapper, then the wrapper will need to
 	/// have its state updated to match. Failing to do so and then using the
 	/// wrapper can cause segfaults.
+	///
+	/// # Safety
+	///
+	/// Because the underlying `nng_aio` object does not track whether or not it owns an `nng_msg`,
+	/// the Rust `Aio` type utilizes a state variable to keep track of that information. This
+	/// function is marked as `unsafe` as it provides a way for the validity of the `nng_msg`
+	/// pointer to change without updating the tracking variable. See [`Aio::set_state`].
+	///
+	///
+	/// [`Aio::set_state`]: struct.Aio.html#method.set_state
 	// We don't expose a `from_nng_aio` function because we have a strict
 	// requirement on the callback function. This type fundamentally will not work
 	// without our wrapper around the callback.
-	pub fn nng_aio(&self) -> *mut nng_sys::nng_aio { self.inner.handle.load(Ordering::Relaxed) }
+	pub unsafe fn nng_aio(&self) -> *mut nng_sys::nng_aio
+	{
+		self.inner.handle.load(Ordering::Relaxed)
+	}
 
 	/// Retrieves the current state of the wrapper.
 	pub fn state(&self, ordering: Ordering) -> State { self.inner.state.load(ordering).into() }
@@ -448,6 +470,12 @@ impl Aio
 	///
 	/// If the provided state does not actually match the state of the `nng_aio`
 	/// object, this can cause segfaults.
+	///
+	/// # Safety
+	///
+	/// The provided state must actually match the state of the Rust side `Aio` object. That
+	/// information is used to track whether or not the `nng_aio` contains a valid message pointer
+	/// and any inconsistency might result in issues .
 	pub unsafe fn set_state(&self, state: State, ordering: Ordering)
 	{
 		self.inner.state.store(state as usize, ordering)
@@ -524,7 +552,10 @@ impl Drop for Inner
 	}
 }
 
-/// The result of an AIO operation.
+/// The result of an [`Aio`] operation.
+///
+///
+/// [`Aio`]: struct.Aio.html
 // There are no "Inactive" results as I don't think there is a valid way to get any type of callback
 // trigger when there are no operations running. All of the "user forced" errors, such as
 // cancellation or timeouts, don't happen if there are no running operations. If there are no

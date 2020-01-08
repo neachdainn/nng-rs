@@ -20,7 +20,7 @@
 //!
 //! ### Rust Version Requirements
 //!
-//! The current version requires **Rustc v1.31 or greater**. In general, this
+//! The current version requires **Rustc v1.36 or greater**. In general, this
 //! crate should always be able to compile with the Rustc version available on
 //! the oldest Ubuntu LTS release. Any change that requires a newer Rustc
 //! version will always be considered a breaking change and this crate's version
@@ -59,7 +59,7 @@
 //! ### Examples
 //!
 //! The following example uses the [intra-process][2] transport to set up a
-//! [request][3]/[reply][4] socket pair. The "client" sends a String to the
+//! [request][3]/[reply][4] socket pair. The "client" sends a string to the
 //! "server" which responds with a nice phrase.
 //!
 //! ```
@@ -97,7 +97,7 @@
 //!     assert_eq!(&msg[..], b"Ferris");
 //!
 //!     // Reuse the message to be more efficient.
-//!     msg.push_front(b"Hello, ")?;
+//!     msg.push_front(b"Hello, ");
 //!
 //!     server.send(msg)?;
 //!     Ok(())
@@ -115,6 +115,8 @@
 //! [2]: https://nanomsg.github.io/nng/man/v1.1.0/nng_inproc.7
 //! [3]: https://nanomsg.github.io/nng/man/v1.1.0/nng_req.7
 //! [4]: https://nanomsg.github.io/nng/man/v1.1.0/nng_rep.7
+//! [5]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-patch-section
+//! [6]: https://github.com/rust-lang/cargo/issues/2980
 
 // The following lints are of critical importance.
 #![forbid(improper_ctypes)]
@@ -135,6 +137,8 @@
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unimplemented)]
 #![warn(clippy::use_debug)]
+// We allow this lint in order to develop against nightly Clippy but CI against stable Clippy
+#![warn(clippy::unknown_clippy_lints)]
 // I would like to be able to keep these on, but due to the nature of the crate it just isn't
 // feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
@@ -149,6 +153,7 @@
 #![allow(clippy::use_self)]
 #![allow(clippy::replace_consts)]
 #![allow(clippy::if_not_else)]
+#![allow(clippy::must_use_candidate)]
 
 #[macro_use]
 mod util;
@@ -172,9 +177,9 @@ pub use crate::{
 	aio::{Aio, AioResult},
 	ctx::Context,
 	device::{forwarder, reflector},
-	dialer::{Dialer, DialerOptions},
+	dialer::{Dialer, DialerBuilder},
 	error::{Error, Result},
-	listener::{Listener, ListenerOptions},
+	listener::{Listener, ListenerBuilder},
 	message::{Header, Message},
 	pipe::{Pipe, PipeEvent},
 	protocol::Protocol,

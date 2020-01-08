@@ -1,4 +1,4 @@
-//! Options available to configure `nng` constructs.
+//! Options available to configure NNG constructs.
 //!
 //! Many of the options are transport or protocol specific. Additionally, even
 //! though the Socket does not have a specific transport, it is able to accept
@@ -42,6 +42,7 @@ pub(crate) mod private;
 pub trait Options: private::HasOpts
 {
 	/// Reads the specified option from the object.
+	#[allow(clippy::missing_errors_doc)]
 	fn get_opt<T: private::OptOps>(&self) -> Result<T::OptType>
 	where
 		Self: GetOpt<T>,
@@ -50,6 +51,7 @@ pub trait Options: private::HasOpts
 	}
 
 	/// Writes the specified option to the object.
+	#[allow(clippy::missing_errors_doc)]
 	fn set_opt<T: private::OptOps>(&self, val: T::OptType) -> Result<()>
 	where
 		Self: SetOpt<T>,
@@ -59,19 +61,19 @@ pub trait Options: private::HasOpts
 }
 impl<T: private::HasOpts> Options for T {}
 
-/// Marks the type as an `nng` option.
+/// Marks the type as an NNG option.
 pub trait Opt
 {
 	/// The type that the option read and writes.
 	type OptType;
 }
 
-/// Marks that a type can get the specific `nng` option.
+/// Marks that a type can get the specific NNG option.
 pub trait GetOpt<T: private::OptOps>: private::HasOpts
 {
 }
 
-/// Marks that a type can set the specific `nng` option.
+/// Marks that a type can set the specific NNG option.
 pub trait SetOpt<T: private::OptOps>: private::HasOpts
 {
 }

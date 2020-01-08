@@ -34,8 +34,7 @@ format:
     - master
     - merge_requests
 
-# Make sure that we're listening to Clippy. Use nightly so we get the latest
-# lints even if we're not updating the test version.
+# We can't use the nightly image for Clippy since nightly sometimes doesn't have it.
 clippy:
   stage: analysis
   script:
@@ -49,7 +48,7 @@ clippy:
 
 # Test the project against the minimum Rust version to make sure we don't raise it
 minimum-rust-version:
-  image: "rust:1.31-slim"
+  image: "rust:1.36-slim"
   stage: test
   script:
     - rustc --version
