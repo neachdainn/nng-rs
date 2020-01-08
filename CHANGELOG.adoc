@@ -8,6 +8,24 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 
 === Added ===
 
+=== Changed ===
+
+=== Deprecated ===
+
+=== Removed ===
+
+=== Fixed ===
+
+=== Security ===
+
+//------------------------------------------------------------------------------
+// Past Releases
+//------------------------------------------------------------------------------
+
+== [nng-rs v1.0.0-rc.1] - 2020-01-07 ==
+
+=== Added ===
+
 * Added the `tcp::BoundPort` and `websocket::Protocol` options.
 * A new `Error::ConnectionShutdown` variant.
 * Implemented `From<[u8; x]> for Message` for all arrays of length 32 or smaller.
@@ -27,14 +45,6 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 === Removed ===
 
 * `Message::from_slice` and `Message::try_clone` as the entire `Message` type now panics on allocation failure.
-
-=== Fixed ===
-
-=== Security ===
-
-//------------------------------------------------------------------------------
-// Past Releases
-//------------------------------------------------------------------------------
 
 == [nng-rs v0.5.1] - 2019-12-07 ==
 
