@@ -39,7 +39,7 @@ type InnerCallback = Box<dyn Fn() + Send + Sync + 'static>;
 /// before responding:
 ///
 /// ```
-/// use std::time::Duration;
+/// use std::{convert::TryInto, time::Duration};
 /// use nng::*;
 ///
 /// const ADDRESS: &'static str = "inproc://nng/aio/example";
