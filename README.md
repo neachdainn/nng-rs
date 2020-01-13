@@ -3,7 +3,7 @@
 [![docs.rs](https://docs.rs/nng/badge.svg)](https://docs.rs/nng)
 [![crates.io](http://img.shields.io/crates/v/nng.svg)](http://crates.io/crates/nng)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Rustc 1.31+](https://img.shields.io/badge/rustc-1.31+-lightgray.svg)
+![Rustc 1.36+](https://img.shields.io/badge/rustc-1.36+-lightgray.svg)
 ![Pipeline](https://gitlab.com/neachdainn/nng-rs/badges/master/pipeline.svg)
 
 ## What Is NNG
