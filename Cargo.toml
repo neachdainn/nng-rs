@@ -1,13 +1,13 @@
 [package]
 name = "nng"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 authors = ["Nathan Kent <nate@nkent.net>"]
 
-description = "A safe wrapper for nanomsg-next-generation (nng)"
+description = "A safe wrapper for NNG (Nanomsg v2)"
 repository = "https://gitlab.com/neachdainn/nng-rs"
 readme = "README.md"
 
-keywords = ["nng", "nanomsg"]
+keywords = ["nng", "nanomsg", "zeromq", "zmq"]
 categories = ["api-bindings", "network-programming"]
 license = "MIT"
 
@@ -18,9 +18,9 @@ gitlab = { repository = "neachdainn/nng-rs", branch = "master" }
 
 [features]
 default = ["build-nng"]
-build-nng = ["nng-sys/build-nng", "nng-sys/nng-stats"]
+build-nng = ["nng-sys/build-nng"]
 ffi-module = []
 
 [dependencies]
-nng-sys = "1.2.3-rc.1"
+nng-sys = "1.2.4-rc.1"
 log = "0.4"

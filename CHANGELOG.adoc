@@ -22,7 +22,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 // Past Releases
 //------------------------------------------------------------------------------
 
-== [nng-rs v1.0.0-rc.1] - 2020-01-07 ==
+== [nng-rs v1.0.0-rc.2] - 2020-02-15 ==
 
 === Added ===
 
