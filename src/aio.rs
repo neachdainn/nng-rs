@@ -261,20 +261,25 @@ impl Aio
 		// accurate.
 		let sleeping = State::Sleeping as usize;
 		let inactive = State::Inactive as usize;
-		let old_state = self.inner.state.compare_and_swap(inactive, sleeping, Ordering::Acquire);
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			sleeping,
+			Ordering::Acquire,
+			Ordering::Acquire,
+		);
 
-		if old_state == inactive {
-			let ms = duration_to_nng(dur);
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_aio_set_timeout(aiop, ms);
-			}
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let ms = duration_to_nng(dur);
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_aio_set_timeout(aiop, ms);
+				}
 
-			self.inner.state.store(inactive, Ordering::Release);
-			Ok(())
-		}
-		else {
-			Err(Error::IncorrectState)
+				self.inner.state.store(inactive, Ordering::Release);
+				Ok(())
+			},
+			_ => Err(Error::IncorrectState),
 		}
 	}
 
@@ -295,19 +300,23 @@ impl Aio
 	{
 		let sleeping = State::Sleeping as usize;
 		let inactive = State::Inactive as usize;
-		let old_state = self.inner.state.compare_and_swap(inactive, sleeping, Ordering::AcqRel);
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			sleeping,
+			Ordering::AcqRel,
+			Ordering::Acquire,
+		);
 
-		if old_state == inactive {
-			let ms = duration_to_nng(Some(dur));
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_sleep_aio(ms, aiop);
-			}
-
-			Ok(())
-		}
-		else {
-			Err(Error::IncorrectState)
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let ms = duration_to_nng(Some(dur));
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_sleep_aio(ms, aiop);
+				}
+				Ok(())
+			},
+			_ => Err(Error::IncorrectState),
 		}
 	}
 
@@ -338,19 +347,23 @@ impl Aio
 		let inactive = State::Inactive as usize;
 		let sending = State::Sending as usize;
 
-		let old_state = self.inner.state.compare_and_swap(inactive, sending, Ordering::AcqRel);
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			sending,
+			Ordering::AcqRel,
+			Ordering::Acquire,
+		);
 
-		if old_state == inactive {
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
-				nng_sys::nng_send_aio(socket.handle(), aiop);
-			}
-
-			Ok(())
-		}
-		else {
-			Err((msg, Error::IncorrectState))
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
+					nng_sys::nng_send_aio(socket.handle(), aiop);
+				}
+				Ok(())
+			},
+			_ => Err((msg, Error::IncorrectState)),
 		}
 	}
 
@@ -359,17 +372,22 @@ impl Aio
 	{
 		let inactive = State::Inactive as usize;
 		let receiving = State::Receiving as usize;
-		let old_state = self.inner.state.compare_and_swap(inactive, receiving, Ordering::AcqRel);
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			receiving,
+			Ordering::AcqRel,
+			Ordering::Acquire,
+		);
 
-		if old_state == inactive {
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_recv_aio(socket.handle(), aiop);
-			}
-			Ok(())
-		}
-		else {
-			Err(Error::IncorrectState)
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_recv_aio(socket.handle(), aiop);
+				}
+				Ok(())
+			},
+			_ => Err(Error::IncorrectState),
 		}
 	}
 
@@ -379,19 +397,23 @@ impl Aio
 		let inactive = State::Inactive as usize;
 		let sending = State::Sending as usize;
 
-		let old_state = self.inner.state.compare_and_swap(inactive, sending, Ordering::AcqRel);
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			sending,
+			Ordering::AcqRel,
+			Ordering::Acquire,
+		);
 
-		if old_state == inactive {
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
-				nng_sys::nng_ctx_send(ctx.handle(), aiop);
-			}
-
-			Ok(())
-		}
-		else {
-			Err((msg, Error::IncorrectState))
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_aio_set_msg(aiop, msg.into_ptr().as_ptr());
+					nng_sys::nng_ctx_send(ctx.handle(), aiop);
+				}
+				Ok(())
+			},
+			_ => Err((msg, Error::IncorrectState)),
 		}
 	}
 
@@ -400,17 +422,21 @@ impl Aio
 	{
 		let inactive = State::Inactive as usize;
 		let receiving = State::Receiving as usize;
-		let old_state = self.inner.state.compare_and_swap(inactive, receiving, Ordering::AcqRel);
-
-		if old_state == inactive {
-			let aiop = self.inner.handle.load(Ordering::Relaxed);
-			unsafe {
-				nng_sys::nng_ctx_recv(ctx.handle(), aiop);
-			}
-			Ok(())
-		}
-		else {
-			Err(Error::IncorrectState)
+		let possibly_old_state = self.inner.state.compare_exchange(
+			inactive,
+			receiving,
+			Ordering::AcqRel,
+			Ordering::Acquire,
+		);
+		match possibly_old_state {
+			Ok(old_state) if old_state == inactive => {
+				let aiop = self.inner.handle.load(Ordering::Relaxed);
+				unsafe {
+					nng_sys::nng_ctx_recv(ctx.handle(), aiop);
+				}
+				Ok(())
+			},
+			_ => Err(Error::IncorrectState),
 		}
 	}
 
