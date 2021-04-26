@@ -21,8 +21,10 @@ As such, the majority of examples available online should be easy to apply to th
 ### Rust Version Requirements
 
 The current version requires **Rustc v1.36 or greater**.
-In general, this crate should always be able to compile with the Rustc version available on the oldest Ubuntu LTS release.
-Any change that requires a newer Rustc version will always be considered a breaking change and this crate's version number will be bumped accordingly.
+In general, this crate should always be able to compile with the Rustc version available on the oldest currently-supported Ubuntu LTS release.
+Changes to the minimum required Rustc version will only be considered a breaking change if the newly required version is not available on the oldest currently-supported Ubuntu LTS release.
+
+**NOTE:** This does not necessarily mean that this crate will build without installing packages on Ubuntu LTS, as NNG currently requires a version of CMake (v3.13) that is newer than the one available in the LTS repositories.
 
 ### Features
 
@@ -32,8 +34,6 @@ Any change that requires a newer Rustc version will always be considered a break
   Note that this exposes some internal items of this library and it directly exposes the NNG library, so anything enabled by this can change without bumping versions.
 
 ### Building NNG
-
-**NOTE:** Due to a [bug](https://github.com/nanomsg/nng/commit/3890f856068542c6ddb7b498a2e313b026450bd2) in NNG v1.2.3, building NNG currently requires enabling the statistics feature.
 
 Enabling the `build-nng` feature will cause the NNG library to be built using the default settings and CMake generator.
 Most of the time, this should just work.
