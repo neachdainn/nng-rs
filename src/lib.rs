@@ -162,6 +162,7 @@
 #![allow(clippy::option_if_let_else)] // Semantically backwards when used with non-zero error codes
 #![allow(clippy::wildcard_imports)] // I don't generally like them either but can be used well
 #![allow(clippy::enum_glob_use)] // Same as wildcards
+#![allow(clippy::manual_non_exhaustive)] // Not available in v1.36
 
 #[macro_use]
 mod util;
