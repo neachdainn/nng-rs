@@ -1,7 +1,11 @@
-//! A simple PUB/SUB demonstration application.
+//! Pub/Sub (topics & broadcast) example.
 //!
-//! This application simply publishes current number of subscribers every few
-//! seconds.
+//! This pattern is used to allow a single broadcaster to publish messages to many subscribers,
+//! which may choose to limit which messages they receive.
+use nng::{
+    options::{protocol::pubsub::Subscribe, Options},
+    PipeEvent, Protocol, Socket,
+};
 use std::{
     convert::TryInto,
     env, process,
@@ -11,11 +15,6 @@ use std::{
     },
     thread,
     time::Duration,
-};
-
-use nng::{
-    options::{protocol::pubsub::Subscribe, Options},
-    PipeEvent, Protocol, Socket,
 };
 
 /// Entry point of the application.

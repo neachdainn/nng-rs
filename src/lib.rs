@@ -22,9 +22,14 @@
 //!
 //! The current version requires **Rustc v1.36 or greater**. In general, this
 //! crate should always be able to compile with the Rustc version available on
-//! the oldest Ubuntu LTS release. Any change that requires a newer Rustc
-//! version will always be considered a breaking change and this crate's version
-//! number will be bumped accordingly.
+//! the oldest currently-supported Ubuntu LTS release. Changes to the minimum
+//! required Rustc version will only be considered a breaking change if the
+//! newly required version is not available on the oldest currently-supported
+//! Ubuntu LTS release.
+//!
+//! **NOTE:** This does not necessarily mean that this crate will build without
+//! installing packages on Ubuntu LTS, as NNG currently requires a version of
+//! CMake (v3.13) that is newer than the one available in the LTS repositories.
 //!
 //! ### Features
 //!
