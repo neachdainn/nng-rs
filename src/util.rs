@@ -12,7 +12,7 @@ macro_rules! rv2res {
 		match std::num::NonZeroU32::new($rv as u32) {
 			None => Ok($ok),
 			Some(e) => Err($crate::error::Error::from(e)),
-			}
+		}
 	};
 
 	($rv:expr) => {
@@ -145,12 +145,8 @@ pub unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const c_char, _: T) -> c_int
 
 /// A catch-all function for unsupported generic options operations.
 #[allow(clippy::unimplemented)]
-pub unsafe extern "C" fn fake_genopt<H>(
-	_: H,
-	_: *const c_char,
-	_: *const c_void,
-	_: usize,
-) -> c_int
+pub unsafe extern "C" fn fake_genopt<H>(_: H, _: *const c_char, _: *const c_void, _: usize)
+-> c_int
 {
 	unimplemented!("{} does not support the generic option operation", stringify!(H))
 }

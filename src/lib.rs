@@ -142,15 +142,13 @@
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
 // library, which means the types are a little bit up-in-the-air.
 #![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::empty_enum)] // Revisit after RFC1861 and RFC1216.
 #![allow(clippy::cargo_common_metadata)] // Can't control this.
 #![allow(clippy::module_name_repetitions)] // Doesn't recognize public re-exports.
-
+#![allow(clippy::cast_possible_wrap)]
 // I want to enable this but it requires bumping the Rustc version and I don't want to do that just
 // for a clippy lint.
 #![allow(clippy::ptr_as_ptr)]
-
 // In these cases, I just don't like what Clippy suggests.
 #![allow(clippy::use_self)]
 #![allow(clippy::if_not_else)]
