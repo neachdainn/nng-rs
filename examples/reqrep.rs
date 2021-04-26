@@ -1,74 +1,77 @@
-//! A simple REQ/REP demonstration application.
+//! Request/Reply (I ask, you answer) example.
 //!
-//! This is derived from the `nng` demonstration program which in turn was
-//! derived from the legacy nanomsg demonstration program. The program
-//! implements a simple RPC style service, which just returns the number of
-//! seconds since the Unix epoch.
+//! Request/Reply is used for synchronous communication where each question if responded with a
+//! single answer, for example remote procedure calls (RPCs). Like Pipeline, it can also perform
+//! load-balancing. This is the only reliable messaging patter in the suite, as it automatically
+//! will retry if a request is not matched with a response.
+//!
+//! This example was derived from [this NNG example][1].
+//!
+//! [1]: https://nanomsg.org/gettingstarted/nng/reqrep.html
+use nng::{Error, Protocol, Socket};
 use std::{convert::TryInto, env, process, time::SystemTime};
-
-use nng::{Protocol, Socket};
 
 /// Message representing a date request
 const DATE_REQUEST: u64 = 1;
 
 /// Entry point of the application
-fn main() -> Result<(), nng::Error> {
-    // Begin by parsing the arguments to gather whether this is the client or
-    // the server and what URL to connect with.
+fn main() -> Result<(), Error> {
+    // Begin by parsing the arguments to gather whether this is the request or
+    // the reply and what URL to connect with.
     let args: Vec<_> = env::args().take(3).collect();
 
     match &args[..] {
-        [_, t, url] if t == "client" => client(url),
-        [_, t, url] if t == "server" => server(url),
+        [_, t, url] if t == "req" => request(url),
+        [_, t, url] if t == "rep" => reply(url),
         _ => {
-            println!("Usage: reqrep client|server <URL>");
+            println!("Usage: reqrep req|rep <URL>");
             process::exit(1);
         }
     }
 }
 
-/// Run the client portion of the program.
-fn client(url: &str) -> Result<(), nng::Error> {
+/// Run the request portion of the program.
+fn request(url: &str) -> Result<(), Error> {
     let s = Socket::new(Protocol::Req0)?;
     s.dial(url)?;
 
-    println!("CLIENT: SENDING DATE REQUEST");
+    println!("REQUEST: SENDING DATE REQUEST");
     s.send(DATE_REQUEST.to_le_bytes())?;
 
-    println!("CLIENT: WAITING FOR RESPONSE");
+    println!("REQUEST: WAITING FOR RESPONSE");
     let msg = s.recv()?;
     let epoch = u64::from_le_bytes(msg[..].try_into().unwrap());
 
-    println!("CLIENT: UNIX EPOCH WAS {} SECONDS AGO", epoch);
+    println!("REQUEST: UNIX EPOCH WAS {} SECONDS AGO", epoch);
 
     Ok(())
 }
 
-/// Run the server portion of the program.
-fn server(url: &str) -> Result<(), nng::Error> {
+/// Run the reply portion of the program.
+fn reply(url: &str) -> Result<(), Error> {
     let s = Socket::new(Protocol::Rep0)?;
     s.listen(url)?;
 
     loop {
-        println!("SERVER: WAITING FOR COMMAND");
+        println!("REPLY: WAITING FOR COMMAND");
         let mut msg = s.recv()?;
 
         let cmd = u64::from_le_bytes(msg[..].try_into().unwrap());
         if cmd != DATE_REQUEST {
-            println!("SERVER: UNKNOWN COMMAND");
+            println!("REPLY: UNKNOWN COMMAND");
             continue;
         }
 
-        println!("SERVER: RECEIVED DATE REQUEST");
+        println!("REPLY: RECEIVED DATE REQUEST");
         let rep = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Current system time is before Unix epoch")
+            .expect("current system time is before Unix epoch")
             .as_secs();
 
         msg.clear();
         msg.push_back(&rep.to_le_bytes());
 
-        println!("SERVER: SENDING {}", rep);
+        println!("REPLY: SENDING {}", rep);
         s.send(msg)?;
     }
 }

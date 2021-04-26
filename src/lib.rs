@@ -22,9 +22,14 @@
 //!
 //! The current version requires **Rustc v1.36 or greater**. In general, this
 //! crate should always be able to compile with the Rustc version available on
-//! the oldest Ubuntu LTS release. Any change that requires a newer Rustc
-//! version will always be considered a breaking change and this crate's version
-//! number will be bumped accordingly.
+//! the oldest currently-supported Ubuntu LTS release. Changes to the minimum
+//! required Rustc version will only be considered a breaking change if the
+//! newly required version is not available on the oldest currently-supported
+//! Ubuntu LTS release.
+//!
+//! **NOTE:** This does not necessarily mean that this crate will build without
+//! installing packages on Ubuntu LTS, as NNG currently requires a version of
+//! CMake (v3.13) that is newer than the one available in the LTS repositories.
 //!
 //! ### Features
 //!
@@ -137,23 +142,27 @@
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unimplemented)]
 #![warn(clippy::use_debug)]
-// We allow this lint in order to develop against nightly Clippy but CI against stable Clippy
-#![warn(clippy::unknown_clippy_lints)]
 // I would like to be able to keep these on, but due to the nature of the crate it just isn't
 // feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
 // library, which means the types are a little bit up-in-the-air.
 #![allow(clippy::cast_sign_loss)]
-#![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::empty_enum)] // Revisit after RFC1861 and RFC1216.
 #![allow(clippy::cargo_common_metadata)] // Can't control this.
 #![allow(clippy::module_name_repetitions)] // Doesn't recognize public re-exports.
-
+#![allow(clippy::cast_possible_wrap)]
+// I want to enable this but it requires bumping the Rustc version and I don't want to do that just
+// for a clippy lint.
+#![allow(clippy::ptr_as_ptr)]
 // In these cases, I just don't like what Clippy suggests.
 #![allow(clippy::use_self)]
-#![allow(clippy::replace_consts)]
 #![allow(clippy::if_not_else)]
 #![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::option_if_let_else)] // Semantically backwards when used with non-zero error codes
+#![allow(clippy::wildcard_imports)] // I don't generally like them either but can be used well
+#![allow(clippy::enum_glob_use)] // Same as wildcards
+#![allow(clippy::manual_non_exhaustive)] // Not available in v1.36
 
 #[macro_use]
 mod util;

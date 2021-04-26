@@ -20,8 +20,9 @@ before_script:
   - apt-get update -yqq
   - apt-get install -o dir::cache::archives="$APT_CACHE_DIR" -yqq --no-install-recommends build-essential cmake
 
-# Make sure that the style is correct. Since we use unstable formatting
-# features, we use the nightly toolchain for this.
+# My preferred formatting *requires* the nightly version of Rustfmt. Since using the
+# latest stable won't work and nightly doesn't always have the Rustfmt component, we
+# will allow this one to fail.
 format:
   image: "rustlang/rust:nightly-slim"
   stage: analysis
@@ -29,12 +30,15 @@ format:
     - rustup component add rustfmt
     - cargo fmt --version
     - cargo fmt --package nng -- --check
+  allow_failure: true
   only:
     - tags
     - master
     - merge_requests
 
 # We can't use the nightly image for Clippy since nightly sometimes doesn't have it.
+# However, we don't *need* nightly so we'll fall back to stable and not allow it
+# to fail.
 clippy:
   stage: analysis
   script:
@@ -48,7 +52,7 @@ clippy:
 
 # Test the project against the minimum Rust version to make sure we don't raise it
 minimum-rust-version:
-  image: "rust:1.36-slim"
+  image: "rust:1.36-slim-buster"
   stage: test
   script:
     - rustc --version

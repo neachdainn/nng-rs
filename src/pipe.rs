@@ -57,6 +57,7 @@ impl Pipe
 	/// delivered, depending upon the transport and the linger option. Pipe are
 	/// automatically closed when their creator closes or when the remote peer
 	/// closes the underlying connection.
+	#[allow(clippy::missing_panics_doc)]
 	pub fn close(self)
 	{
 		// The pipe either closes succesfully, was already closed, or was never open. In

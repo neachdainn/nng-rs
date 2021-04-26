@@ -27,9 +27,8 @@ pub enum Protocol
 	/// Version 1 of the pair protocol.
 	///
 	/// The _pair_ protocol implements a peer-to-peer pattern, where
-	/// relationships between peers are one-to-one. Version 1 of this protocol
-	/// supports and optional _polyamorous_ mode. See the [pair
-	/// documentation][1] for more information.
+	/// relationships between peers are one-to-one. See the [pair documentation][1] for more
+	/// information.
 	///
 	/// [1]: https://nanomsg.github.io/nng/man/v1.2.2/nng_pair.7.html
 	Pair1,

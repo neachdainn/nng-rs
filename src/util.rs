@@ -12,7 +12,7 @@ macro_rules! rv2res {
 		match std::num::NonZeroU32::new($rv as u32) {
 			None => Ok($ok),
 			Some(e) => Err($crate::error::Error::from(e)),
-			}
+		}
 	};
 
 	($rv:expr) => {
@@ -137,25 +137,23 @@ macro_rules! expose_options
 }
 
 /// A catch-all function for unsupported options operations.
-pub(crate) unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const c_char, _: T) -> c_int
+#[allow(clippy::unimplemented)]
+pub unsafe extern "C" fn fake_opt<H, T>(_: H, _: *const c_char, _: T) -> c_int
 {
 	unimplemented!("{} does not support the option operation on {}", stringify!(H), stringify!(T))
 }
 
 /// A catch-all function for unsupported generic options operations.
-pub(crate) unsafe extern "C" fn fake_genopt<H>(
-	_: H,
-	_: *const c_char,
-	_: *const c_void,
-	_: usize,
-) -> c_int
+#[allow(clippy::unimplemented)]
+pub unsafe extern "C" fn fake_genopt<H>(_: H, _: *const c_char, _: *const c_void, _: usize)
+-> c_int
 {
 	unimplemented!("{} does not support the generic option operation", stringify!(H))
 }
 
 /// Converts a Rust `Duration` into an `nng_duration`.
 #[allow(clippy::cast_possible_truncation)]
-pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
+pub fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 {
 	// The subsecond milliseconds is guaranteed to be less than 1000, which
 	// means converting from `u32` to `i32` is safe. The only other
@@ -174,7 +172,7 @@ pub(crate) fn duration_to_nng(dur: Option<Duration>) -> nng_sys::nng_duration
 }
 
 /// Converts an `nng_duration` into a Rust `Duration`.
-pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
+pub fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 {
 	if ms == nng_sys::NNG_DURATION_INFINITE {
 		None
@@ -190,7 +188,7 @@ pub(crate) fn nng_to_duration(ms: nng_sys::nng_duration) -> Option<Duration>
 /// Checks an NNG return code and validates the pointer, returning a
 /// `NonNull`.
 #[inline]
-pub(crate) fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
+pub fn validate_ptr<T>(rv: c_int, ptr: *mut T) -> Result<NonNull<T>>
 {
 	if let Some(e) = std::num::NonZeroU32::new(rv as u32) {
 		Err(Error::from(e))
