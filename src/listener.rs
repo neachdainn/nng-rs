@@ -86,6 +86,7 @@ impl Listener
 	///
 	///
 	/// [`Pipe`]: struct.Pipe.html
+	#[allow(clippy::missing_panics_doc)]
 	pub fn close(self)
 	{
 		// Closing the listener should only ever result in success or ECLOSED

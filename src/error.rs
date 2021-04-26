@@ -6,10 +6,10 @@ use crate::message::Message;
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Specialized `Result` type for use with send operations.
-pub(crate) type SendResult<T> = std::result::Result<T, SendError>;
+pub type SendResult<T> = std::result::Result<T, SendError>;
 
 /// Error type for send operations.
-pub(crate) type SendError = (Message, Error);
+pub type SendError = (Message, Error);
 
 /// Errors potentially returned by NNG operations.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]

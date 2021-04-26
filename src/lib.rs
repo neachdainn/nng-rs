@@ -137,8 +137,6 @@
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unimplemented)]
 #![warn(clippy::use_debug)]
-// We allow this lint in order to develop against nightly Clippy but CI against stable Clippy
-#![warn(clippy::unknown_clippy_lints)]
 // I would like to be able to keep these on, but due to the nature of the crate it just isn't
 // feasible. For example, the "cast_sign_loss" will warn at every i32/u32 conversion. Normally, I
 // would like that, but this library is a safe wrapper around a Bindgen-based binding of a C
@@ -149,11 +147,18 @@
 #![allow(clippy::cargo_common_metadata)] // Can't control this.
 #![allow(clippy::module_name_repetitions)] // Doesn't recognize public re-exports.
 
+// I want to enable this but it requires bumping the Rustc version and I don't want to do that just
+// for a clippy lint.
+#![allow(clippy::ptr_as_ptr)]
+
 // In these cases, I just don't like what Clippy suggests.
 #![allow(clippy::use_self)]
-#![allow(clippy::replace_consts)]
 #![allow(clippy::if_not_else)]
 #![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::option_if_let_else)] // Semantically backwards when used with non-zero error codes
+#![allow(clippy::wildcard_imports)] // I don't generally like them either but can be used well
+#![allow(clippy::enum_glob_use)] // Same as wildcards
 
 #[macro_use]
 mod util;

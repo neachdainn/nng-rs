@@ -408,7 +408,7 @@ impl Socket
 	///
 	/// None specified.
 	///
-	/// # Panicking
+	/// # Panics
 	///
 	/// If the callback function panics, the program will log the panic if
 	/// possible and then abort. Future Rustc versions will likely do the
@@ -678,13 +678,11 @@ impl Drop for Inner
 /// [1]: fn.forwarder.html
 /// [`Header`]: struct.Header.html
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[non_exhaustive]
 pub struct RawSocket
 {
 	/// The NNG socket.
 	pub socket: Socket,
-
-	/// A hidden item to make sure that the user can't construct the type.
-	_hidden: (),
 }
 
 impl RawSocket
@@ -725,7 +723,7 @@ impl RawSocket
 		let socket =
 			Socket { inner: Arc::new(Inner { handle: socket, pipe_notify: RwLock::new(None) }) };
 
-		Ok(RawSocket { socket, _hidden: () })
+		Ok(RawSocket { socket })
 	}
 }
 
@@ -738,7 +736,7 @@ impl TryFrom<Socket> for RawSocket
 		use crate::options::{Options, Raw};
 
 		if socket.get_opt::<Raw>().expect("Socket should have \"raw\" option available") {
-			Ok(RawSocket { socket, _hidden: () })
+			Ok(RawSocket { socket })
 		}
 		else {
 			Err(CookedSocketError)

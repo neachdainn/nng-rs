@@ -134,7 +134,7 @@ impl Aio
 	///
 	/// * [`OutOfMemory`]: Insufficient memory available.
 	///
-	/// # Panicking
+	/// # Panics
 	///
 	/// If the callback function panics, the program will log the panic if
 	/// possible and then abort. Future Rustc versions will likely do the
@@ -517,6 +517,7 @@ struct Inner
 
 impl Drop for Inner
 {
+	#[allow(clippy::let_underscore_drop)]
 	fn drop(&mut self)
 	{
 		// It is possible for this to be dropping while the pointer is null. The
