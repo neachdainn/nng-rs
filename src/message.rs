@@ -197,8 +197,7 @@ impl Message
 	/// Sets the pipe associated with the message.
 	///
 	/// This is most useful when used with protocols that support directing a
-	/// message to a specific peer. For example, the _pair_ version 1 protocol
-	/// can do this when in polyamorous mode. Not all protocols support this.
+	/// message to a specific peer. Not all protocols support this.
 	pub fn set_pipe(&mut self, pipe: Pipe)
 	{
 		unsafe { nng_sys::nng_msg_set_pipe(self.msgp.as_ptr(), pipe.handle()) }

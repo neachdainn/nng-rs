@@ -320,6 +320,7 @@ pub mod protocol
 			///
 			/// * Sockets are able to read and write this value if they are using the `Pair1`
 			///   protocol.
+			#[doc(hidden)]
 			Polyamorous -> bool:
 			Get s = s.getopt_bool(nng_sys::NNG_OPT_PAIR1_POLY as *const _ as _);
 			Set s v = s.setopt_bool(nng_sys::NNG_OPT_PAIR1_POLY as *const _ as _, v);
