@@ -22,7 +22,7 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 // Past Releases
 //------------------------------------------------------------------------------
 
-== [nng-rs v1.0.0-rc.2] - 2020-02-15 ==
+== [nng-rs v1.0.0] - 2021-04-26 ==
 
 === Added ===
 
@@ -36,11 +36,13 @@ The format is based on https://keepachangelog.com/en/1.0.0/[Keep a Changelog] an
 * Removed `nonblocking` argument from `ListenerOptions::new` to match `Listener::new`.
 * Renamed `{Dialer,Listener}Options` to `{Dialer,Listener}Builder` to better match the builder pattern.
 * All `Message` and `Header` methods now panic on allocation failure instead of returning a `Result`.
+* Default `libnng` version is 1.4.0.
 
 === Deprecated ===
 
 * Deprecated `Socket::listen_async` as it is functionally equivalent to `Socket::listen` and will be removed at some point in the future.
 * Deprecated `Socket::into_raw` in favor of the `TryFrom` trait. (#43)
+* Deprecated Pair1 polyamorous mode as it will eventually be removed from NNG.
 
 === Removed ===
 

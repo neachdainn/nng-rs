@@ -38,16 +38,19 @@ macro_rules! create_option
 		#[allow(missing_copy_implementations)]
 		#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 		pub enum $opt {}
+		#[allow(deprecated)]
 		impl $crate::options::Opt for $opt
 		{
 			type OptType = $ot;
 		}
+		#[allow(deprecated)]
 		#[allow(clippy::cast_possible_truncation)]
 		impl $crate::options::private::OptOps for $opt
 		{
 			fn get<T: $crate::options::private::HasOpts>($g: &T) -> $crate::error::Result<Self::OptType> { $gexpr }
 			fn set<T: $crate::options::private::HasOpts>($s: &T, $v: Self::OptType) -> $crate::error::Result<()> { $sexpr }
 		}
+		#[allow(deprecated)]
 		#[allow(clippy::use_debug)]
 		impl std::fmt::Display for $opt
 		{
@@ -131,8 +134,14 @@ macro_rules! expose_options
 			const SETOPT_STRING: unsafe extern "C" fn(Self::Handle, *const std::os::raw::c_char, *const std::os::raw::c_char) -> std::os::raw::c_int = $so_str;
 		}
 
-		$(impl $crate::options::GetOpt<$crate::options::$($getters)::+> for $struct {})*
-		$(impl $crate::options::SetOpt<$crate::options::$($setters)::+> for $struct {})*
+		$(
+			#[allow(deprecated)]
+			impl $crate::options::GetOpt<$crate::options::$($getters)::+> for $struct {}
+		)*
+		$(
+			#[allow(deprecated)]
+			impl $crate::options::SetOpt<$crate::options::$($setters)::+> for $struct {}
+		)*
 	}
 }
 
